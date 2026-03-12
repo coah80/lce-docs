@@ -1,0 +1,31 @@
+---
+title: LCEMP Documentation
+description: Complete documentation for the Minecraft Legacy Console Edition Multiplayer source code.
+template: splash
+hero:
+  tagline: Community-driven documentation for the Minecraft LCE C++ codebase, generated through 40 systematic analysis passes.
+  actions:
+    - text: Get Started
+      link: /overview/introduction/
+      icon: right-arrow
+    - text: Modding Guide
+      link: /modding/getting-started/
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+<CardGrid stagger>
+	<Card title="Architecture" icon="setting">
+		Understand the two-module architecture: `Minecraft.World` (game logic) and `Minecraft.Client` (rendering, UI, platform).
+	</Card>
+	<Card title="Blocks, Items & Entities" icon="puzzle">
+		Complete documentation of every tile (block), item, and entity class with their registration patterns.
+	</Card>
+	<Card title="Modding Guide" icon="rocket">
+		Step-by-step guides for adding new blocks, items, entities, biomes, enchantments, recipes, and more.
+	</Card>
+	<Card title="Platform Code" icon="laptop">
+		Documentation for all platform targets: Xbox 360, Xbox One, PS3, PS4, PS Vita, Windows 64, and macOS.
+	</Card>
+</CardGrid>
