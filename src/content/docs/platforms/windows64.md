@@ -31,7 +31,7 @@ The Windows 64-bit port is the primary development target for LCEMP. It lives in
 
 ## Entry Point and Main Loop
 
-`Windows64_Minecraft.cpp` defines the Win32 `WinMain` entry point. The startup sequence:
+`Windows64_Minecraft.cpp` defines the Win32 entry point. The startup sequence:
 
 1. Parse command-line arguments for username, resolution, and multiplayer options
 2. Create the Win32 window with `CreateWindowEx`
