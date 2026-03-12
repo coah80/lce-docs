@@ -3,100 +3,99 @@ title: "Textures & Resources"
 description: "Texture loading and resource management in LCEMP."
 ---
 
-LCEMP manages textures through several cooperating systems: `Textures` handles loading and binding, `TextureManager` provides a global name-to-ID registry, `TexturePackRepository` manages texture pack selection, and various texture pack classes abstract the source of texture data.
+LCEMP manages textures through several cooperating systems: `Textures` handles loading and binding, `TextureManager` provides a name-to-ID registry, `TexturePackRepository` manages texture pack selection, and a hierarchy of `TexturePack` implementations abstracts resource sources.
 
 ## Textures
 
-The `Textures` class is the primary texture loading and binding interface, owned by `Minecraft`:
+The `Textures` class is the primary texture management interface, owned by the `Minecraft` instance. It handles loading images from disk, binding textures for rendering, and managing dynamic/animated textures.
 
-```cpp
-class Textures {
-public:
-    static bool MIPMAP;
-    static C4JRender::eTextureFormat TEXTURE_FORMAT;
+### Texture name registry (TEXTURE_NAME enum)
 
-    void bindTexture(const wstring& resourceName);
-    void bindTexture(int resourceId);
-    int loadTexture(int idx);
-    int getTexture(BufferedImage* img, ...);
-    void loadTexture(BufferedImage* img, int id);
-    void replaceTexture(intArray rawPixels, int w, int h, int id);
-    void replaceTextureDirect(intArray rawPixels, int w, int h, int id);
-    void releaseTexture(int id);
-    void tick(bool updateTextures, bool tickDynamics = true);
-    void reloadAll();
-    void stitch();
-    Icon* getMissingIcon(int type);
-};
-```
+All built-in textures are registered through the `TEXTURE_NAME` enum, which assigns a compile-time ID to each texture resource. The enum contains entries organized by version:
 
-### Texture ID system
-
-Textures are identified by integer IDs, with a name-to-ID mapping:
-
-```cpp
-unordered_map<wstring, int> idMap;           // name -> GPU texture ID
-unordered_map<wstring, intArray> pixelsMap;  // name -> pixel data cache
-unordered_map<int, BufferedImage*> loadedImages;  // ID -> source image
-```
-
-### Pre-loaded texture enumeration
-
-The `TEXTURE_NAME` enum defines all built-in textures loaded at startup. A selection of the entries:
+**Original textures:**
 
 | Category | Examples |
 |---|---|
-| **GUI** | `TN_GUI_GUI`, `TN_GUI_ICONS`, `TN_GUI_ITEMS` |
-| **Environment** | `TN_ENVIRONMENT_CLOUDS`, `TN_ENVIRONMENT_RAIN`, `TN_ENVIRONMENT_SNOW` |
-| **Terrain** | `TN_TERRAIN`, `TN_TERRAIN_SUN`, `TN_TERRAIN_MOON`, `TN_TERRAIN_MOON_PHASES` |
-| **Mobs** | `TN_MOB_CHICKEN`, `TN_MOB_COW`, `TN_MOB_PIG`, `TN_MOB_SHEEP`, `TN_MOB_WOLF`, `TN_MOB_CREEPER`, `TN_MOB_ZOMBIE`, `TN_MOB_SKELETON`, `TN_MOB_SPIDER`, `TN_MOB_ENDERMAN`, `TN_MOB_BLAZE`, `TN_MOB_GHAST`, `TN_MOB_SLIME`, `TN_MOB_SQUID`, `TN_MOB_ENDERDRAGON`, `TN_MOB_VILLAGER_*`, etc. |
-| **Player skins** | `TN_MOB_CHAR` through `TN_MOB_CHAR7` (8 player skin slots) |
-| **Items** | `TN_ITEM_ARROWS`, `TN_ITEM_BOAT`, `TN_ITEM_CART`, `TN_ITEM_SIGN`, `TN_ITEM_BOOK`, `TN_ITEM_EXPERIENCE_ORB` |
-| **Misc** | `TN_PARTICLES`, `TN_ART_KZ` (paintings), `TN_MISC_MAPBG`, `TN_MISC_MAPICONS`, `TN_MISC_WATER`, `TN_MISC_TUNNEL`, `TN_MISC_PARTICLEFIELD` |
-| **Tile entities** | `TN_TILE_CHEST`, `TN_TILE_LARGE_CHEST`, `TN_TILE_ENDER_CHEST` |
-| **Effects** | `TN_POWERED_CREEPER`, `TN__BLUR__MISC_PUMPKINBLUR`, `TN__BLUR__MISC_GLINT`, `TN__CLAMP__MISC_SHADOW` |
-| **Fonts** | `TN_DEFAULT_FONT`, `TN_ALT_FONT` |
+| GUI | `TN_GUI_GUI`, `TN_GUI_ICONS` |
+| Environment | `TN_ENVIRONMENT_CLOUDS`, `TN_ENVIRONMENT_RAIN`, `TN_ENVIRONMENT_SNOW` |
+| Particles | `TN_PARTICLES` |
+| Terrain | `TN_TERRAIN_MOON`, `TN_TERRAIN_SUN`, `TN_TERRAIN_MOON_PHASES` |
+| Items | `TN_ITEM_ARROWS`, `TN_ITEM_BOAT`, `TN_ITEM_CART`, `TN_ITEM_SIGN`, `TN_ITEM_EXPERIENCE_ORB`, `TN_ITEM_BOOK` |
+| Art | `TN_ART_KZ` (paintings) |
+| Misc | `TN_MISC_MAPBG`, `TN_MISC_MAPICONS`, `TN_MISC_WATER`, `TN_MISC_FOOTSTEP`, `TN_MISC_EXPLOSION`, `TN_MISC_TUNNEL`, `TN_MISC_PARTICLEFIELD` |
 
-The total count is `TN_COUNT`. Texture names prefixed with `__BLUR__` are loaded with bilinear filtering, and `__CLAMP__` with clamp wrapping.
+**Mob textures (extensive list):**
+
+| Mob | Texture names |
+|---|---|
+| Passive | `TN_MOB_CHICKEN`, `TN_MOB_COW`, `TN_MOB_PIG`, `TN_MOB_SHEEP`, `TN_MOB_SQUID`, `TN_MOB_WOLF` (+ tame/angry/collar), `TN_MOB_OZELOT` (+ cat variants), `TN_MOB_RED_COW` |
+| Hostile | `TN_MOB_CREEPER`, `TN_MOB_GHAST` (+ fire), `TN_MOB_ZOMBIE`, `TN_MOB_PIGZOMBIE`, `TN_MOB_SKELETON`, `TN_MOB_SLIME`, `TN_MOB_SPIDER`, `TN_MOB_CAVE_SPIDER`, `TN_MOB_ENDERMAN` (+ eyes), `TN_MOB_SILVERFISH`, `TN_MOB_BLAZE`, `TN_MOB_LAVA`, `TN_MOB_WITHER_SKELETON`, `TN_MOB_ZOMBIE_VILLAGER` |
+| NPCs | `TN_MOB_VILLAGER_VILLAGER`, `TN_MOB_VILLAGER_FARMER`, `TN_MOB_VILLAGER_LIBRARIAN`, `TN_MOB_VILLAGER_PRIEST`, `TN_MOB_VILLAGER_SMITH`, `TN_MOB_VILLAGER_BUTCHER`, `TN_MOB_VILLAGER_GOLEM` |
+| Boss | `TN_MOB_ENDERDRAGON` (+ shuffle, beam, eyes, crystal) |
+| Utility | `TN_MOB_SNOWMAN`, `TN_MOB_SADDLE`, `TN_MOB_SHEEP_FUR`, `TN_MOB_SPIDER_EYES` |
+| Player skins | `TN_MOB_CHAR` through `TN_MOB_CHAR7` (8 default skins) |
+| Effects | `TN_POWERED_CREEPER`, `TN__BLUR__MISC_GLINT`, `TN__BLUR__MISC_PUMPKINBLUR`, `TN__CLAMP__MISC_SHADOW` |
+
+**Tile entity textures:**
+`TN_TILE_CHEST`, `TN_TILE_LARGE_CHEST`, `TN_TILE_ENDER_CHEST`
+
+**Atlases:**
+`TN_GUI_ITEMS` (item sprite atlas), `TN_TERRAIN` (block texture atlas)
+
+**Fonts:**
+`TN_DEFAULT_FONT`, `TN_ALT_FONT`
+
+The total count is `TN_COUNT`.
+
+### Key methods
+
+| Method | Purpose |
+|---|---|
+| `bindTexture(const wstring&)` | Bind a texture by resource path |
+| `bindTexture(int)` | Bind a texture by ID |
+| `loadTexture(TEXTURE_NAME, const wstring&)` | Load and register a named texture |
+| `loadTexturePixels(TEXTURE_NAME, const wstring&)` | Load pixel data for a named texture |
+| `getTexture(BufferedImage*)` | Create a GPU texture from a `BufferedImage` |
+| `replaceTexture(intArray, int w, int h, int id)` | Replace texture data in-place |
+| `replaceTextureDirect(...)` | Optimized texture replacement (skips format conversion) |
+| `releaseTexture(int id)` | Free a GPU texture |
+| `tick(bool updateTextures, bool tickDynamics)` | Animate dynamic textures |
+| `reloadAll()` | Reload all textures (after texture pack change) |
+| `stitch()` | Rebuild the stitched terrain/item atlases |
+| `getMissingIcon(int type)` | Get the purple/black missing texture icon |
 
 ### HTTP and memory textures
 
-For player skins and online content, `Textures` supports two dynamic texture sources:
+For multiplayer skins and DLC content, `Textures` supports loading from remote sources:
 
 ```cpp
-// HTTP textures (skin server)
 int loadHttpTexture(const wstring& url, const wstring& backup);
 HttpTexture* addHttpTexture(const wstring& url, HttpTextureProcessor* processor);
-
-// Memory textures (GTS/DLC skins)
 int loadMemTexture(const wstring& url, const wstring& backup);
 MemTexture* addMemTexture(const wstring& url, MemTextureProcessor* processor);
 ```
 
-`HttpTextureProcessor` and `MemTextureProcessor` are callback interfaces for processing downloaded texture data (e.g., `MobSkinTextureProcessor`, `MobSkinMemTextureProcessor` for player skin format conversion).
+`HttpTexture` loads textures from URLs with a fallback. `MemTexture` loads from in-memory buffers (used for GTS/global texture storage player skins). Both support callback processors (`HttpTextureProcessor`, `MemTextureProcessor`) for post-load processing.
 
-### Texture ticking
+### Skin texture processors
 
-`Textures::tick(bool updateTextures, bool tickDynamics)` is called each game tick:
-- `updateTextures` -- when true, reloads modified textures (set to true once per tick cycle)
-- `tickDynamics` -- advances animated textures (water, lava, clock, compass)
+| Class | Purpose |
+|---|---|
+| `MobSkinTextureProcessor` | Processes mob skin textures from HTTP sources |
+| `MobSkinMemTextureProcessor` | Processes mob skin textures from memory buffers |
 
-### Stitching
+### Anaglyph conversion
 
-`stitch()` assembles the terrain and item texture atlases from individual source images. The `PreStitchedTextureMap` class holds the pre-assembled atlas:
-
-```cpp
-PreStitchedTextureMap* terrain;  // block textures
-PreStitchedTextureMap* items;    // item textures
-```
+When stereoscopic 3D is enabled, `Textures::anaglyph()` converts pixel data to the appropriate color channel separation.
 
 ### Title update textures
 
-`IsTUImage()` and `IsOriginalImage()` determine whether a texture should be loaded from the title update (patched) or original (base game) resource path.
+`Textures::IsTUImage()` and `Textures::IsOriginalImage()` determine whether a texture should be loaded from the title update drive or the original game disc, enabling texture replacements through patches.
 
 ## TextureManager
 
-`TextureManager` is a global singleton that maps texture names to `Texture` objects:
+`TextureManager` is a singleton registry mapping string names to texture IDs and `Texture` objects:
 
 ```cpp
 class TextureManager {
@@ -113,27 +112,50 @@ class TextureManager {
 };
 ```
 
-It generates unique integer IDs for textures and provides factory methods for creating textures from file paths or raw parameters.
+It provides the link between named resources and GPU texture handles, and creates `Stitcher` instances for atlas building.
 
-## Texture pack system
+## Texture stitching
 
-### TexturePack (interface)
+The texture atlas system combines many small textures into large atlases for efficient rendering:
 
-`TexturePack` is the abstract base for all texture sources:
+| Class | Purpose |
+|---|---|
+| `Stitcher` | Packs textures into an atlas using a bin-packing algorithm |
+| `StitchSlot` | Represents a slot within the stitched atlas |
+| `StitchedTexture` | An individual texture within a stitched atlas |
+| `PreStitchedTextureMap` | Pre-built terrain and item texture maps |
+| `TextureMap` | Runtime texture atlas management |
+
+`Textures` owns two `PreStitchedTextureMap` instances: `terrain` (block faces) and `items` (item sprites).
+
+## Dynamic textures
+
+Some textures animate each tick:
+
+| Class | Purpose |
+|---|---|
+| `ClockTexture` | Clock item face rotation |
+| `CompassTexture` | Compass needle direction |
+
+These are updated during `Textures::tick()` when `tickDynamics` is true.
+
+## BufferedImage
+
+`BufferedImage` is the CPU-side image container used for loading and manipulating texture data before uploading to the GPU. It stores pixel data as integer arrays.
+
+## TexturePack hierarchy
+
+`TexturePack` is the abstract base for resource sources:
 
 ```cpp
 class TexturePack {
     virtual bool hasData() = 0;
-    virtual bool isLoadingData() = 0;
     virtual void load(Textures* textures) = 0;
     virtual void unload(Textures* textures) = 0;
     virtual InputStream* getResource(const wstring& name, bool allowFallback) = 0;
+    virtual bool hasFile(const wstring& name, bool allowFallback) = 0;
     virtual DWORD getId() = 0;
     virtual wstring getName() = 0;
-    virtual wstring getDesc1() = 0;
-    virtual wstring getDesc2() = 0;
-    virtual bool hasFile(const wstring& name, bool allowFallback) = 0;
-    virtual bool isTerrainUpdateCompatible() = 0;
     virtual BufferedImage* getImageResource(const wstring& File, ...) = 0;
     virtual void loadColourTable() = 0;
     virtual ColourTable* getColourTable() = 0;
@@ -143,34 +165,27 @@ class TexturePack {
 
 ### TexturePack implementations
 
-| Class | Source | Description |
+| Class | Source | Notes |
 |---|---|---|
-| `DefaultTexturePack` | Built-in | Default game textures from bundled resources |
-| `AbstractTexturePack` | Base class | Common functionality for file-based packs |
-| `FileTexturePack` | Archive file | Textures from a packed archive |
-| `FolderTexturePack` | Directory | Textures from a folder on disk |
-| `DLCTexturePack` | DLC content | Textures from installed DLC packs |
-
-Each pack can provide its own colour table, UI assets, and audio replacements (for mash-up packs).
+| `DefaultTexturePack` | Built-in game resources | Fallback for all packs |
+| `AbstractTexturePack` | Base for custom packs | Shared implementation |
+| `FileTexturePack` | Single archive file | `.zip` or custom format |
+| `FolderTexturePack` | Directory of loose files | Development/testing |
+| `DLCTexturePack` | DLC content package | Mash-up packs, texture packs |
 
 ### TexturePackRepository
 
-`TexturePackRepository` manages the collection of available texture packs and the currently selected one:
+Manages the collection of available texture packs and the currently selected one:
 
 ```cpp
 class TexturePackRepository {
     static const DWORD DEFAULT_TEXTURE_PACK_ID = 0;
-    static const DWORD FOLDER_TEST_TEXTURE_PACK_ID = 1;
-    static const DWORD DLC_TEST_TEXTURE_PACK_ID = 2;
 
     bool selectSkin(TexturePack* skin);
     bool selectTexturePackById(DWORD id);
     TexturePack* getSelected();
     TexturePack* getDefault();
-    bool isUsingDefaultSkin();
-
     vector<TexturePack*>* getAll();
-    TexturePack* getTexturePackById(DWORD id);
     unsigned int getTexturePackCount();
 
     TexturePack* addTexturePackFromDLC(DLCPack* dlcPack, DWORD id);
@@ -178,57 +193,58 @@ class TexturePackRepository {
 };
 ```
 
-The repository also supports web-sourced skins (`selectWebSkin()`, `isUsingWebSkin()`) with a 10 MB size limit.
+It supports texture pack selection by ID (`selectTexturePackById()`), web skins (`selectWebSkin()`, `isUsingWebSkin()`), and DLC packs (`addTexturePackFromDLC()`).
 
-## Dynamic textures
+## Resource directory structure
 
-### ClockTexture and CompassTexture
+Resources are organized under `Common/res/`:
 
-`ClockTexture` and `CompassTexture` are animated textures that update each tick:
-- `ClockTexture` rotates based on the current world time
-- `CompassTexture` points toward the world spawn point
-
-### BufferedImage
-
-`BufferedImage` is the software image container used for loading, manipulating, and uploading texture data. It stores pixel data as integer arrays and provides image reading functionality.
-
-## Resource paths
-
-The resource directory structure under `Common/res/` mirrors the Minecraft resource layout:
-
-| Path | Contents |
-|---|---|
-| `achievement/` | Achievement icons |
-| `armor/` | Armor layer textures |
-| `art/` | Painting textures |
-| `audio/` | Sound file references |
-| `environment/` | Sky, clouds, rain, snow |
-| `font/` | Font texture sheets |
-| `gui/` | GUI elements (buttons, icons, inventory) |
-| `item/` | Item-specific textures (arrows, boat, cart, sign) |
-| `misc/` | Miscellaneous (map, shadow, footstep, particles) |
-| `mob/` | All mob textures organized by creature |
-| `terrain/` | Sun, moon textures |
-| `title/` | Title screen elements and panorama backgrounds |
-
-A `TitleUpdate/` subdirectory mirrors this structure with patched/updated textures, and `TitleUpdate/DLC/` contains per-DLC texture overrides for mash-up packs (Candy, Cartoon, City, Fantasy, Festive, Halloween, Halo, Mass Effect, Natural, Plastic, Skyrim, Steampunk).
-
-## StitchedTexture and Stitcher
-
-The `Stitcher` class packs individual block/item textures into atlas sheets. `StitchedTexture` represents a region within a stitched atlas, and `StitchSlot` tracks the position and size of each slot.
-
-## Pending texture requests
-
-The `Minecraft` class manages client-side texture requests for multiplayer:
-
-```cpp
-vector<wstring> m_pendingTextureRequests;    // skin textures awaiting download
-vector<wstring> m_pendingGeometryRequests;   // skin box geometry awaiting download
-
-bool addPendingClientTextureRequest(const wstring& textureName);
-void handleClientTextureReceived(const wstring& textureName);
-bool addPendingClientGeometryRequest(const wstring& textureName);
-void handleClientGeometryReceived(const wstring& textureName);
+```
+res/
+  achievement/       -- achievement icons
+  armor/             -- armor textures
+  art/               -- painting textures
+  audio/             -- sound banks
+  environment/       -- clouds, rain, snow
+  font/              -- font atlases
+  gui/               -- GUI textures
+  item/              -- item-specific textures
+  misc/              -- miscellaneous (maps, particles)
+  mob/               -- mob textures (with subdirs for enderdragon, villager)
+  terrain/           -- terrain textures (sun, moon)
+  title/             -- title screen assets
+  TitleUpdate/       -- patch content overlay
+    audio/
+    DLC/             -- DLC packs (Candy, Cartoon, City, Fantasy, etc.)
+    GameRules/
+    res/             -- updated textures
 ```
 
-This allows the client to request custom skin textures and additional model geometry from the server or online services.
+The `1_2_2/` subdirectory contains the original 1.2.2 version resources as a baseline.
+
+## DLC texture packs
+
+Each DLC pack under `TitleUpdate/DLC/` contains a `Data/` subdirectory with pack-specific resources. Available DLC packs in the source tree:
+
+- Candy
+- Cartoon
+- City
+- Fantasy
+- Festive
+- Halloween
+- Halo
+- Mass Effect
+- Natural
+- Plastic
+- Skyrim
+- Steampunk
+
+DLC packs are managed through `DLCManager` and `DLCPack` in `Common/DLC/`, with file types defined in headers like `DLCTextureFile.h`, `DLCColourTableFile.h`, `DLCAudioFile.h`, `DLCSkinFile.h`, and `DLCUIDataFile.h`.
+
+## Colour tables
+
+`ColourTable` (in `Common/Colours/`) provides biome-specific color lookup for foliage, grass, water, and sky colors. Each texture pack can supply its own colour table via `TexturePack::loadColourTable()` and `TexturePack::getColourTable()`. The `eMinecraftColour` enum in `App_enums.h` defines all colour IDs.
+
+## Texture format
+
+The static member `Textures::TEXTURE_FORMAT` controls the GPU texture format. Mipmapping is controlled by `Textures::MIPMAP`. Format selection via `setTextureFormat()` adapts to platform capabilities.

@@ -3,18 +3,19 @@ title: "Input System"
 description: "How LCEMP handles keyboard, mouse, and controller input."
 ---
 
-LCEMP supports three input sources: console controllers (the primary input on all platforms), keyboard and mouse (Windows 64 / macOS), and touch (PS Vita). The input system translates raw hardware events into game actions through several abstraction layers.
+LCEMP supports three input methods: gamepad controllers (primary for all console platforms), keyboard/mouse (Windows 64-bit port), and touch (PS Vita). The input system is split across several classes that abstract platform differences and feed into the game's action system.
 
-## Input class
+## Input class hierarchy
 
-`Input` is the base class for movement input that feeds into player control:
+### Input (base)
+
+`Input` is the abstract base for movement input processing:
 
 ```cpp
 class Input {
 public:
-    float xa;           // horizontal movement axis (-1 to 1)
-    float ya;           // vertical movement axis (-1 to 1)
-
+    float xa;          // horizontal movement axis (-1 to 1)
+    float ya;          // vertical movement axis (-1 to 1)
     bool wasJumping;
     bool jumping;
     bool sneaking;
@@ -24,150 +25,143 @@ public:
 };
 ```
 
-Each local player has an `Input` instance that translates controller/keyboard state into the movement vector and action flags that the player entity consumes during its tick.
+This is the minimal interface that `LocalPlayer` uses each tick to determine movement intent. The `xa`/`ya` values drive horizontal movement, while `jumping`, `sneaking`, and `sprinting` flags trigger their respective behaviors.
 
-## KeyboardMouseInput
+### KeyboardMouseInput
 
-`KeyboardMouseInput` handles raw keyboard and mouse input on Windows 64. It is a global singleton (`g_KBMInput`):
+The `KeyboardMouseInput` class handles keyboard and mouse input for the Windows 64-bit build. It is instantiated as a global (`g_KBMInput`):
 
 ```cpp
 extern KeyboardMouseInput g_KBMInput;
 ```
 
-### Key constants
+#### Key constants
 
-```cpp
-static const int MAX_KEYS = 256;
-static const int MAX_MOUSE_BUTTONS = 3;  // left, right, middle
-```
-
-### Default key bindings
-
-| Constant | Key | Action |
+| Constant | Key | Value |
 |---|---|---|
-| `KEY_FORWARD` | `W` | Move forward |
-| `KEY_BACKWARD` | `S` | Move backward |
-| `KEY_LEFT` | `A` | Strafe left |
-| `KEY_RIGHT` | `D` | Strafe right |
-| `KEY_JUMP` | `Space` | Jump |
-| `KEY_SNEAK` | `Left Shift` | Sneak |
-| `KEY_SPRINT` | `Left Ctrl` | Sprint |
-| `KEY_INVENTORY` | `E` | Open inventory |
-| `KEY_DROP` | `Q` | Drop item |
-| `KEY_CRAFTING` | `Tab` | Open crafting |
-| `KEY_CRAFTING_ALT` | `R` | Open crafting (alternate) |
-| `KEY_CONFIRM` | `Enter` | Confirm |
-| `KEY_CANCEL` | `Backspace` | Cancel |
-| `KEY_PAUSE` | `Escape` | Pause menu |
-| `KEY_THIRD_PERSON` | `F5` | Toggle third-person view |
-| `KEY_DEBUG_INFO` | `F3` | Toggle debug overlay |
+| `KEY_FORWARD` | W | `'W'` |
+| `KEY_BACKWARD` | S | `'S'` |
+| `KEY_LEFT` | A | `'A'` |
+| `KEY_RIGHT` | D | `'D'` |
+| `KEY_JUMP` | Space | `VK_SPACE` |
+| `KEY_SNEAK` | Left Shift | `VK_LSHIFT` |
+| `KEY_SPRINT` | Left Ctrl | `VK_LCONTROL` |
+| `KEY_INVENTORY` | E | `'E'` |
+| `KEY_DROP` | Q | `'Q'` |
+| `KEY_CRAFTING` | Tab | `VK_TAB` |
+| `KEY_CRAFTING_ALT` | R | `'R'` |
+| `KEY_CONFIRM` | Enter | `VK_RETURN` |
+| `KEY_CANCEL` | Backspace | `VK_BACK` |
+| `KEY_PAUSE` | Escape | `VK_ESCAPE` |
+| `KEY_THIRD_PERSON` | F5 | `VK_F5` |
+| `KEY_DEBUG_INFO` | F3 | `VK_F3` |
 
-### State tracking
+#### Mouse constants
 
-The class maintains three state buffers for keys and mouse buttons:
-
-- **Current frame** (`m_keyDown[]`, `m_mouseButtonDown[]`) -- currently held
-- **Previous frame** (`m_keyDownPrev[]`, `m_mouseButtonDownPrev[]`) -- held last frame
-- **Edge detection** (`m_keyPressed[]`, `m_keyReleased[]`) -- just pressed/released this frame
-
-Accumulators (`m_keyPressedAccum[]`, etc.) collect events between `Tick()` calls to prevent missed inputs.
-
-### Query API
-
-| Method | Returns |
+| Constant | Value |
 |---|---|
-| `IsKeyDown(int vkCode)` | True if key is currently held |
-| `IsKeyPressed(int vkCode)` | True if key was just pressed this frame |
-| `IsKeyReleased(int vkCode)` | True if key was just released this frame |
-| `IsMouseButtonDown(int button)` | True if mouse button is held |
-| `IsMouseButtonPressed(int button)` | True if mouse button was just pressed |
-| `IsMouseButtonReleased(int button)` | True if mouse button was just released |
-| `GetMouseX()` / `GetMouseY()` | Current cursor position |
-| `GetMouseDeltaX()` / `GetMouseDeltaY()` | Mouse movement this frame |
-| `GetMouseWheel()` | Scroll wheel delta |
-| `GetRawDeltaX()` / `GetRawDeltaY()` | Accumulated raw mouse delta |
+| `MOUSE_LEFT` | 0 |
+| `MOUSE_RIGHT` | 1 |
+| `MOUSE_MIDDLE` | 2 |
+| `MAX_MOUSE_BUTTONS` | 3 |
 
-### Mouse management
+#### State tracking
+
+The class tracks three states per key and mouse button:
+
+- **Down**: currently held
+- **Pressed**: transitioned from up to down this tick
+- **Released**: transitioned from down to up this tick
+
+State is double-buffered with accumulators (`m_keyPressedAccum`, `m_keyReleasedAccum`) that collect events between ticks, then are transferred to the readable state arrays during `Tick()`.
+
+#### Key methods
 
 | Method | Purpose |
 |---|---|
-| `SetMouseGrabbed(bool)` | Lock cursor for gameplay (hides and centers cursor) |
-| `SetCursorHiddenForUI(bool)` | Hide cursor during UI navigation |
-| `SetWindowFocused(bool)` | Track window focus state |
-| `ConsumeMouseDelta()` | Reset accumulated raw delta after reading |
+| `Init()` | Zero all state arrays |
+| `Tick()` | Transfer accumulated events to readable state |
+| `ClearAllState()` | Reset everything |
+| `OnKeyDown(int vkCode)` / `OnKeyUp(int vkCode)` | Keyboard event handlers |
+| `OnMouseButtonDown(int)` / `OnMouseButtonUp(int)` | Mouse button events |
+| `OnMouseMove(int x, int y)` | Cursor position update |
+| `OnMouseWheel(int delta)` | Scroll wheel |
+| `OnRawMouseDelta(int dx, int dy)` | Raw mouse movement for look |
+| `IsKeyDown(int)` / `IsKeyPressed(int)` / `IsKeyReleased(int)` | Key state queries |
+| `IsMouseButtonDown(int)` / `IsMouseButtonPressed(int)` / `IsMouseButtonReleased(int)` | Mouse state queries |
+| `GetMoveX()` / `GetMoveY()` | Movement axis from WASD |
+| `GetLookX(float sensitivity)` / `GetLookY(float sensitivity)` | Look axis from mouse delta |
+| `SetMouseGrabbed(bool)` | Lock cursor for gameplay |
+| `ConsumeMouseDelta()` | Clear raw delta accumulators after reading |
 
-### Movement helpers
+#### Focus and cursor management
 
 ```cpp
-float GetMoveX() const;                     // WASD -> -1 to 1
-float GetMoveY() const;                     // WASD -> -1 to 1
-float GetLookX(float sensitivity) const;    // Mouse delta * sensitivity
-float GetLookY(float sensitivity) const;    // Mouse delta * sensitivity
+void SetWindowFocused(bool focused);
+void SetCursorHiddenForUI(bool hidden);
+void SetKBMActive(bool active);
+void SetScreenCursorHidden(bool hidden);
+bool HasAnyInput() const;
 ```
 
-### KBM/controller switching
+`HasAnyInput()` returns true when any key or mouse event has occurred, useful for detecting whether to switch between controller and keyboard/mouse input modes.
 
-The `m_kbmActive` flag tracks whether the player is currently using keyboard/mouse or a controller. `HasAnyInput()` returns true if any input device produced events this frame.
+## Controller input (EControllerActions)
 
-## Controller actions (EControllerActions)
-
-The `EControllerActions` enum (in `Common/App_enums.h`) defines all controller-mapped actions, split into menu and gameplay contexts:
+Controller input is mapped through the `EControllerActions` enum defined in `Common/App_enums.h`. This provides a unified action system across all console platforms.
 
 ### Menu actions
 
 | Action | Description |
 |---|---|
-| `ACTION_MENU_A` | Confirm / Select |
-| `ACTION_MENU_B` | Back / Cancel |
+| `ACTION_MENU_A` | Confirm / select |
+| `ACTION_MENU_B` | Cancel / back |
 | `ACTION_MENU_X` | Secondary action |
 | `ACTION_MENU_Y` | Tertiary action |
-| `ACTION_MENU_UP/DOWN/LEFT/RIGHT` | D-pad navigation |
-| `ACTION_MENU_PAGEUP` / `ACTION_MENU_PAGEDOWN` | Bumper page scrolling |
-| `ACTION_MENU_RIGHT_SCROLL` / `ACTION_MENU_LEFT_SCROLL` | Trigger scrolling |
-| `ACTION_MENU_STICK_PRESS` | Left stick click |
-| `ACTION_MENU_OTHER_STICK_PRESS` | Right stick click |
-| `ACTION_MENU_OTHER_STICK_UP/DOWN/LEFT/RIGHT` | Right stick directions |
-| `ACTION_MENU_PAUSEMENU` | Start button |
-| `ACTION_MENU_OK` | Generic confirm |
-| `ACTION_MENU_CANCEL` | Generic cancel |
+| `ACTION_MENU_UP` / `DOWN` / `LEFT` / `RIGHT` | D-pad navigation |
+| `ACTION_MENU_PAGEUP` / `PAGEDOWN` | Shoulder button page scroll |
+| `ACTION_MENU_LEFT_SCROLL` / `RIGHT_SCROLL` | Trigger scroll |
+| `ACTION_MENU_STICK_PRESS` / `OTHER_STICK_PRESS` | Stick click |
+| `ACTION_MENU_PAUSEMENU` | Start / Options button |
+| `ACTION_MENU_OK` / `CANCEL` | Confirm / cancel aliases |
 
-Platform-specific additions:
-- Xbox One: `ACTION_MENU_GTC_PAUSE` / `ACTION_MENU_GTC_RESUME`
-- PS4: `ACTION_MENU_TOUCHPAD_PRESS`
+Platform-specific menu actions:
+- **Xbox One**: `ACTION_MENU_GTC_PAUSE`, `ACTION_MENU_GTC_RESUME` (Game Time Controller)
+- **PS4**: `ACTION_MENU_TOUCHPAD_PRESS`
 
 ### Gameplay actions
 
 | Action | Description |
 |---|---|
 | `MINECRAFT_ACTION_JUMP` | Jump |
-| `MINECRAFT_ACTION_FORWARD/BACKWARD/LEFT/RIGHT` | Movement |
-| `MINECRAFT_ACTION_LOOK_LEFT/RIGHT/UP/DOWN` | Camera rotation |
+| `MINECRAFT_ACTION_FORWARD` / `BACKWARD` / `LEFT` / `RIGHT` | Movement |
+| `MINECRAFT_ACTION_LOOK_LEFT` / `RIGHT` / `UP` / `DOWN` | Camera rotation |
 | `MINECRAFT_ACTION_USE` | Use item / place block |
 | `MINECRAFT_ACTION_ACTION` | Attack / break block |
-| `MINECRAFT_ACTION_LEFT_SCROLL` / `RIGHT_SCROLL` | Hotbar scrolling |
+| `MINECRAFT_ACTION_LEFT_SCROLL` / `RIGHT_SCROLL` | Hotbar scroll |
 | `MINECRAFT_ACTION_INVENTORY` | Open inventory |
-| `MINECRAFT_ACTION_PAUSEMENU` | Pause |
+| `MINECRAFT_ACTION_PAUSEMENU` | Open pause menu |
 | `MINECRAFT_ACTION_DROP` | Drop item |
 | `MINECRAFT_ACTION_SNEAK_TOGGLE` | Toggle sneak |
 | `MINECRAFT_ACTION_CRAFTING` | Open crafting |
-| `MINECRAFT_ACTION_RENDER_THIRD_PERSON` | Toggle camera view |
-| `MINECRAFT_ACTION_GAME_INFO` | Show game info |
-| `MINECRAFT_ACTION_DPAD_LEFT/RIGHT/UP/DOWN` | D-pad direct |
+| `MINECRAFT_ACTION_RENDER_THIRD_PERSON` | Toggle third-person camera |
+| `MINECRAFT_ACTION_GAME_INFO` | Toggle debug info |
+| `MINECRAFT_ACTION_DPAD_LEFT` / `RIGHT` / `UP` / `DOWN` | D-pad in gameplay |
 
-### Debug actions (derived from D-pad)
+### Debug actions (created from D-pad)
 
-These are not directly mapped to the input manager but are synthesized from D-pad presses in `Minecraft::run_middle`:
+These are not mapped directly to the input manager but are derived from D-pad presses in `Minecraft::run_middle()`:
 
 | Action | Description |
 |---|---|
 | `MINECRAFT_ACTION_SPAWN_CREEPER` | Debug: spawn creeper |
-| `MINECRAFT_ACTION_CHANGE_SKIN` | Debug: cycle skin |
+| `MINECRAFT_ACTION_CHANGE_SKIN` | Debug: change player skin |
 | `MINECRAFT_ACTION_FLY_TOGGLE` | Debug: toggle flight |
-| `MINECRAFT_ACTION_RENDER_DEBUG` | Debug: toggle debug info |
+| `MINECRAFT_ACTION_RENDER_DEBUG` | Debug: toggle debug rendering |
 
 ## KeyMapping
 
-`KeyMapping` is a simple name-to-key binding:
+`KeyMapping` stores a named key binding:
 
 ```cpp
 class KeyMapping {
@@ -178,11 +172,9 @@ public:
 };
 ```
 
-## Options key bindings
+The `Options` class holds 14 key mappings:
 
-The `Options` class stores 14 key mappings:
-
-| Field | Default action |
+| Field | Default purpose |
 |---|---|
 | `keyUp` | Move forward |
 | `keyDown` | Move backward |
@@ -193,29 +185,17 @@ The `Options` class stores 14 key mappings:
 | `keyDrop` | Drop item |
 | `keyChat` | Open chat |
 | `keySneak` | Sneak |
-| `keyAttack` | Attack |
+| `keyAttack` | Attack / break |
 | `keyUse` | Use item |
 | `keyPlayerList` | Show player list |
 | `keyPickItem` | Pick block |
-| `keyToggleFog` | Cycle fog distance |
+| `keyToggleFog` | Toggle fog distance |
 
-These are exposed as the `keyMappings[14]` array for serialization and the controls screen.
+These are primarily used by the Windows 64-bit build; console builds use the `EControllerActions` system instead.
 
-## Console game settings for input
+## ConsoleInput / ConsoleInputSource
 
-The `eGameSetting` enum includes several input-related settings managed by `CMinecraftApp`:
-
-| Setting | Description |
-|---|---|
-| `eGameSetting_Sensitivity_InGame` | Look sensitivity during gameplay |
-| `eGameSetting_Sensitivity_InMenu` | Cursor sensitivity in menus |
-| `eGameSetting_ControlScheme` | Controller layout preset |
-| `eGameSetting_ControlInvertLook` | Invert Y axis |
-| `eGameSetting_ControlSouthPaw` | Swap sticks for left-handed players |
-
-## ConsoleInput
-
-`ConsoleInput` wraps a message string with its source for server console commands:
+`ConsoleInput` represents a server console command:
 
 ```cpp
 class ConsoleInput {
@@ -234,10 +214,13 @@ class ConsoleInputSource {
 };
 ```
 
-## CMinecraftApp button handling
+These are used for the integrated server console, not player gameplay input.
 
-`CMinecraftApp::HandleButtonPresses()` processes controller input at the application level, routing button presses to the active UI scene or game state. It is called per-player (`HandleButtonPresses(int iPad)`) to support split-screen with independent controller routing.
+## Input flow summary
 
-## Split-screen input
-
-Each local player is bound to a specific controller pad index. The `Minecraft` class tracks this through `localPlayerIdx` and per-player arrays. Input from each controller is routed to its associated `LocalPlayer` instance, and the `LocalPlayer::ullButtonsPressed` field aggregates the current frame's button state.
+1. **Platform layer** captures raw events (button presses, stick positions, key events, mouse movement)
+2. **Input abstraction** (`KeyboardMouseInput` or platform controller API) processes raw events into state
+3. **`CMinecraftApp::HandleButtonPresses()`** reads controller state per player and translates to `EControllerActions`
+4. **`Input::tick()`** converts action state into movement axes (`xa`/`ya`) and action flags (`jumping`, `sneaking`, `sprinting`)
+5. **`LocalPlayer`** consumes the `Input` object each tick to update player movement and trigger actions
+6. **`Screen` / `UIScene`** intercepts input when menus are active, consuming events before they reach gameplay
