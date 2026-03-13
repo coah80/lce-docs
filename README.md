@@ -31,8 +31,8 @@ Also includes docs for [smartcmd's MinecraftConsoles](https://github.com/smartcm
 ## Built with
 
 - [Astro Starlight](https://starlight.astro.build/) for the docs site
-- Source code analyzed: [LCEMP by notpies](https://github.com/coah80/LCEMP) and [MinecraftConsoles by smartcmd](https://github.com/smartcmd/MinecraftConsoles)
-- Also used [the Aether client mod](https://github.com/coah80/LCEMP) as a reference for custom dimension/block implementation
+- Source code analyzed: [LCEMP by notpies](https://github.com/LCEMP/LCEMP) and [MinecraftConsoles by smartcmd](https://github.com/smartcmd/MinecraftConsoles)
+- Also used [the Aether client mod](https://github.com/LCEMP/LCEMP) as a reference for custom dimension/block implementation
 
 ## Contributing
 

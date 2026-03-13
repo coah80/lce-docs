@@ -4,7 +4,7 @@ description: What LCE is and what this documentation covers.
 ---
 
 :::note[Credits]
-These docs were very much based on [LCEMP](https://github.com/coah80/LCEMP) and [MinecraftConsoles](https://github.com/smartcmd/MinecraftConsoles), and they helped a bunch with stuff. So go star those repos NOW!
+These docs were very much based on [LCEMP](https://github.com/LCEMP/LCEMP) and [MinecraftConsoles](https://github.com/smartcmd/MinecraftConsoles), and they helped a bunch with stuff. So go star those repos NOW!
 :::
 
 ## What is LCE?
@@ -13,7 +13,7 @@ LCE (**Legacy Console Edition**) is the version of Minecraft that **4J Studios**
 
 The C++ codebase that powers LCE is what this entire documentation site is about. Two community forks make that codebase available to work with:
 
-- **[LCEMP](https://github.com/coah80/LCEMP)** (by notpies) - A source fork based on roughly TU9 / 1.2.2 that adds working LAN multiplayer and a Windows 64-bit build target
+- **[LCEMP](https://github.com/LCEMP/LCEMP)** (by notpies) - A source fork based on roughly TU9 / 1.2.2 that adds working LAN multiplayer and a Windows 64-bit build target
 - **[MinecraftConsoles](https://github.com/smartcmd/MinecraftConsoles)** (by smartcmd) - A more advanced fork based on roughly TU19 / 1.6.4 with horses, the Wither boss, beacons, hoppers, scoreboards, and an entity attribute system
 
 :::caution
