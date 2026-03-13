@@ -195,7 +195,7 @@ ForestBiome::ForestBiome(int id) : Biome(id)
 | `cactusCount` | 0 | Cacti |
 | `waterlilyCount` | 0 | Lily pads |
 | `hugeMushrooms` | 0 | Huge mushrooms |
-| `sandCount` | 1 | Sand deposits |
+| `sandCount` | 3 | Sand deposits |
 | `clayCount` | 1 | Clay deposits |
 | `gravelCount` | 1 | Gravel deposits |
 | `liquids` | true | Underground lava/water pockets |

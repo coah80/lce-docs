@@ -14,7 +14,7 @@ MinecraftConsoles is a community fork of the Legacy Console Edition source code 
 | Commits | — | 409+ |
 | CI | — | GitHub Actions (build, debug-test, nightly) |
 | Build system | Visual Studio solution | Visual Studio solution + CMake |
-| Platform | Windows | Windows (macOS/Linux via Wine unofficial) |
+| Platform | Windows | Windows (Linux via Wine unofficial) |
 
 ## New systems
 
@@ -22,7 +22,7 @@ MinecraftConsoles adds a significant number of gameplay systems that are not pre
 
 ### Entity attributes and combat
 
-A full [attribute system](/lcemp-docs/mc/attributes/) with modifier operations (`ADDITION`, `MULTIPLY_BASE`, `MULTIPLY_TOTAL`), shared monster attributes (max health, follow range, knockback resistance, movement speed, attack damage), and a combat tracker that records damage entries and generates death messages. Seven attribute types and eleven named modifier IDs are defined.
+A full [attribute system](/lcemp-docs/mc/attributes/) with modifier operations (`ADDITION`, `MULTIPLY_BASE`, `MULTIPLY_TOTAL`), shared monster attributes (max health, follow range, knockback resistance, movement speed, attack damage), and a combat tracker that records damage entries and generates death messages. Seven attribute types and twelve named modifier IDs are defined.
 
 ### Scoreboard and teams
 

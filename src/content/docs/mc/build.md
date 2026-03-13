@@ -133,7 +133,7 @@ The asset copy excludes source files (`*.cpp`, `*.h`, etc.), build files, script
 
 ### Running on Linux
 
-Per `COMPILE.md`, contributors on macOS or Linux need a Windows machine or VM to build. Running the compiled game via Wine is a separate concern from having a supported build environment.
+Per `COMPILE.md`, contributors on Linux need a Windows machine or VM to build. Running the compiled game via Wine is a separate concern from having a supported build environment.
 
 The `CONTRIBUTING.md` notes that one of the project's goals is "having workable multi-platform compilation for ARM, Consoles, Linux" -- this is a future goal, not a current capability.
 

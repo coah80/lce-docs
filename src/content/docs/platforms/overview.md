@@ -82,7 +82,7 @@ The `StorageManager` singleton handles save/load operations, DLC package mountin
 
 ### Profiles and Achievements (`C4JProfile`)
 
-The `ProfileManager` singleton manages player profiles, achievements/trophies, rich presence, and leaderboards. Platform-specific leaderboard managers (`XboxLeaderboardManager`, `PS3LeaderboardManager`, `OrbisLeaderboardManager`, `PSVitaLeaderboardManager`, `WindowsLeaderboardManager`) inherit from a common `LeaderboardManager` base.
+The `ProfileManager` singleton manages player profiles, achievements/trophies, rich presence, and leaderboards. Platform-specific leaderboard managers (`XboxLeaderboardManager`, `DurangoLeaderboardManager`, `PS3LeaderboardManager`, `OrbisLeaderboardManager`, `PSVitaLeaderboardManager`, `WindowsLeaderboardManager`) inherit from a common `LeaderboardManager` base.
 
 ## Per-Platform Extras
 
