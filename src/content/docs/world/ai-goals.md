@@ -3,7 +3,7 @@ title: AI & Goals
 description: Mob AI behavior system in LCEMP.
 ---
 
-LCEMP uses a priority-based goal system for mob AI. Each mob owns two `GoalSelector` instances -- one for general behaviors and one for targeting -- and each selector manages a list of `Goal` objects that compete for execution based on priority and control flag compatibility.
+LCEMP uses a priority-based goal system for mob AI. Each mob owns two `GoalSelector` instances, one for general behaviors and one for targeting. Each selector manages a list of `Goal` objects that compete for execution based on priority and control flag compatibility.
 
 ## Goal (base class)
 
@@ -17,13 +17,13 @@ Every AI behavior inherits from `Goal` and implements its lifecycle methods:
 | `start()` | No-op | Called once when the goal begins executing |
 | `stop()` | No-op | Called once when the goal stops executing |
 | `tick()` | No-op | Called every tick while the goal is running |
-| `setRequiredControlFlags(flags)` | -- | Sets the bitmask of control channels this goal uses |
+| `setRequiredControlFlags(flags)` | (none) | Sets the bitmask of control channels this goal uses |
 | `getRequiredControlFlags()` | Returns `0` | Returns the control flag bitmask |
 | `setLevel(level)` | No-op | 4J addition: updates level pointer when loading from schematics |
 
 ### Control flags
 
-Goals declare which "control channels" they require via a bitmask passed to `setRequiredControlFlags()`. Two goals can run simultaneously only if their control flags do not overlap (bitwise AND is zero). This prevents, for example, two movement goals from conflicting.
+Goals declare which "control channels" they need through a bitmask passed to `setRequiredControlFlags()`. Two goals can run at the same time only if their control flags don't overlap (bitwise AND is zero). This prevents things like two movement goals from conflicting with each other.
 
 The `TargetGoal` base class defines `TargetFlag = 1` as a standard flag for targeting behaviors.
 
@@ -34,21 +34,21 @@ The scheduler that manages and ticks a set of goals.
 ### Internal structure
 
 Goals are wrapped in `InternalGoal` objects that store:
-- `prio` -- integer priority (lower = higher priority)
-- `goal` -- pointer to the `Goal` instance
-- `canDeletePointer` -- ownership flag for memory management (4J addition)
+- `prio`: integer priority (lower = higher priority)
+- `goal`: pointer to the `Goal` instance
+- `canDeletePointer`: ownership flag for memory management (4J addition)
 
 Two lists are maintained:
-- `goals` -- all registered goals
-- `usingGoals` -- goals currently executing
+- `goals`: all registered goals
+- `usingGoals`: goals currently executing
 
 ### Tick behavior
 
-Every `newGoalRate` ticks (default: 3), the selector performs a full evaluation cycle:
+Every `newGoalRate` ticks (default: 3), the selector runs a full evaluation cycle:
 
 1. **For each registered goal:**
-   - If currently running and either `canUseInSystem()` fails or `canContinueToUse()` returns false, call `stop()` and remove from `usingGoals`
-   - If not running and both `canUseInSystem()` and `canUse()` pass, add to start list and `usingGoals`
+   - If it's currently running and either `canUseInSystem()` fails or `canContinueToUse()` returns false, call `stop()` and remove from `usingGoals`
+   - If it's not running and both `canUseInSystem()` and `canUse()` pass, add to start list and `usingGoals`
 2. **Call `start()` on all newly added goals**
 3. **Call `tick()` on all running goals**
 
@@ -65,18 +65,18 @@ On non-evaluation ticks, only `canContinueToUse()` is checked for running goals,
 
 ### Configuration
 
-- `addGoal(priority, goal, canDeletePointer)` -- registers a goal at the given priority. The `canDeletePointer` flag (default `true`) controls whether the selector owns the goal memory.
-- `setNewGoalRate(rate)` -- changes how often full evaluation occurs (default every 3 ticks)
-- `setLevel(level)` -- propagates a level pointer change to all goals (4J addition for schematic loading)
+- `addGoal(priority, goal, canDeletePointer)`: registers a goal at the given priority. The `canDeletePointer` flag (default `true`) controls whether the selector owns the goal memory.
+- `setNewGoalRate(rate)`: changes how often full evaluation happens (default every 3 ticks)
+- `setLevel(level)`: sends a level pointer change to all goals (4J addition for schematic loading)
 
 ## TargetGoal (base class for targeting)
 
-Abstract base for goals that select an attack target. Provides shared logic for target validation.
+Abstract base for goals that pick an attack target. Provides shared logic for target validation.
 
 **Constructor parameters:** `mob`, `within` (search range), `mustSee`, `mustReach`
 
 **Key behavior:**
-- `canAttack(target, allowInvulnerable)` -- validates the target is alive, in range, and optionally visible/reachable
+- `canAttack(target, allowInvulnerable)`: checks that the target is alive, in range, and optionally visible/reachable
 - Maintains a `reachCache` with three states: Empty (0), CanReach (1), CantReach (2)
 - `unseenTicks` tracks how long since the target was last visible, up to `UnseenMemoryTicks` (60)
 - On `start()`, sets the mob's target
@@ -190,4 +190,4 @@ targetSelector.addGoal(1, HurtByTargetGoal)
 targetSelector.addGoal(2, NearestAttackableTargetGoal)
 ```
 
-Lower priority numbers take precedence. Goals at the same priority level can coexist if their control flags do not conflict.
+Lower priority numbers take precedence. Goals at the same priority level can coexist if their control flags don't conflict.

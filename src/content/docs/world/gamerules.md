@@ -3,16 +3,16 @@ title: Game Rules
 description: Configurable game rules in LCEMP.
 ---
 
-LCEMP uses a **Console Game Rules** system that is fundamentally different from vanilla Minecraft's simple key-value game rules. Instead of boolean/integer rules like `keepInventory` or `doDaylightCycle`, LCEMP's game rules are a data-driven, hierarchical system primarily used for custom game modes (like Battle, Tumble, Glide) and DLC mashup packs.
+LCEMP uses a **Console Game Rules** system that works completely differently from vanilla Minecraft's simple key-value game rules. Instead of boolean/integer rules like `keepInventory` or `doDaylightCycle`, LCEMP's game rules are a data-driven, hierarchical system mainly used for custom game modes (like Battle, Tumble, Glide) and DLC mashup packs.
 
 ## Architecture overview
 
 The game rule system has four main layers:
 
-1. **GameRuleManager** -- loads, saves, and manages rule definitions from DLC packs
-2. **GameRuleDefinition** -- the static definition/template of a rule (what to do)
-3. **GameRule** -- the runtime state of a rule for a specific player or server
-4. **GameRulesInstance** -- extends `GameRule` as the top-level container for a player's or server's complete rule state
+1. **GameRuleManager**: loads, saves, and manages rule definitions from DLC packs
+2. **GameRuleDefinition**: the static definition/template of a rule (what to do)
+3. **GameRule**: the runtime state of a rule for a specific player or server
+4. **GameRulesInstance**: extends `GameRule` as the top-level container for a player's or server's complete rule state
 
 ## ConsoleGameRules constants
 
@@ -65,7 +65,7 @@ Rules are configured through attributes loaded from XML/binary data:
 
 ## GameRuleDefinition
 
-The base class for all rule templates. Defines the static structure of a rule.
+The base class for all rule templates. This defines the static structure of a rule.
 
 **Key methods:**
 
@@ -87,19 +87,19 @@ The base class for all rule templates. Defines the static structure of a rule.
 
 #### CompoundGameRuleDefinition
 
-Base class for rules that contain child rules. Manages a `m_children` vector and delegates hooks to all children.
+Base class for rules that contain child rules. Manages a `m_children` vector and passes hooks down to all children.
 
 #### CompleteAllRuleDefinition
 
-Extends `CompoundGameRuleDefinition`. Completes only when **all** child rules are complete. Broadcasts progress updates via `UpdateGameRuleProgressPacket`.
+Extends `CompoundGameRuleDefinition`. This one only completes when **all** child rules are complete. It broadcasts progress updates through `UpdateGameRuleProgressPacket`.
 
 #### CollectItemRuleDefinition
 
-Tracks collection of a specific item. Configured with `m_itemId`, `m_auxValue`, and `m_quantity`. Increments progress each time the matching item is collected.
+Tracks collection of a specific item. Configured with `m_itemId`, `m_auxValue`, and `m_quantity`. Each time the matching item is collected, the progress goes up.
 
 #### UseTileRuleDefinition
 
-Triggers when a player interacts with a specific tile (block). Can optionally require specific coordinates via `m_useCoords`.
+Triggers when a player interacts with a specific tile (block). Can optionally require specific coordinates through `m_useCoords`.
 
 #### UpdatePlayerRuleDefinition
 
@@ -117,12 +117,12 @@ Extends `CompoundGameRuleDefinition` as the root container for a level's rules. 
 
 Each `GameRule` instance tracks the runtime state of a definition for a specific connection (player).
 
-**State storage:** Parameters are stored in `m_parameters`, an `unordered_map<wstring, ValueType>` where `ValueType` is a union of:
+**State storage:** Parameters live in `m_parameters`, an `unordered_map<wstring, ValueType>` where `ValueType` is a union of:
 
 - `__int64`, `int`, `char`, `bool`, `float`, `double` (primitive values)
 - `GameRule*` (nested rule pointer, flagged with `isPointer = true`)
 
-**Serialization:** `write()` and `read()` serialize all parameters to/from a `DataOutputStream`/`DataInputStream`. Pointer values are recursively serialized; primitive values are stored as `__int64`.
+**Serialization:** `write()` and `read()` serialize all parameters to/from a `DataOutputStream`/`DataInputStream`. Pointer values are serialized recursively, and primitive values are stored as `__int64`.
 
 ## GameRulesInstance
 
@@ -133,7 +133,7 @@ Extends `GameRule` with an instance type:
 | `eGameRulesInstanceType_ServerPlayer` | Rules applied per-player |
 | `eGameRulesInstanceType_Server` | Rules applied server-wide |
 
-Created via `GameRuleDefinition::generateNewGameRulesInstance()` which walks the definition tree and populates parameters.
+Created through `GameRuleDefinition::generateNewGameRulesInstance()`, which walks the definition tree and populates parameters.
 
 ## GameRuleManager
 
@@ -157,7 +157,7 @@ Rules are stored in `.grf` files (`GAME_RULE_SAVENAME = "requiredGameRules.grf"`
 
 ## Network synchronization
 
-Rule progress updates are sent via `UpdateGameRuleProgressPacket` (packet ID 158). It contains:
+Rule progress updates are sent through `UpdateGameRuleProgressPacket` (packet ID 158). It contains:
 
 | Field | Type | Purpose |
 |---|---|---|
