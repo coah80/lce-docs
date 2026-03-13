@@ -386,9 +386,9 @@ int getEnchantmentCost(Random *random, int slot,
                  + (bookcases >> 1)
                  + random->nextInt(bookcases + 1);
 
-    if (slot == 0) return max(selected / 3, 1);  // Cheap slot
-    if (slot == 1) return max(selected, bookcases * 2);  // Mid
-    return selected;                               // Expensive slot
+    if (slot == 0) return max(selected / 3, 1);  // Top slot (cheapest)
+    if (slot == 1) return max(selected, bookcases * 2);  // Middle slot (guaranteed minimum)
+    return selected;                               // Bottom slot (raw value)
 }
 ```
 

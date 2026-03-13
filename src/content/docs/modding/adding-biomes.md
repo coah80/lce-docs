@@ -233,7 +233,7 @@ Feature *MyBiome::getTreeFeature(Random *random)
 }
 ```
 
-Available tree features: `TreeFeature` (normal oak), `BasicTree` (fancy oak), `BirchFeature`, `SwampTreeFeature`, `BigTreeFeature` (jungle trees).
+Available tree features: `TreeFeature` (normal oak), `BasicTree` (fancy oak), `BirchFeature`, `SwampTreeFeature`, `MegaTreeFeature` (large 2x2 jungle trees).
 
 ### Custom Decoration Override
 

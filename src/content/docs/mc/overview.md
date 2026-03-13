@@ -60,4 +60,4 @@ A `Redstone` constants class defining signal range (`SIGNAL_NONE = 0`, `SIGNAL_M
 
 ### Behavior and dispense registry
 
-A `Behavior` base class and `BehaviorRegistry` that maps `Item` pointers to `DispenseItemBehavior` instances, with a default no-op fallback. Used by the `DispenserBootstrap` to register item-specific dispense actions at startup.
+A `Behavior` base class and `BehaviorRegistry` that maps `Item` pointers to `DispenseItemBehavior` instances, with a `DefaultDispenseItemBehavior` fallback (drops items as pickups). Used by the `DispenserBootstrap` to register item-specific dispense actions at startup.
