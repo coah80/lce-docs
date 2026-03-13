@@ -183,20 +183,20 @@ All tiles are statically initialized in `Tile::staticCtor()`:
 | 61 | furnace | `FurnaceTile` | 3.5s | TileEntity, unlit |
 | 62 | furnace_lit | `FurnaceTile` | 3.5s | TileEntity, lit, light=13 |
 | 63 | sign | `SignTile` | 1.0s | Standing sign, TileEntity |
-| 64 | door_wood | `DoorTile` | — | Wood door, 2-block |
+| 64 | door_wood | `DoorTile` | 3.0s | Wood door, 2-block |
 | 65 | ladder | `LadderTile` | 0.4s | Climbable |
-| 66 | rail | `RailTile` | — | Normal rail |
+| 66 | rail | `RailTile` | 0.7s | Normal rail |
 | 67 | stairs_stone | `StairTile` | — | Stone stairs |
 | 68 | wallSign | `SignTile` | 1.0s | Wall sign, TileEntity |
-| 69 | lever | `LeverTile` | — | 6 orientations, redstone |
-| 70 | pressurePlate_stone | `PressurePlateTile` | — | Mobs only |
-| 71 | door_iron | `DoorTile` | — | Iron door, needs redstone |
-| 72 | pressurePlate_wood | `PressurePlateTile` | — | All entities |
+| 69 | lever | `LeverTile` | 0.5s | 6 orientations, redstone |
+| 70 | pressurePlate_stone | `PressurePlateTile` | 0.5s | Mobs only |
+| 71 | door_iron | `DoorTile` | 5.0s | Iron door, needs redstone |
+| 72 | pressurePlate_wood | `PressurePlateTile` | 0.5s | All entities |
 | 73 | redStoneOre | `RedStoneOreTile` | 3.0s | Emits particles |
 | 74 | redStoneOre_lit | `RedStoneOreTile` | 3.0s | Glowing, light=9 |
 | 75 | notGate_off | `NotGateTile` | — | Redstone torch off |
 | 76 | notGate_on | `NotGateTile` | — | Redstone torch on, light=7 |
-| 77 | button | `ButtonTile` | — | Stone button |
+| 77 | button | `ButtonTile` | 0.5s | Stone button |
 | 78 | topSnow | `TopSnowTile` | 0.1s | Snow layer |
 | 79 | ice | `IceTile` | 0.5s | Slippery, transparent |
 | 80 | snow | `SnowTile` | 0.2s | Snow block |
@@ -215,7 +215,7 @@ All tiles are statically initialized in `Tile::staticCtor()`:
 | 93 | diode_off | `DiodeTile` | — | Repeater off, 4 delays |
 | 94 | diode_on | `DiodeTile` | — | Repeater on, 4 delays |
 | 95 | aprilFoolsJoke | `LockedChestTile` | — | Locked chest, light emitting |
-| 96 | trapdoor | `TrapDoorTile` | — | Wood trapdoor |
+| 96 | trapdoor | `TrapDoorTile` | 3.0s | Wood trapdoor |
 | 97 | monsterStoneEgg | `StoneMonsterTile` | 0.75s | Silverfish stone |
 | 98 | stoneBrickSmooth | `SmoothStoneBrickTile` | 1.5s | Stone bricks |
 | 99 | hugeMushroom1 | `HugeMushroomTile` | 0.2s | Huge brown mushroom |
@@ -260,7 +260,7 @@ All tiles are statically initialized in `Tile::staticCtor()`:
 | 140 | flowerPot | `FlowerPotTile` | 0.0s | Holds plants |
 | 141 | carrots | `CarrotTile` | 0.0s | 8 growth stages |
 | 142 | potatoes | `PotatoTile` | 0.0s | 8 growth stages |
-| 143 | button_wood | `ButtonTile` | — | Wood button |
+| 143 | button_wood | `ButtonTile` | 0.5s | Wood button |
 | 144 | skull | `SkullTile` | 1.0s | Mob heads |
 | 145 | anvil | `AnvilTile` | 5.0s | 3 damage states, falls |
 | 153 | netherQuartz | `OreTile` | 3.0s | Nether quartz ore |
