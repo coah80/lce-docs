@@ -3,7 +3,7 @@ title: Custom World Generation
 description: How to modify terrain generation in LCEMP.
 ---
 
-LCEMP world generation follows the same pipeline as legacy console Minecraft: a `ChunkSource` generates raw terrain, `BiomeDecorator` places ores and vegetation, and a `Layer` stack determines biome placement. Understanding these systems lets you add new ores, trees, structures, and even entirely custom terrain shapes.
+LCEMP world generation follows the same pipeline as legacy console Minecraft: a `ChunkSource` generates raw terrain, `BiomeDecorator` places ores and vegetation, and a `Layer` stack picks biome placement. Once you understand these systems, you can add new ores, trees, structures, and even completely custom terrain shapes.
 
 ## Generation pipeline
 
@@ -47,12 +47,12 @@ public:
 
 ### RandomLevelSource (overworld)
 
-`RandomLevelSource` (`Minecraft.World/RandomLevelSource.h`) generates the overworld. Key aspects:
+`RandomLevelSource` (`Minecraft.World/RandomLevelSource.h`) generates the overworld. Here's what's important:
 
-- **Perlin noise layers** for terrain shape: `lperlinNoise1`, `lperlinNoise2`, `perlinNoise1`, `scaleNoise`, `depthNoise`, `forestNoise`
-- **Large features** applied during `create()`: caves (`LargeCaveFeature`), canyons (`CanyonFeature`)
-- **Structures** applied during `postProcess()`: strongholds, villages, mineshafts, scattered features (temples)
-- **Edge falloff** -- the console edition applies terrain falloff near world borders to create ocean edges
+- **Perlin noise layers** shape the terrain: `lperlinNoise1`, `lperlinNoise2`, `perlinNoise1`, `scaleNoise`, `depthNoise`, `forestNoise`
+- **Large features** get applied during `create()`: caves (`LargeCaveFeature`), canyons (`CanyonFeature`)
+- **Structures** get applied during `postProcess()`: strongholds, villages, mineshafts, scattered features (temples)
+- **Edge falloff**: the console edition applies terrain falloff near world borders to create ocean edges
 
 ```cpp
 RandomLevelSource::RandomLevelSource(Level *level, __int64 seed, bool generateStructures) {
@@ -134,11 +134,11 @@ OreFeature(int tileId, int count);                   // replaces stone by defaul
 OreFeature(int tileId, int count, int targetTileId);  // replaces a specific tile
 ```
 
-- `tileId` -- the ore block ID to place
-- `count` -- vein size (number of placement iterations; vanilla uses 7-32)
-- `targetTileId` -- what block to replace (defaults to `Tile::rock_Id` i.e. stone)
+- `tileId` is the ore block ID to place
+- `count` is the vein size (number of placement iterations; vanilla uses 7-32)
+- `targetTileId` is what block to replace (defaults to `Tile::rock_Id`, which is stone)
 
-The `place()` method generates a tube-shaped vein between two random endpoints, placing ore blocks in an ellipsoidal pattern around the tube.
+The `place()` method creates a tube-shaped vein between two random endpoints, placing ore blocks in an ellipsoidal pattern around the tube.
 
 **To add a new ore**, register an `OreFeature` in `BiomeDecorator::_init()` and call it in `decorateOres()`:
 
@@ -151,7 +151,7 @@ decorateDepthSpan(6, myCustomOreFeature, 0, Level::genDepth / 4);
 // 6 attempts per chunk, between y=0 and y=genDepth/4
 ```
 
-The decoration helpers control placement frequency and depth:
+The decoration helpers control how often and where features get placed:
 
 | Method | Parameters | Behavior |
 |---|---|---|
@@ -168,7 +168,7 @@ TreeFeature(bool doUpdate);
 TreeFeature(bool doUpdate, int baseHeight, int trunkType, int leafType, bool addJungleFeatures);
 ```
 
-Biomes return their tree type via `getTreeFeature()`:
+Biomes return their tree type through `getTreeFeature()`:
 
 ```cpp
 virtual Feature *getTreeFeature(Random *random);
@@ -200,21 +200,21 @@ int hugeMushrooms = 0;
 bool liquids = true;
 ```
 
-Biome subclasses (e.g. `DesertBiome`, `ForestBiome`, `JungleBiome`) are `friend` classes of `BiomeDecorator` and can directly modify these counts. For example, a forest biome increases `treeCount`, a desert increases `cactusCount` and `deadBushCount`.
+Biome subclasses (like `DesertBiome`, `ForestBiome`, `JungleBiome`) are `friend` classes of `BiomeDecorator` and can directly change these counts. For example, a forest biome bumps up `treeCount`, and a desert increases `cactusCount` and `deadBushCount`.
 
 ### Decoration order
 
 The `decorate()` method runs in this order:
 
-1. **Ores** -- `decorateOres()` places dirt, gravel, coal, iron, gold, redstone, diamond, lapis
-2. **Sand, clay, gravel** -- surface deposits
-3. **Trees** -- uses `biome->getTreeFeature(random)` for biome-specific trees
-4. **Huge mushrooms** -- mushroom island biome feature
-5. **Flowers** -- yellow flowers and roses
-6. **Grass** -- uses `biome->getGrassFeature(random)`
+1. **Ores**: `decorateOres()` places dirt, gravel, coal, iron, gold, redstone, diamond, lapis
+2. **Sand, clay, gravel**: surface deposits
+3. **Trees**: uses `biome->getTreeFeature(random)` for biome-specific trees
+4. **Huge mushrooms**: mushroom island biome feature
+5. **Flowers**: yellow flowers and roses
+6. **Grass**: uses `biome->getGrassFeature(random)`
 7. **Dead bushes, waterlilies, mushrooms**
 8. **Reeds (sugar cane), pumpkins, cactus**
-9. **Liquid springs** -- water and lava underground
+9. **Liquid springs**: water and lava underground
 
 ### Ore generation depths
 
@@ -314,8 +314,8 @@ To insert a new layer into the chain:
 
 Large structures use a two-class hierarchy:
 
-- `LargeFeature` -- base class for features that span multiple chunks
-- `StructureFeature` -- extends `LargeFeature` with caching and chunk-level decision making
+- `LargeFeature` is the base class for features that span multiple chunks
+- `StructureFeature` extends `LargeFeature` with caching and chunk-level decision making
 
 ```cpp
 class StructureFeature : public LargeFeature {
@@ -339,11 +339,11 @@ To add a custom structure, subclass `StructureFeature`, implement `isFeatureChun
 
 ## Key source files
 
-- `Minecraft.World/ChunkSource.h` -- abstract chunk generator
-- `Minecraft.World/RandomLevelSource.h` / `.cpp` -- overworld terrain generator
-- `Minecraft.World/Feature.h` -- abstract decoration feature
-- `Minecraft.World/OreFeature.h` / `.cpp` -- ore vein generation
-- `Minecraft.World/BiomeDecorator.h` / `.cpp` -- decoration orchestrator
-- `Minecraft.World/Layer.h` -- biome layer base class
-- `Minecraft.World/Biome.h` -- biome definitions
-- `Minecraft.World/StructureFeature.h` -- large structure base class
+- `Minecraft.World/ChunkSource.h` for the abstract chunk generator
+- `Minecraft.World/RandomLevelSource.h` / `.cpp` for the overworld terrain generator
+- `Minecraft.World/Feature.h` for the abstract decoration feature
+- `Minecraft.World/OreFeature.h` / `.cpp` for ore vein generation
+- `Minecraft.World/BiomeDecorator.h` / `.cpp` for the decoration orchestrator
+- `Minecraft.World/Layer.h` for the biome layer base class
+- `Minecraft.World/Biome.h` for biome definitions
+- `Minecraft.World/StructureFeature.h` for the large structure base class

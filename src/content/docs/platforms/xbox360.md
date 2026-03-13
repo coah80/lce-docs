@@ -3,13 +3,13 @@ title: Xbox 360
 description: Xbox 360 platform implementation.
 ---
 
-The Xbox 360 was the first console platform for Minecraft Legacy Console Edition and served as the foundation for all other ports. The code lives in `Minecraft.Client/Xbox/`.
+The Xbox 360 was the first console platform for Minecraft Legacy Console Edition and served as the foundation for all the other ports. The code lives in `Minecraft.Client/Xbox/`.
 
 ## Key Files
 
 | File | Purpose |
 |------|---------|
-| `Xbox_App.h/.cpp` | `CConsoleMinecraftApp` -- main application class |
+| `Xbox_App.h/.cpp` | `CConsoleMinecraftApp` main application class |
 | `Xbox_Minecraft.cpp` | Entry point (`main()`), D3D9 init, main game loop |
 | `Xbox_UIController.h/.cpp` | `ConsoleUIController` using XUI framework |
 | `Network/PlatformNetworkManagerXbox.h/.cpp` | Network manager using QNET |
@@ -21,7 +21,7 @@ The Xbox 360 was the first console platform for Minecraft Legacy Console Edition
 
 ## Application Class
 
-`CConsoleMinecraftApp` is the most feature-rich app class, reflecting Xbox 360's status as the original platform. Key members:
+`CConsoleMinecraftApp` is the most feature-rich app class, since Xbox 360 was the original platform. Key members:
 
 - **Per-player state arrays** indexed by `XUSER_MAX_COUNT` (4 players): menu displayed flags, pause/container/autosave tracking, input countdown timers
 - **XUI scene management**: Scene stacks per player (`m_sceneStack`), with first/current/tutorial/chat/HUD scene handles
@@ -36,7 +36,7 @@ The Xbox 360 was the first console platform for Minecraft Legacy Console Edition
 The app owns the XUI scene navigation stack with methods:
 - `NavigateToScene` / `NavigateBack` / `CloseXuiScenes`
 - `TutorialSceneNavigateBack` / `ReloadChatScene` / `ReloadHudScene`
-- `AdjustSplitscreenScene` -- repositions UI elements for 2/4-player splitscreen
+- `AdjustSplitscreenScene` repositions UI elements for 2/4-player splitscreen
 
 ## Entry Point and Main Loop
 
@@ -69,15 +69,15 @@ Uses Direct3D 9 (`IDirect3DDevice9`) with:
 - Letterbox disabled for 4:3 displays (anamorphic squash)
 - PIX named events for GPU profiling
 
-Render state tracking arrays are maintained to restore states after XUI rendering, which modifies fillmode, cullmode, alpha blend, viewport, blend operations, and sampler states.
+Render state tracking arrays are kept to restore states after XUI rendering, which changes fillmode, cullmode, alpha blend, viewport, blend operations, and sampler states.
 
 ## Input Handling
 
 Three control schemes defined in `DefineActions()`:
 
-- **Style 0** (Default): Standard Minecraft layout -- A=jump, LT=use, RT=attack, Y=inventory, X=craft, B=drop
-- **Style 1**: Swapped triggers and bumpers -- RB=jump, RT=use, LT=attack
-- **Style 2**: Alternative -- LT=jump, RT=use, A=attack
+- **Style 0** (Default): Standard Minecraft layout. A=jump, LT=use, RT=attack, Y=inventory, X=craft, B=drop
+- **Style 1**: Swapped triggers and bumpers. RB=jump, RT=use, LT=attack
+- **Style 2**: Alternative. LT=jump, RT=use, A=attack
 
 All styles share the same menu controls (A=OK, B=Cancel, D-pad/left stick for navigation).
 
@@ -95,7 +95,7 @@ All styles share the same menu controls (A=OK, B=Cancel, D-pad/left stick for na
 
 Key callbacks from QNET:
 - `NotifyPlayerJoined` / `NotifyPlayerLeaving`
-- `NotifyDataReceived` -- Game data routing
+- `NotifyDataReceived` for game data routing
 - `NotifyStateChanged` / `NotifyNewHost`
 - `NotifyGameSearchComplete` / `NotifyGameInvite`
 - `NotifyCommSettingsChanged` / `NotifyReadinessChanged`
@@ -141,7 +141,7 @@ Registered in `Xbox_Minecraft.cpp`:
 ## Unique Platform Features
 
 - **Memory tracking**: Optional `MEMORY_TRACKING` build with custom `XMemAlloc`/`XMemFree` hooks that track allocations by section and size
-- **Kinect hooks**: Commented-out `NuiInitialize` code suggests Kinect was investigated but not shipped
+- **Kinect hooks**: Commented-out `NuiInitialize` code suggests Kinect was investigated but never shipped
 - **Demo disc support**: `StoreLaunchData` and `ExitGame` handle returning to a demo disc launcher
 - **PIX profiling**: Named events throughout the main loop for Xbox PIX GPU/CPU profiling
 - **Debug features**: `SetDebugSequence("LRLRYYY")` for debug menu activation, Partnernet password protection for test builds

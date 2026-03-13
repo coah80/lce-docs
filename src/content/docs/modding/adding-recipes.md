@@ -3,7 +3,7 @@ title: Adding Recipes
 description: Step-by-step guide to adding crafting and smelting recipes to LCEMP.
 ---
 
-LCEMP has three recipe types: **shaped** (grid pattern matters), **shapeless** (any arrangement), and **furnace** (smelting). All crafting recipes are registered through the `Recipes` singleton, while smelting recipes use `FurnaceRecipes`.
+LCEMP has three recipe types: **shaped** (grid pattern matters), **shapeless** (any arrangement), and **furnace** (smelting). All crafting recipes go through the `Recipes` singleton, while smelting recipes use `FurnaceRecipes`.
 
 ## Architecture overview
 
@@ -17,7 +17,7 @@ LCEMP has three recipe types: **shaped** (grid pattern matters), **shapeless** (
 
 ### Recipe groups
 
-Every recipe belongs to a group that controls where it appears in the console crafting UI:
+Every recipe belongs to a group that controls where it shows up in the console crafting UI:
 
 | Code | Group | Constant |
 |---|---|---|
@@ -31,7 +31,7 @@ Every recipe belongs to a group that controls where it appears in the console cr
 
 ## Shaped recipes
 
-Shaped recipes use `Recipes::addShapedRecipy()`, which is a C variadic function. The arguments follow a specific encoding because C++ variadics cannot carry type information the way Java reflection can. A **type string** is passed as the second variadic argument to describe what follows.
+Shaped recipes use `Recipes::addShapedRecipy()`, which is a C variadic function. The arguments follow a specific encoding because C++ variadics can't carry type information the way Java reflection can. A **type string** is passed as the second variadic argument to describe what comes next.
 
 ### The type string encoding
 
@@ -46,14 +46,14 @@ The type string is a wide-character string where each character tells the parser
 | `t` | Mapped to a `Tile *` | `Tile *` |
 | `g` | The recipe group | `wchar_t` (one of `S`, `T`, `F`, `A`, `M`, `V`, `D`) |
 
-The type string **must** end with `g` followed by the group character. The parser reads types left-to-right and consumes variadic args accordingly.
+The type string **must** end with `g` followed by the group character. The parser reads types left-to-right and grabs variadic args accordingly.
 
 ### How shaped recipes work
 
 1. Row strings (`s` entries) define the crafting grid. Each character in a row maps to an ingredient. Spaces mean empty slots.
 2. After all rows, `c`+`i`/`t`/`z` pairs define the character-to-ingredient mappings.
 3. `g` + group char finishes the recipe.
-4. The parser computes `width` and `height` from the row strings, builds an `ItemInstance**` array, and creates a `ShapedRecipy(width, height, ids, result, group)`.
+4. The parser figures out `width` and `height` from the row strings, builds an `ItemInstance**` array, and creates a `ShapedRecipy(width, height, ids, result, group)`.
 
 ### Example: 3x3 shaped recipe (enchanting table)
 
@@ -72,11 +72,11 @@ addShapedRecipy(new ItemInstance(Tile::enchantTable, 1),
 ```
 
 Reading the type string `sssctcicig`:
-- `s` `s` `s` -- three grid rows
-- `c` `t` -- char `#` maps to a Tile
-- `c` `i` -- char `B` maps to an Item
-- `c` `i` -- char `D` maps to an Item
-- `g` -- group follows
+- `s` `s` `s` = three grid rows
+- `c` `t` = char `#` maps to a Tile
+- `c` `i` = char `B` maps to an Item
+- `c` `i` = char `D` maps to an Item
+- `g` = group follows
 
 ### Example: 2x2 shaped recipe (snow block)
 
@@ -103,7 +103,7 @@ Using `z` (ItemInstance) instead of `t` (Tile) lets you specify an **aux data va
 
 ### Keeping NBT tags
 
-Some recipes need to preserve the NBT tag from an ingredient (e.g. carrot on a stick inherits the fishing rod's damage). Chain `->keepTag()` on the return value:
+Some recipes need to keep the NBT tag from an ingredient (e.g. carrot on a stick inherits the fishing rod's damage). Chain `->keepTag()` on the return value:
 
 ```cpp
 addShapedRecipy(new ItemInstance(Item::carrotOnAStick, 1),
@@ -117,7 +117,7 @@ addShapedRecipy(new ItemInstance(Item::carrotOnAStick, 1),
 
 ## Shapeless recipes
 
-Shapeless recipes use `Recipes::addShapelessRecipy()`. The type string is simpler since there is no grid -- just a list of ingredients:
+Shapeless recipes use `Recipes::addShapelessRecipy()`. The type string is simpler since there's no grid, just a list of ingredients:
 
 | Char | Meaning |
 |---|---|
@@ -161,7 +161,7 @@ addShapelessRecipy(new ItemInstance(Item::book, 1),
 
 ## Furnace (smelting) recipes
 
-Furnace recipes are registered through `FurnaceRecipes`, a separate singleton. The API is straightforward:
+Furnace recipes are registered through `FurnaceRecipes`, a separate singleton. The API is simple:
 
 ```cpp
 void addFurnaceRecipy(int itemId, ItemInstance *result, float xpValue);
@@ -201,7 +201,7 @@ FurnaceRecipes::getInstance()->addFurnaceRecipy(
 
 ## Recipe category modules
 
-LCEMP organizes recipes into dedicated classes that each register their own set of recipes. The `Recipes` constructor calls them in a specific order to control crafting menu layout:
+LCEMP organizes recipes into dedicated classes that each register their own set. The `Recipes` constructor calls them in a specific order to control crafting menu layout:
 
 ```cpp
 pToolRecipies->addRecipes(this);
@@ -230,11 +230,11 @@ To add recipes in a new category, create a class with an `addRecipes(Recipes *r)
 
 ## Adding a new recipe: step by step
 
-1. **Decide the recipe type** -- shaped (pattern matters), shapeless (any order), or furnace (smelting).
+1. **Decide the recipe type**: shaped (pattern matters), shapeless (any order), or furnace (smelting).
 
-2. **Choose where to register it** -- either inline in `Recipes::Recipes()` in `Recipes.cpp`, or in one of the category classes.
+2. **Choose where to register it**: either inline in `Recipes::Recipes()` in `Recipes.cpp`, or in one of the category classes.
 
-3. **Build the type string** -- for shaped recipes, count your rows (`s` each), then each character-ingredient pair (`c` + `i`/`t`/`z`), and end with `g`.
+3. **Build the type string**: for shaped recipes, count your rows (`s` each), then each character-ingredient pair (`c` + `i`/`t`/`z`), and end with `g`.
 
 4. **Call the registration function**:
    ```cpp
@@ -254,12 +254,12 @@ To add recipes in a new category, create a class with an `addRecipes(Recipes *r)
        L'F');
    ```
 
-5. **Rebuild** -- recipes are registered during `Recipes::staticCtor()` at startup. After the constructor runs, `buildRecipeIngredientsArray()` is called automatically to index all recipes for the console crafting UI.
+5. **Rebuild**. Recipes are registered during `Recipes::staticCtor()` at startup. After the constructor runs, `buildRecipeIngredientsArray()` gets called automatically to index all recipes for the console crafting UI.
 
 ## Key source files
 
-- `Minecraft.World/Recipy.h` -- abstract recipe base class
-- `Minecraft.World/ShapedRecipy.h` -- shaped recipe class
-- `Minecraft.World/ShapelessRecipy.h` -- shapeless recipe class
-- `Minecraft.World/Recipes.h` / `Recipes.cpp` -- recipe manager and all built-in recipes
-- `Minecraft.World/FurnaceRecipes.h` / `FurnaceRecipes.cpp` -- furnace recipe manager
+- `Minecraft.World/Recipy.h` for the abstract recipe base class
+- `Minecraft.World/ShapedRecipy.h` for the shaped recipe class
+- `Minecraft.World/ShapelessRecipy.h` for the shapeless recipe class
+- `Minecraft.World/Recipes.h` / `Recipes.cpp` for the recipe manager and all built-in recipes
+- `Minecraft.World/FurnaceRecipes.h` / `FurnaceRecipes.cpp` for the furnace recipe manager

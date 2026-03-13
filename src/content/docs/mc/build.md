@@ -3,7 +3,7 @@ title: "Build System & CI"
 description: "Build differences, CI/CD, C++17, and Linux support."
 ---
 
-MinecraftConsoles supports two build methods: the original Visual Studio solution (`.sln`) and a newer CMake-based build. Both target Windows x64 exclusively at build time.
+MinecraftConsoles supports two build methods: the original Visual Studio solution (`.sln`) and a newer CMake-based build. Both target Windows x64 only at build time.
 
 ## C++17
 
@@ -15,7 +15,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 ```
 
-The project uses C++17 features throughout the codebase, including `shared_ptr`, `make_shared`, `dynamic_pointer_cast`, and modern STL containers.
+The project uses C++17 features throughout, including `shared_ptr`, `make_shared`, `dynamic_pointer_cast`, and modern STL containers.
 
 ## Build methods
 
@@ -23,12 +23,12 @@ The project uses C++17 features throughout the codebase, including `shared_ptr`,
 
 **File**: `MinecraftConsoles.sln`
 
-The primary build method, documented in `COMPILE.md`:
+This is the main build method, documented in `COMPILE.md`:
 
 1. Open `MinecraftConsoles.sln` in Visual Studio 2022.
 2. Set `Minecraft.Client` as the Startup Project.
-3. Select configuration: `Debug` (recommended) or `Release`.
-4. Select platform: `Windows64`.
+3. Pick your configuration: `Debug` (recommended) or `Release`.
+4. Pick your platform: `Windows64`.
 5. Build with `Ctrl+Shift+B`, run with `F5`.
 
 ### CMake
@@ -58,7 +58,7 @@ cd .\build\Debug
 .\MinecraftClient.exe
 ```
 
-The game relies on relative paths (e.g., `Common\Media\...`), so launching from the output directory is required.
+The game relies on relative paths (e.g., `Common\Media\...`), so you need to launch it from the output directory.
 
 ## Project structure
 
@@ -69,19 +69,19 @@ The CMake build defines two targets:
 | `MinecraftWorld` | Static library | Game logic, entities, items, tiles, commands |
 | `MinecraftClient` | Win32 executable | Rendering, UI, networking, platform code |
 
-Source file lists are maintained in separate CMake includes:
+Source file lists are kept in separate CMake includes:
 
-- `cmake/WorldSources.cmake` -- all `Minecraft.World/` source files
-- `cmake/ClientSources.cmake` -- all `Minecraft.Client/` source files
+- `cmake/WorldSources.cmake` for all `Minecraft.World/` source files
+- `cmake/ClientSources.cmake` for all `Minecraft.Client/` source files
 
 ### Compile definitions
 
 Both targets define:
 
-- `_LARGE_WORLDS` -- extended world size support
-- `_DEBUG_MENUS_ENABLED` -- debug menu availability
-- `_CRT_NON_CONFORMING_SWPRINTFS` / `_CRT_SECURE_NO_WARNINGS` -- MSVC compatibility
-- `_WINDOWS64` -- 64-bit platform flag
+- `_LARGE_WORLDS` for extended world size support
+- `_DEBUG_MENUS_ENABLED` for debug menu availability
+- `_CRT_NON_CONFORMING_SWPRINTFS` / `_CRT_SECURE_NO_WARNINGS` for MSVC compatibility
+- `_WINDOWS64` as the 64-bit platform flag
 - `_DEBUG` (Debug only) / `_LIB` (World library only)
 
 ### MSVC options
@@ -100,18 +100,18 @@ The `configure_msvc_target()` function applies:
 `MinecraftClient` links against:
 
 - `MinecraftWorld` (static library)
-- `d3d11` -- DirectX 11 rendering
-- `XInput9_1_0` -- controller input
-- `wsock32` -- networking
-- `legacy_stdio_definitions` -- MSVC compatibility
-- Iggy libraries (`iggy_w64.lib`, `iggyperfmon_w64.lib`, `iggyexpruntime_w64.lib`) -- SWF/Flash UI rendering
-- 4J libraries (`4J_Input.lib`, `4J_Storage.lib`, `4J_Render_PC.lib`) -- platform abstraction (debug/release variants)
+- `d3d11` for DirectX 11 rendering
+- `XInput9_1_0` for controller input
+- `wsock32` for networking
+- `legacy_stdio_definitions` for MSVC compatibility
+- Iggy libraries (`iggy_w64.lib`, `iggyperfmon_w64.lib`, `iggyexpruntime_w64.lib`) for SWF/Flash UI rendering
+- 4J libraries (`4J_Input.lib`, `4J_Storage.lib`, `4J_Render_PC.lib`) for platform abstraction (debug/release variants)
 
 ## Platform support
 
 ### Windows (primary)
 
-Both the `.sln` and CMake builds target Windows x64 only. The CMake build explicitly enforces this:
+Both the `.sln` and CMake builds target Windows x64 only. The CMake build checks for this explicitly:
 
 ```cmake
 if(NOT WIN32)
@@ -127,7 +127,7 @@ endif()
 The CMake build automatically copies runtime assets during configuration:
 
 - **Windows**: Uses `robocopy.exe` to copy redistributables from `x64/Release/`, client assets (excluding source files), and DurangoMedia patches.
-- **Unix/Linux**: Uses `rsync` with equivalent exclusion filters. This path exists for asset copying but the actual compilation still requires MSVC.
+- **Unix/Linux**: Uses `rsync` with equivalent exclusion filters. This path exists for asset copying, but the actual compilation still needs MSVC.
 
 The asset copy excludes source files (`*.cpp`, `*.h`, etc.), build files, scripts, and platform-specific directories (`Durango*`, `Orbis*`, `PS*`, `Xbox`).
 
@@ -135,7 +135,7 @@ The asset copy excludes source files (`*.cpp`, `*.h`, etc.), build files, script
 
 Per `COMPILE.md`, contributors on Linux need a Windows machine or VM to build. Running the compiled game via Wine is a separate concern from having a supported build environment.
 
-The `CONTRIBUTING.md` notes that one of the project's goals is "having workable multi-platform compilation for ARM, Consoles, Linux" -- this is a future goal, not a current capability.
+The `CONTRIBUTING.md` notes that one of the project's goals is "having workable multi-platform compilation for ARM, Consoles, Linux." This is a future goal, not something that works today.
 
 ## CI/CD
 
@@ -145,7 +145,7 @@ MinecraftConsoles uses three GitHub Actions workflows:
 
 **Triggers**: Pull requests (opened, reopened, synchronize), pushes to `main`, and manual dispatch.
 
-Runs a Debug build on `windows-latest` using MSBuild. This is the primary CI gate that validates all PRs compile successfully. Ignores changes to `.gitignore` and markdown files (both root and `.github/` markdown).
+Runs a Debug build on `windows-latest` using MSBuild. This is the main CI gate that makes sure all PRs compile successfully. It ignores changes to `.gitignore` and markdown files (both root and `.github/` markdown).
 
 ### nightly.yml (nightly release)
 
@@ -153,9 +153,9 @@ Runs a Debug build on `windows-latest` using MSBuild. This is the primary CI gat
 
 Builds a Release configuration on `windows-latest`, zips the output as `LCEWindows64.zip`, and publishes it as a nightly release using the `andelf/nightly-release` action. The release includes:
 
-- `LCEWindows64.zip` -- full game package
-- `Minecraft.Client.exe` -- standalone executable
-- `Minecraft.Client.pdb` -- debug symbols
+- `LCEWindows64.zip`, the full game package
+- `Minecraft.Client.exe`, the standalone executable
+- `Minecraft.Client.pdb`, debug symbols
 
 Release builds use MSVC v14.44.35207 with `/O2 /Ot /Oi /Ob3 /GF /fp:precise`.
 
@@ -186,7 +186,7 @@ The project includes a clang-format configuration based on the Microsoft style:
 | Sort includes | Case sensitive |
 | Standard | Latest |
 
-Notable settings: `InsertBraces: true` ensures all control flow blocks have braces, and `ColumnLimit: 0` disables line length enforcement.
+Notable settings: `InsertBraces: true` makes sure all control flow blocks have braces, and `ColumnLimit: 0` turns off line length enforcement.
 
 ## Differences from LCEMP build
 

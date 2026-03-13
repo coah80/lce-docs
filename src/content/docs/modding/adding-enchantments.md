@@ -3,7 +3,7 @@ title: Adding Enchantments
 description: Step-by-step guide to adding new enchantments to LCEMP.
 ---
 
-This guide covers the LCEMP enchantment system: creating enchantment subclasses, registering them, defining cost curves, implementing damage/protection modifiers, compatibility rules, and how the enchanting table selection algorithm works.
+This guide covers the LCEMP enchantment system: how to create enchantment subclasses, register them, define cost curves, implement damage/protection modifiers, set up compatibility rules, and how the enchanting table's selection algorithm works.
 
 ## Enchantment System Overview
 
@@ -85,7 +85,7 @@ bool MyEnchantment::isCompatibleWith(Enchantment *other) const
 
 ## Step 2: The Enchantment Base Class
 
-The `Enchantment` constructor registers itself automatically into the global `enchantments[256]` array:
+The `Enchantment` constructor automatically registers itself into the global `enchantments[256]` array:
 
 ```cpp
 Enchantment::Enchantment(int id, int frequency,
@@ -96,7 +96,7 @@ Enchantment::Enchantment(int id, int frequency,
 }
 ```
 
-A duplicate ID triggers `__debugbreak()` in debug builds.
+If you use a duplicate ID, it triggers `__debugbreak()` in debug builds.
 
 ### Key Virtual Methods
 
@@ -104,7 +104,7 @@ A duplicate ID triggers `__debugbreak()` in debug builds.
 |--------|---------|---------|
 | `getMinLevel()` | 1 | Minimum enchantment level |
 | `getMaxLevel()` | 1 | Maximum enchantment level |
-| `getMinCost(level)` | `1 + level * 10` | Minimum enchantment value for this level to appear |
+| `getMinCost(level)` | `1 + level * 10` | Minimum enchantment value for this level to show up |
 | `getMaxCost(level)` | `getMinCost(level) + 5` | Maximum enchantment value for this level |
 | `getFrequency()` | Constructor arg | Weight in random selection |
 | `getDamageProtection(level, source)` | 0 | Damage reduction points |
@@ -114,7 +114,7 @@ A duplicate ID triggers `__debugbreak()` in debug builds.
 
 ### Frequency Constants
 
-Frequency determines how likely the enchantment is to be selected from the candidate pool (higher = more common):
+Frequency controls how likely the enchantment is to be picked from the candidate pool (higher = more common):
 
 | Constant | Value | Examples |
 |----------|-------|---------|
@@ -125,7 +125,7 @@ Frequency determines how likely the enchantment is to be selected from the candi
 
 ## Step 3: Enchantment Categories
 
-`EnchantmentCategory` determines which items an enchantment can be applied to:
+`EnchantmentCategory` decides which items an enchantment can go on:
 
 | Category | Constant | Items |
 |----------|----------|-------|
@@ -139,11 +139,11 @@ Frequency determines how likely the enchantment is to be selected from the candi
 | Diggers | `EnchantmentCategory::digger` | Pickaxes, shovels, axes |
 | Bows | `EnchantmentCategory::bow` | Bows |
 
-The category check is done via `EnchantmentCategory::canEnchant(Item *item)`.
+The category check happens through `EnchantmentCategory::canEnchant(Item *item)`.
 
 ### Overriding canEnchant
 
-Some enchantments override `canEnchant` to expand beyond their category. For example, `DamageEnchantment` (Sharpness/Smite/Bane) also works on axes:
+Some enchantments override `canEnchant` to work on items outside their category. For example, `DamageEnchantment` (Sharpness/Smite/Bane) also works on axes:
 
 ```cpp
 bool DamageEnchantment::canEnchant(shared_ptr<ItemInstance> item)
@@ -207,11 +207,11 @@ Vanilla enchantments use these ID ranges:
 | 32-35 | Tool/digger enchantments |
 | 48-51 | Bow enchantments |
 
-Pick an ID that does not collide with existing enchantments. IDs 0-255 are valid.
+Pick an ID that doesn't collide with existing enchantments. IDs 0-255 are valid.
 
 ## Step 5: Compatibility Rules
 
-The `isCompatibleWith()` method controls which enchantments can coexist on the same item. The enchanting table algorithm removes incompatible candidates when building multi-enchantment results.
+The `isCompatibleWith()` method controls which enchantments can live on the same item. The enchanting table algorithm removes incompatible candidates when building multi-enchantment results.
 
 ### Default Behavior
 
@@ -224,7 +224,7 @@ bool Enchantment::isCompatibleWith(Enchantment *other) const
 
 ### Protection Enchantment Compatibility
 
-`ProtectionEnchantment` uses a more nuanced rule -- protection types are mutually exclusive (you cannot have both Protection and Fire Protection), but Feather Falling is compatible with all other protection types:
+`ProtectionEnchantment` has a more specific rule. Protection types are mutually exclusive (you can't have both Protection and Fire Protection), but Feather Falling works with all other protection types:
 
 ```cpp
 bool ProtectionEnchantment::isCompatibleWith(Enchantment *other) const
@@ -265,7 +265,7 @@ if (sum > 25) sum = 25;
 return ((sum + 1) >> 1) + random.nextInt((sum >> 1) + 1);
 ```
 
-The `ProtectionEnchantment` calculates protection based on type:
+Here's how `ProtectionEnchantment` calculates protection based on type:
 
 ```cpp
 int ProtectionEnchantment::getDamageProtection(
@@ -302,7 +302,7 @@ int DamageEnchantment::getDamageBonus(
 }
 ```
 
-The total bonus is randomized in `EnchantmentHelper::getDamageBonus()`:
+The total bonus gets randomized in `EnchantmentHelper::getDamageBonus()`:
 
 ```cpp
 if (sum > 0)
@@ -314,7 +314,7 @@ return 0;
 
 ### Thorns: A Special Case
 
-`ThornsEnchantment` does not use `getDamageProtection` or `getDamageBonus`. Instead, it has static helper methods called from the damage pipeline:
+`ThornsEnchantment` doesn't use `getDamageProtection` or `getDamageBonus`. Instead, it has static helper methods that are called from the damage pipeline:
 
 ```cpp
 // 15% chance per level to reflect damage
@@ -334,7 +334,7 @@ int ThornsEnchantment::getDamage(int level, Random *random)
 
 ## Step 7: Hook Into the Damage Pipeline
 
-To make your enchantment actually apply its effect, you need to integrate it with `EnchantmentHelper`. The helper uses an **iteration pattern** that walks all enchantments on an item:
+To make your enchantment actually do something, you need to connect it with `EnchantmentHelper`. The helper uses an **iteration pattern** that walks through all enchantments on an item:
 
 ```cpp
 // EnchantmentHelper iterates enchantments on items via:
@@ -345,7 +345,7 @@ void runIterationOnInventory(EnchantmentIterationMethod &method,
     ItemInstanceArray inventory);
 ```
 
-For protection and damage enchantments, the base class `getDamageProtection()` and `getDamageBonus()` methods are automatically called by the existing iteration methods. No extra wiring is needed.
+For protection and damage enchantments, the base class `getDamageProtection()` and `getDamageBonus()` methods get called automatically by the existing iteration methods. You don't need any extra wiring.
 
 For special effects (like Thorns), add a helper function in `EnchantmentHelper`:
 
@@ -363,15 +363,15 @@ int EnchantmentHelper::getMyEnchantmentLevel(
 }
 ```
 
-Then call this from the relevant game logic (e.g., `Mob::hurt()`, `Mob::doHurtTarget()`, etc.).
+Then call this from the relevant game logic (like `Mob::hurt()`, `Mob::doHurtTarget()`, etc.).
 
 ## The Enchanting Table Algorithm
 
-Understanding the enchanting table's selection algorithm is essential for tuning your enchantment's cost curves.
+Understanding how the enchanting table picks enchantments is useful for tuning your enchantment's cost curves.
 
 ### Step 1: Calculate the Enchantment Cost
 
-`EnchantmentHelper::getEnchantmentCost()` determines the enchantment value for each of the three table slots:
+`EnchantmentHelper::getEnchantmentCost()` figures out the enchantment value for each of the three table slots:
 
 ```cpp
 int getEnchantmentCost(Random *random, int slot,
@@ -401,9 +401,7 @@ int getEnchantmentCost(Random *random, int slot,
 3. **Apply deviation**: Random +/-15% adjustment.
 4. **Find candidates**: For each registered enchantment, check if `realValue` falls within `[getMinCost(level), getMaxCost(level)]` for any valid level.
 5. **Weighted selection**: Pick the first enchantment using weighted random (by `getFrequency()`).
-6. **Bonus enchantments**: Loop with `random.nextInt(50) <= bonusChance`, halving `bonusChance` each iteration. Each iteration:
-   - Remove candidates incompatible with already-selected enchantments (using `isCompatibleWith()`).
-   - Pick another weighted random enchantment from remaining candidates.
+6. **Bonus enchantments**: Loop with `random.nextInt(50) <= bonusChance`, halving `bonusChance` each time. Each iteration removes candidates that are incompatible with already-selected enchantments (using `isCompatibleWith()`) and picks another weighted random enchantment from what's left.
 
 ```cpp
 // Simplified flow:
@@ -421,14 +419,14 @@ while (random->nextInt(50) <= bonusChance)
 
 ### Tuning Your Enchantment's Appearance
 
-The cost curve (`getMinCost` / `getMaxCost`) determines at what enchanting table levels your enchantment appears:
+The cost curve (`getMinCost` / `getMaxCost`) determines at what enchanting table levels your enchantment shows up:
 
 | Parameter | Effect |
 |-----------|--------|
 | Lower `getMinCost` | Appears at lower enchanting levels |
 | Wider cost window (`maxCost - minCost`) | More likely to be selected |
 | Higher `getFrequency` | More likely to be picked from candidates |
-| Lower `getMaxLevel` | Fewer level variants compete for the same cost range |
+| Lower `getMaxLevel` | Fewer level variants competing for the same cost range |
 
 ## Existing Enchantment Reference
 

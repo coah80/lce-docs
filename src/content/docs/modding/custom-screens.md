@@ -3,7 +3,7 @@ title: Custom GUI Screens
 description: How to create custom GUI screens in LCEMP.
 ---
 
-The LCEMP GUI system is built around the `Screen` class. Every menu you see in the game -- the title screen, pause menu, death screen, inventory, chat -- is a `Screen` subclass. This guide covers how to create your own.
+The LCEMP GUI system is built around the `Screen` class. Every menu you see in the game (title screen, pause menu, death screen, inventory, chat) is a `Screen` subclass. This guide shows you how to make your own.
 
 ## Architecture overview
 
@@ -29,7 +29,7 @@ YourCustomScreen      -- your implementation
 
 ## GuiComponent drawing primitives
 
-`GuiComponent` (`Minecraft.Client/GuiComponent.h`) provides the low-level rendering methods every screen inherits:
+`GuiComponent` (`Minecraft.Client/GuiComponent.h`) provides the low-level rendering methods that every screen inherits:
 
 ```cpp
 class GuiComponent {
@@ -101,11 +101,11 @@ protected:
 
 ### Lifecycle flow
 
-1. **`init(Minecraft*, int, int)`** -- called when the screen is opened. Sets `minecraft`, `width`, `height`, `font`, then calls `init()`.
-2. **`init()`** -- override this to create buttons and set up state. Called after dimensions are set.
-3. **`tick()`** -- called every game tick (20 times/second). Use for animations and timed logic.
-4. **`render(int xm, int ym, float a)`** -- called every frame. `xm`/`ym` are mouse position, `a` is partial tick for interpolation.
-5. **`removed()`** -- called when the screen is closed.
+1. **`init(Minecraft*, int, int)`** is called when the screen opens. It sets `minecraft`, `width`, `height`, `font`, then calls `init()`.
+2. **`init()`** is where you override to create buttons and set up state. Called after dimensions are set.
+3. **`tick()`** runs every game tick (20 times/second). Good for animations and timed logic.
+4. **`render(int xm, int ym, float a)`** runs every frame. `xm`/`ym` are the mouse position, `a` is the partial tick for interpolation.
+5. **`removed()`** is called when the screen closes.
 
 ## Button class
 
@@ -129,9 +129,9 @@ public:
 };
 ```
 
-- **`id`** -- unique identifier used in `buttonClicked()` to determine which button was pressed
-- **`active`** -- set to `false` to gray out and disable the button
-- **`visible`** -- set to `false` to hide the button entirely
+- **`id`** is a unique identifier used in `buttonClicked()` to tell which button was pressed
+- **`active`** set to `false` grays out and disables the button
+- **`visible`** set to `false` hides the button entirely
 - Default button size is 200x20 when using the 3-argument constructor
 
 ## Creating a custom screen
@@ -238,7 +238,7 @@ From anywhere that has access to the `Minecraft` instance:
 minecraft->setScreen(new MyScreen());
 ```
 
-To return to the previous screen or close the screen entirely:
+To go back to the previous screen or close the screen entirely:
 
 ```cpp
 minecraft->setScreen(nullptr);  // closes screen, returns to game
@@ -248,7 +248,7 @@ minecraft->setScreen(nullptr);  // closes screen, returns to game
 
 ### Mouse input
 
-The base `Screen` class processes mouse events automatically. When a button is clicked, `buttonClicked(Button*)` is called. For custom click handling outside of buttons, override `mouseClicked()`:
+The base `Screen` class processes mouse events automatically. When a button is clicked, `buttonClicked(Button*)` gets called. For custom click handling outside of buttons, override `mouseClicked()`:
 
 ```cpp
 void MyScreen::mouseClicked(int x, int y, int buttonNum) {
@@ -278,7 +278,7 @@ void MyScreen::keyPressed(wchar_t eventCharacter, int eventKey) {
 
 ## Existing screen examples
 
-Study these existing screens for patterns:
+These existing screens are good to study for patterns:
 
 | Screen | File | Complexity | Good example of |
 |---|---|---|---|
@@ -311,7 +311,7 @@ protected:
 
 ### ChatScreen pattern
 
-`ChatScreen` shows text input handling:
+`ChatScreen` shows how text input works:
 
 ```cpp
 class ChatScreen : public Screen {
@@ -330,16 +330,16 @@ public:
 - Call `renderBackground()` first to draw the standard darkened overlay.
 - Use `drawCenteredString()` for titles and labels.
 - Use `fill()` for colored panels and separators.
-- Use `blit()` to draw from texture atlases (requires binding the texture first).
-- Button rendering happens in each button's own `render()` method -- iterate `buttons` and call it.
+- Use `blit()` to draw from texture atlases (you need to bind the texture first).
+- Button rendering happens in each button's own `render()` method. Iterate `buttons` and call it.
 - `isPauseScreen()` controls whether the game ticks while your screen is open. Return `true` for menus, `false` for overlays like chat.
 
 ## Key source files
 
-- `Minecraft.Client/GuiComponent.h` -- drawing primitives
-- `Minecraft.Client/Screen.h` -- screen base class
-- `Minecraft.Client/Button.h` -- button widget
-- `Minecraft.Client/Minecraft.h` -- `setScreen()` method
-- `Minecraft.Client/DeathScreen.h` -- simple example screen
-- `Minecraft.Client/PauseScreen.h` -- pause menu example
-- `Minecraft.Client/ChatScreen.h` -- text input example
+- `Minecraft.Client/GuiComponent.h` for drawing primitives
+- `Minecraft.Client/Screen.h` for the screen base class
+- `Minecraft.Client/Button.h` for the button widget
+- `Minecraft.Client/Minecraft.h` for the `setScreen()` method
+- `Minecraft.Client/DeathScreen.h` for a simple example screen
+- `Minecraft.Client/PauseScreen.h` for the pause menu example
+- `Minecraft.Client/ChatScreen.h` for the text input example

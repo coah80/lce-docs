@@ -3,7 +3,7 @@ title: "Behavior System"
 description: "The behavior registry and dispenser behaviors in MinecraftConsoles."
 ---
 
-MinecraftConsoles implements a **behavior system** centred around dispenser item behaviors. The system is built on a class hierarchy rooted in `Behavior`, with a registry that maps `Item*` pointers to their corresponding `DispenseItemBehavior` implementations.
+MinecraftConsoles has a **behavior system** built around dispenser item behaviors. It's based on a class hierarchy rooted in `Behavior`, with a registry that maps `Item*` pointers to their matching `DispenseItemBehavior` implementations.
 
 ## Class hierarchy
 
@@ -43,7 +43,7 @@ Behavior
 
 ## BehaviorRegistry
 
-`BehaviorRegistry` is a simple map of `Item*` to `DispenseItemBehavior*` with a configurable default.
+`BehaviorRegistry` is a simple map from `Item*` to `DispenseItemBehavior*` with a configurable default.
 
 ```cpp
 class BehaviorRegistry
@@ -66,11 +66,11 @@ The registry owns all registered behaviors and deletes them (along with the defa
 
 | Outcome | Value | Meaning |
 |---------|-------|---------|
-| `ACTIVATED_ITEM` | 0 | Special behavior executed successfully |
+| `ACTIVATED_ITEM` | 0 | Special behavior ran successfully |
 | `DISPENCED_ITEM` | 1 | Item dropped onto the ground as a pickup |
 | `LEFT_ITEM` | 2 | Execution failed; item unchanged |
 
-The `dispense()` method calls `execute()`, then plays a sound and particle animation based on the outcome. Subclasses override `execute()` to implement their specific logic and set the outcome accordingly.
+The `dispense()` method calls `execute()`, then plays a sound and particle animation based on the outcome. Subclasses override `execute()` to do their specific thing and set the outcome accordingly.
 
 When the outcome is `LEFT_ITEM`, a failure click sound (`SOUND_CLICK_FAIL`) plays instead of the normal click.
 
@@ -78,7 +78,7 @@ When the outcome is `LEFT_ITEM`, a failure click sound (`SOUND_CLICK_FAIL`) play
 
 `AbstractProjectileDispenseBehavior` extends `DefaultDispenseItemBehavior` to fire projectiles:
 
-1. Checks `Level::MAX_DISPENSABLE_PROJECTILES` -- if the limit is reached, falls back to `DefaultDispenseItemBehavior::execute()` (drops the item).
+1. Checks `Level::MAX_DISPENSABLE_PROJECTILES`. If the limit is reached, falls back to `DefaultDispenseItemBehavior::execute()` (drops the item).
 2. Gets the dispense position from `DispenserTile::getDispensePosition()`.
 3. Calls the pure-virtual `getProjectile()` to create the specific projectile type.
 4. Calls `projectile->shoot()` with the facing direction, adding a small Y offset (`+0.1`).
@@ -94,7 +94,7 @@ Default values:
 
 ## DispenserBootstrap
 
-Registration happens in `DispenserBootstrap::bootStrap()` (in `Minecraft.Client/DispenserBootstrap.h`), which is called during server initialization from `MinecraftServer.cpp`. It registers all 15 behaviors:
+Registration happens in `DispenserBootstrap::bootStrap()` (in `Minecraft.Client/DispenserBootstrap.h`), called during server initialization from `MinecraftServer.cpp`. It registers all 15 behaviors:
 
 | Item | Behavior class |
 |------|---------------|
@@ -118,7 +118,7 @@ Registration happens in `DispenserBootstrap::bootStrap()` (in `Minecraft.Client/
 
 ### PotionDispenseBehavior
 
-Delegates to `ThrownPotionDispenseBehavior` if `PotionItem::isThrowable()` returns true for the aux value; otherwise falls back to `DefaultDispenseItemBehavior` (drops a non-splash potion on the ground).
+Hands off to `ThrownPotionDispenseBehavior` if `PotionItem::isThrowable()` returns true for the aux value. Otherwise falls back to `DefaultDispenseItemBehavior` (drops a non-splash potion on the ground).
 
 ### SpawnEggDispenseBehavior
 
@@ -126,7 +126,7 @@ Spawns the entity via `SpawnEggItem::spawnMobAt()`. If the spawn limit is reache
 
 ### FireworksDispenseBehavior
 
-Checks `Level::MAX_DISPENSABLE_PROJECTILES` before spawning a `FireworksRocketEntity`. On limit, sets `LEFT_ITEM`.
+Checks `Level::MAX_DISPENSABLE_PROJECTILES` before spawning a `FireworksRocketEntity`. If the limit is hit, sets `LEFT_ITEM`.
 
 ### FireballDispenseBehavior
 
@@ -134,7 +134,7 @@ Checks `Level::MAX_DISPENSABLE_FIREBALLS`. Creates a `SmallFireball` with a rand
 
 ### BoatDispenseBehavior
 
-Checks `Level::MAX_XBOX_BOATS`. Spawns a `Boat` only if water is in front of the dispenser (or air with water below). If neither condition holds or the boat limit is reached, falls back to `defaultDispenseItemBehavior->dispense()` (drops the item).
+Checks `Level::MAX_XBOX_BOATS`. Spawns a `Boat` only if water is in front of the dispenser (or air with water below). If neither condition is met or the boat limit is reached, falls back to `defaultDispenseItemBehavior->dispense()` (drops the item).
 
 ### FlintAndSteelDispenseBehavior
 
@@ -150,7 +150,7 @@ Checks `Level::newPrimedTntAllowed()` and the game host TNT option before spawni
 
 ## 4J-specific notes
 
-Comments tagged `4J-JEV` throughout the code indicate console-edition-specific changes:
+Comments tagged `4J-JEV` throughout the code mark console-edition-specific changes:
 
 - The `eOUTCOME` parameter was added to `execute()` to support failure sound effects when spawn limits are hit.
-- Spawn limits (`MAX_DISPENSABLE_PROJECTILES`, `MAX_DISPENSABLE_FIREBALLS`, `MAX_XBOX_BOATS`) are console-specific caps not present in Java Edition.
+- Spawn limits (`MAX_DISPENSABLE_PROJECTILES`, `MAX_DISPENSABLE_FIREBALLS`, `MAX_XBOX_BOATS`) are console-specific caps that don't exist in Java Edition.

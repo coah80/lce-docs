@@ -3,13 +3,13 @@ title: "New Entities & Models"
 description: "New entity types and their renderers in MinecraftConsoles."
 ---
 
-MinecraftConsoles adds several entity types beyond the LCEMP base, along with their corresponding renderers and models on the client side. Each entity has a type enum (`eINSTANCEOF`), a static `create()` factory, and synched data fields.
+MinecraftConsoles adds several entity types beyond the LCEMP base, along with their renderers and models on the client side. Each entity has a type enum (`eINSTANCEOF`), a static `create()` factory, and synched data fields.
 
 ## EntityHorse
 
 **Files**: `Minecraft.World/EntityHorse.h`, `.cpp`; `Minecraft.Client/HorseRenderer.h`, `.cpp`; `Minecraft.Client/ModelHorse.cpp`
 
-The horse is the most complex new entity, extending `Animal` and implementing `ContainerListener`.
+The horse is the most complex new entity. It extends `Animal` and implements `ContainerListener`.
 
 ### Horse types and variants
 
@@ -30,7 +30,7 @@ The horse is the most complex new entity, extending `Animal` and implementing `C
 ### Key features
 
 - **Synched data**: Flags for tame, saddle, chested, bred, eating, standing, open mouth. Type, variant, owner name, and armor type are separate data IDs.
-- **Temper system**: `temper` integer that increases through feeding. The horse is tamed when temper exceeds `getMaxTemper()`.
+- **Temper system**: A `temper` integer that goes up through feeding. The horse gets tamed when temper exceeds `getMaxTemper()`.
 - **Jump strength**: A custom `JUMP_STRENGTH` attribute with randomly generated values.
 - **Animations**: Eating, standing, and mouth animations with interpolated `O` (old) values for smooth rendering.
 - **Breeding**: Uses `HorseGroupData` for spawn group data. Offspring inherit parent types. Mules (`TYPE_MULE`) are sterile.
@@ -65,7 +65,7 @@ Has dedicated AI goals: `OcelotAttackGoal` (in `OcelotAttackGoal.h/cpp`) for pou
 
 **Files**: `Minecraft.World/Ozelot.h`, `Ozelot.cpp`; `Minecraft.Client/OzelotRenderer.h`, `OzelotModel.h`
 
-The older implementation using `eTYPE_OZELOT`. Uses integer damage and float speed values instead of double modifiers. Has `getTexture()` returning an integer rather than attribute-based rendering.
+The older implementation using `eTYPE_OZELOT`. Uses integer damage and float speed values instead of double modifiers. Has `getTexture()` returning an integer rather than using attribute-based rendering.
 
 ## Witch
 
@@ -100,15 +100,15 @@ Extends `Monster` and implements both `RangedAttackMob` and `BossMob`.
 
 The Wither has synched data for three targets (`DATA_TARGET_A/B/C`) and an invulnerability counter (`DATA_ID_INV`). Each side head tracks its own rotation (`xRotHeads`, `yRotHeads`) with interpolation values.
 
-`performRangedAttack()` is overloaded: the `RangedAttackMob` interface version delegates to the head-specific version that fires `WitherSkull` projectiles. Dangerous skulls (blue) are fired at closer range.
+`performRangedAttack()` is overloaded: the `RangedAttackMob` interface version calls the head-specific version that fires `WitherSkull` projectiles. Dangerous skulls (blue) are fired at closer range.
 
 ### Rendering
 
-`WitherBossRenderer` uses three texture locations (normal, armor overlay, invulnerable) and implements `prepareArmor()` and `prepareArmorOverlay()` for the shield effect. The 4J comment notes that `BossMob` interface methods delegate to `Monster` base implementations.
+`WitherBossRenderer` uses three texture locations (normal, armor overlay, invulnerable) and has `prepareArmor()` and `prepareArmorOverlay()` for the shield effect. The 4J comment notes that `BossMob` interface methods delegate to `Monster` base implementations.
 
 ### LivingEntitySelector
 
-A utility `EntitySelector` subclass defined alongside `WitherBoss` that filters for living entities -- used by the Wither's targeting logic.
+A utility `EntitySelector` subclass defined alongside `WitherBoss` that filters for living entities. The Wither's targeting logic uses it.
 
 ## WitherSkull
 
@@ -155,8 +155,8 @@ Extends `HangingEntity`. The invisible-until-rendered knot entity placed on fenc
 
 Key static methods:
 
-- `createAndAddKnot()` -- creates a new knot entity at the given fence coordinates and adds it to the world.
-- `findKnotAt()` -- searches for an existing knot at a position.
+- `createAndAddKnot()` creates a new knot entity at the given fence coordinates and adds it to the world.
+- `findKnotAt()` searches for an existing knot at a position.
 
 `LeashKnotRenderer` uses `LeashKnotModel` for the small knot mesh and renders the leash rope to connected mobs.
 
@@ -171,7 +171,7 @@ Extends `Entity` directly (not a `Mob` or `Projectile`).
 | Type enum | `eTYPE_FIREWORKS_ROCKET` |
 | Synched data | `DATA_ID_FIREWORKS_ITEM` (data ID 8) |
 
-Tracks `life` (current tick) and `lifetime` (detonation time). On the client side, `handleEntityEvent()` triggers the particle explosion. Provides custom brightness (`getBrightness`, `getLightColor`) for the glow effect. Is not attackable.
+Tracks `life` (current tick) and `lifetime` (detonation time). On the client side, `handleEntityEvent()` triggers the particle explosion. Has custom brightness (`getBrightness`, `getLightColor`) for the glow effect. Not attackable.
 
 Client-side particle effects are handled separately in `Minecraft.Client/FireworksParticles.h/cpp`.
 

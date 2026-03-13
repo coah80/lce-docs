@@ -3,7 +3,7 @@ title: "Commands"
 description: "New and enhanced commands in MinecraftConsoles."
 ---
 
-MinecraftConsoles implements a command system based on the 4J Studios console edition architecture. Commands use a binary packet-based dispatch rather than the text-parsing approach of Java Edition.
+MinecraftConsoles has a command system based on the 4J Studios console edition architecture. Commands use a binary packet-based dispatch instead of the text-parsing approach from Java Edition.
 
 ## Command architecture
 
@@ -56,7 +56,7 @@ public:
 };
 ```
 
-Checks `canExecute()` before running. If the sender lacks permission, displays a red "You do not have permission" message (except in content packages).
+Checks `canExecute()` before running. If the sender doesn't have permission, a red "You do not have permission" message is shown (except in content packages).
 
 ### EGameCommand enum
 
@@ -97,7 +97,7 @@ Includes `getModeForString()` to parse the mode argument. `DefaultGameModeComman
 
 Gives items to players. Permission level: `LEVEL_GAMEMASTERS`.
 
-Has a static `preparePacket()` helper that constructs a `GameCommandPacket` with item ID, amount, aux value, and optional NBT tag string.
+Has a static `preparePacket()` helper that builds a `GameCommandPacket` with item ID, amount, aux value, and optional NBT tag string.
 
 ### KillCommand
 
@@ -125,7 +125,7 @@ Toggles weather. Permission level: `LEVEL_GAMEMASTERS`.
 
 Enchants a player's held item. Permission level: `LEVEL_GAMEMASTERS`.
 
-Has a static `preparePacket()` taking enchantment ID and level (default 1).
+Has a static `preparePacket()` that takes enchantment ID and level (default 1).
 
 ### ExperienceCommand
 
@@ -157,7 +157,7 @@ The `execute()` method body is entirely commented out in the current source. The
 
 ## Java reference commands (commented out)
 
-Several command files contain complete Java source code in block comments. These serve as reference implementations that have not yet been ported to C++:
+Several command files have complete Java source code in block comments. These are reference implementations that haven't been ported to C++ yet:
 
 ### GameDifficultyCommand
 
@@ -169,7 +169,7 @@ Sets the server difficulty. Accepts `peaceful`/`p`, `easy`/`e`, `normal`/`n`, `h
 
 **File**: `Minecraft.World/GameRuleCommand.h`
 
-Gets, sets, or lists game rules. With 0 args lists all rules, with 1 arg shows a rule value, with 2 args sets a rule. Tab-completes rule names and `true`/`false` values.
+Gets, sets, or lists game rules. With 0 args it lists all rules, with 1 arg it shows a rule value, with 2 args it sets a rule. Tab-completes rule names and `true`/`false` values.
 
 ### ShowSeedCommand
 
@@ -181,7 +181,7 @@ Displays the world seed. Allows execution in singleplayer regardless of permissi
 
 **File**: `Minecraft.World/WeatherCommand.h`
 
-Sets weather to `clear`, `rain`, or `thunder` with an optional duration in seconds. Default duration is 300-600 seconds (randomly chosen). Tab-completes weather type names.
+Sets weather to `clear`, `rain`, or `thunder` with an optional duration in seconds. Default duration is 300 to 600 seconds (randomly chosen). Tab-completes weather type names.
 
 ### PlaySoundCommand
 
@@ -193,12 +193,12 @@ Plays a sound at a location for a specific player. Supports position, volume, pi
 
 **File**: `Minecraft.World/SpreadPlayersCommand.h`
 
-Spreads players randomly across an area. Contains a `MAX_ITERATION_COUNT` of 10,000 for the randomization algorithm.
+Spreads players randomly across an area. Has a `MAX_ITERATION_COUNT` of 10,000 for the randomization algorithm.
 
 ### SetPlayerTimeoutCommand, AdminLogCommand
 
-- `SetPlayerTimeoutCommand.h` -- sets the connection timeout for a player
-- `AdminLogCommand.h` -- the logging backend used by `Command::logAdminAction()`
+- `SetPlayerTimeoutCommand.h` sets the connection timeout for a player
+- `AdminLogCommand.h` is the logging backend used by `Command::logAdminAction()`
 
 ## EntitySelector
 
@@ -232,7 +232,7 @@ This is not the `@a`/`@p`/`@r`/`@e` target selector system from Java Edition. Th
 
 ## Comparison with LCEMP
 
-LCEMP implements a smaller set of commands. The commands present in MinecraftConsoles but not in the LCEMP base include:
+LCEMP has a smaller set of commands. The commands in MinecraftConsoles but not in the LCEMP base include:
 
 - `/effect` (stub)
 - `/enchant`

@@ -3,25 +3,25 @@ title: Adding Biomes
 description: Step-by-step guide to adding new biomes to LCEMP.
 ---
 
-This guide covers creating new biomes in LCEMP, including subclassing `Biome`, configuring properties, registering mob spawns, customizing decorators, and integrating with the layer-based world generation pipeline.
+This guide covers creating new biomes in LCEMP, including how to subclass `Biome`, configure properties, set up mob spawns, customize decorators, and hook into the layer-based world generation pipeline.
 
 ## Biome System Overview
 
-The biome system lives entirely in `Minecraft.World/`. The core classes are:
+The biome system lives entirely in `Minecraft.World/`. Here are the core classes:
 
 | File | Purpose |
 |------|---------|
 | `Biome.h` / `Biome.cpp` | Base class, static biome registry, mob spawn lists |
 | `BiomeDecorator.h` | Feature placement (ores, trees, grass, flowers) |
 | `BiomeSource.h` | Provides biome data to the chunk generator |
-| `BiomeInitLayer.h` | Selects which biomes appear during world gen |
-| `Layer.h` / `Layer.cpp` | Layer pipeline that transforms noise into biome IDs |
+| `BiomeInitLayer.h` | Picks which biomes show up during world gen |
+| `Layer.h` / `Layer.cpp` | Layer pipeline that turns noise into biome IDs |
 
 LCEMP supports up to 256 biomes (the `Biome::biomes[256]` static array). The 23 vanilla biomes use IDs 0-22.
 
 ## Step 1: Create a Biome Subclass
 
-Create a new class that extends `Biome`. Most biome subclasses are small -- they configure properties in the constructor and optionally override `getTreeFeature()` or `decorate()`.
+Create a new class that extends `Biome`. Most biome subclasses are pretty small. They just configure properties in the constructor and maybe override `getTreeFeature()` or `decorate()`.
 
 ### Header (`Minecraft.World/MyBiome.h`)
 
@@ -70,7 +70,7 @@ MyBiome::MyBiome(int id) : Biome(id)
 
 ## Step 2: Biome Properties
 
-Properties are set via a builder-pattern chain in `Biome::staticCtor()`. Here is how the vanilla forest biome is registered:
+Properties are set through a builder-pattern chain in `Biome::staticCtor()`. Here's how the vanilla forest biome is registered:
 
 ```cpp
 Biome::forest = (new ForestBiome(4))
@@ -94,7 +94,7 @@ Biome::forest = (new ForestBiome(4))
 | `setTemperatureAndDownfall(float, float)` | temp, downfall | Controls snow, rain, grass/foliage tint |
 | `setDepthAndScale(float, float)` | depth, scale | Terrain height; negative = water, 0.1 = flat, 1.5 = mountains |
 | `setLeafColor(int)` | Hex RGB | Leaf block tint override |
-| `setSnowCovered()` | None | Enables snow cover (also triggered by temp < 0.15) |
+| `setSnowCovered()` | None | Turns on snow cover (also triggered by temp < 0.15) |
 | `setNoRain()` | None | Disables precipitation entirely |
 | `setLeafFoliageWaterSkyColor(...)` | Four `eMinecraftColour` values | Console-specific color table entries for grass, foliage, water, sky |
 
@@ -115,8 +115,8 @@ Set in the `Biome` base constructor:
 
 ### Temperature and Weather
 
-Temperature controls several behaviors:
-- **Snow**: Biomes with temperature < 0.15 and rain enabled will have snow instead of rain (`hasSnow()`)
+Temperature controls a few different things:
+- **Snow**: Biomes with temperature < 0.15 and rain enabled get snow instead of rain (`hasSnow()`)
 - **Rain**: Disabled when `setNoRain()` is called or when `hasSnow()` returns true
 - **Humid**: Biomes with downfall > 0.85 are considered humid (`isHumid()`)
 
@@ -180,7 +180,7 @@ ForestBiome::ForestBiome(int id) : Biome(id)
 
 ## Step 4: Customize the Decorator
 
-`BiomeDecorator` handles placement of ores, trees, flowers, grass, reeds, cacti, and other features during chunk generation. Configure it by modifying the count fields in your biome's constructor.
+`BiomeDecorator` handles placing ores, trees, flowers, grass, reeds, cacti, and other features during chunk generation. You configure it by changing the count fields in your biome's constructor.
 
 ### Decorator Count Fields
 
@@ -202,7 +202,7 @@ ForestBiome::ForestBiome(int id) : Biome(id)
 
 ### Ore Features
 
-The decorator automatically places ores at standard rates via `decorateOres()`. These are controlled by the feature objects:
+The decorator automatically places ores at standard rates through `decorateOres()`. These are controlled by the feature objects:
 
 | Feature | Ore Type |
 |---------|----------|
@@ -215,7 +215,7 @@ The decorator automatically places ores at standard rates via `decorateOres()`. 
 
 ### Custom Tree Generation
 
-Override `getTreeFeature()` to control which trees spawn. The returned `Feature` is used once per tree attempt:
+Override `getTreeFeature()` to control which trees spawn. The returned `Feature` gets used once per tree attempt:
 
 ```cpp
 Feature *MyBiome::getTreeFeature(Random *random)
@@ -291,11 +291,11 @@ The `Biome` constructor automatically registers the biome in the `Biome::biomes[
 
 ### Add to the Color Table
 
-The four `eMinecraftColour` values reference entries in the console-specific color table. For a new biome, you need to add corresponding color entries in the colour definitions, or reuse existing biome colors.
+The four `eMinecraftColour` values point to entries in the console-specific color table. For a new biome, you'll need to add matching color entries in the colour definitions, or just reuse existing biome colors.
 
 ## Step 6: Add to the Layer Pipeline
 
-The world generation layer pipeline determines where biomes appear. The pipeline is built in `Layer::getDefaultLayers()` (`Minecraft.World/Layer.cpp`).
+The world generation layer pipeline decides where biomes show up. The pipeline is built in `Layer::getDefaultLayers()` (`Minecraft.World/Layer.cpp`).
 
 ### How the Pipeline Works
 
@@ -331,7 +331,7 @@ VoronoiZoom          # Final precision zoom for block-level lookup
 
 ### BiomeInitLayer: Where Biomes Are Selected
 
-`BiomeInitLayer` (`Minecraft.World/BiomeInitLayer.cpp`) is where land cells get assigned to specific biomes. It holds a `startBiomes` array:
+`BiomeInitLayer` (`Minecraft.World/BiomeInitLayer.cpp`) is where land cells get assigned to specific biomes. It has a `startBiomes` array:
 
 ```cpp
 BiomeInitLayer::BiomeInitLayer(__int64 seed,
@@ -359,7 +359,7 @@ BiomeInitLayer::BiomeInitLayer(__int64 seed,
 }
 ```
 
-To make your biome appear in world generation, add it to the `startBiomes` array:
+To get your biome into world generation, add it to the `startBiomes` array:
 
 ```cpp
 // For the default level type:
@@ -378,7 +378,7 @@ During `getArea()`, each land cell picks a random biome from this array with equ
 
 ### Creating a Custom Layer
 
-To add more complex biome placement logic (e.g., biomes that only appear near certain other biomes), create a new `Layer` subclass:
+If you want more complex biome placement logic (like biomes that only appear near certain other biomes), you can create a new `Layer` subclass:
 
 ```cpp
 class MyCustomLayer : public Layer
@@ -432,7 +432,7 @@ biomeLayer = shared_ptr<Layer>(
 
 ### Large Biomes Mode
 
-The `zoomLevel` variable in `getDefaultLayers()` controls biome scale: 4 for normal worlds, 6 for large biomes (`LevelType::lvl_largeBiomes`). Your biome will automatically scale with this setting since the zoom layers are applied after biome selection.
+The `zoomLevel` variable in `getDefaultLayers()` controls biome scale: 4 for normal worlds, 6 for large biomes (`LevelType::lvl_largeBiomes`). Your biome will automatically scale with this setting since the zoom layers run after biome selection.
 
 ## Biome ID Reference
 

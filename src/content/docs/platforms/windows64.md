@@ -3,27 +3,27 @@ title: Windows 64
 description: Windows 64-bit platform implementation.
 ---
 
-The Windows 64-bit port is the primary development target for LCEMP. It lives in `Minecraft.Client/Windows64/` and provides a full PC implementation using Direct3D 11 for rendering and Winsock2 for networking.
+The Windows 64-bit port is the main development target for LCEMP. It lives in `Minecraft.Client/Windows64/` and provides a full PC implementation using Direct3D 11 for rendering and Winsock2 for networking.
 
 ## Key Files
 
 | File | Purpose |
 |------|---------|
-| `Windows64_App.h/.cpp` | `CConsoleMinecraftApp` -- application class |
+| `Windows64_App.h/.cpp` | `CConsoleMinecraftApp` application class |
 | `Windows64_Minecraft.cpp` | Entry point (`WinMain`), main game loop |
-| `Windows64_UIController.h/.cpp` | `ConsoleUIController` -- Iggy-based UI |
+| `Windows64_UIController.h/.cpp` | `ConsoleUIController` with Iggy-based UI |
 | `Windows64_PostProcess.h/.cpp` | Gamma correction post-process shader |
 | `Network/WinsockNetLayer.h/.cpp` | TCP/UDP LAN networking layer |
 | `Leaderboards/WindowsLeaderboardManager.h/.cpp` | Leaderboard stub |
 | `Minecraft_Macros.h` | Slot display and skin bitmask packing macros |
-| `4JLibs/inc/4J_Render.h` | `C4JRender` class -- Direct3D 11 rendering abstraction |
-| `4JLibs/inc/4J_Input.h` | `C_4JInput` class -- gamepad/keyboard input |
-| `4JLibs/inc/4J_Storage.h` | `C4JStorage` class -- filesystem save/load |
+| `4JLibs/inc/4J_Render.h` | `C4JRender` class, Direct3D 11 rendering abstraction |
+| `4JLibs/inc/4J_Input.h` | `C_4JInput` class, gamepad/keyboard input |
+| `4JLibs/inc/4J_Storage.h` | `C4JStorage` class, filesystem save/load |
 | `4JLibs/inc/4J_Profile.h` | Profile management |
 
 ## Application Class
 
-`CConsoleMinecraftApp` inherits from `CMinecraftApp` and provides a minimal implementation suitable for PC. It handles:
+`CConsoleMinecraftApp` inherits from `CMinecraftApp` and provides a minimal implementation for PC. It handles:
 
 - Thumbnail capture (`m_ThumbnailBuffer` of type `ImageFileBuffer`)
 - TMS file loading (local filesystem)
@@ -37,7 +37,7 @@ The Windows 64-bit port is the primary development target for LCEMP. It lives in
 2. Create the Win32 window with `CreateWindowEx`
 3. Initialize Direct3D 11 device and swap chain
 4. Initialize `RenderManager`, `InputManager`, `ProfileManager`, `StorageManager`
-5. Define gamepad action mappings (`DefineActions`) -- same Xbox 360 button layout
+5. Define gamepad action mappings (`DefineActions`), same Xbox 360 button layout
 6. Initialize thread-local storage for `Tesselator`, `AABB`, `Vec3`, `IntCache`, `Compression`
 7. Call `Minecraft::main()` to set up the game instance
 8. Run the intro sequence, then enter the main game loop
@@ -90,9 +90,9 @@ The `WinsockNetLayer` class provides a custom TCP-based networking layer with LA
 - **Max clients**: 7 (`WIN64_NET_MAX_CLIENTS`), max packet size 3 MB
 
 ### Player Identification
-Each connected player is assigned a `smallId` (single byte) for efficient addressing. The layer supports:
-- `SendToSmallId` -- Send data to a specific player
-- `PopPendingJoinSmallId` / `PopDisconnectedSmallId` -- Track join/leave events
+Each connected player gets a `smallId` (single byte) for efficient addressing. The layer supports:
+- `SendToSmallId` for sending data to a specific player
+- `PopPendingJoinSmallId` / `PopDisconnectedSmallId` for tracking join/leave events
 - Thread-safe connection management with per-connection `CRITICAL_SECTION` locks
 
 ### LAN Discovery
@@ -129,6 +129,6 @@ Uses filesystem-based storage through `C4JStorage`. Save data is stored as local
 
 - **Keyboard and mouse input**: Full `KeyboardMouseInput` class for PC controls alongside gamepad
 - **Windowed mode**: Win32 window creation with configurable resolution
-- **Post-process gamma**: Shader-based gamma correction since Windows does not provide system-level gamma like consoles
+- **Post-process gamma**: Shader-based gamma correction since Windows doesn't provide system-level gamma like consoles do
 - **No DRM/commerce**: Simplified app class without storefront integration
 - **Command-line multiplayer**: Can specify host/join via command-line globals

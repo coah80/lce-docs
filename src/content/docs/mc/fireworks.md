@@ -3,7 +3,7 @@ title: "Fireworks"
 description: "Firework items, rockets, and recipes."
 ---
 
-This page documents the firework system in MinecraftConsoles, covering the firework rocket item, firework charge (star) item, the rocket entity, the crafting recipe, the crafting menu, and the particle system.
+This page covers the firework system in MinecraftConsoles: the firework rocket item, firework charge (star) item, the rocket entity, the crafting recipe, the crafting menu, and the particle system.
 
 ## NBT tag structure
 
@@ -16,7 +16,7 @@ The `FireworksItem` class defines the NBT tag names used throughout the firework
 | `TAG_FIREWORKS` | `"Fireworks"` | Root compound for rocket data |
 | `TAG_EXPLOSION` | `"Explosion"` | Single explosion compound (on charges) |
 | `TAG_EXPLOSIONS` | `"Explosions"` | List of explosions (on rockets) |
-| `TAG_FLIGHT` | `"Flight"` | Flight duration (byte, 1--3) |
+| `TAG_FLIGHT` | `"Flight"` | Flight duration (byte, 1 to 3) |
 | `TAG_E_TYPE` | `"Type"` | Explosion shape type |
 | `TAG_E_TRAIL` | `"Trail"` | Trail effect (boolean) |
 | `TAG_E_FLICKER` | `"Flicker"` | Twinkle/flicker effect (boolean) |
@@ -48,7 +48,7 @@ The firework rocket item handles placement and tooltip display.
 `appendHoverText()` reads the `"Fireworks"` compound from the item's tag:
 
 1. Displays the flight duration if present.
-2. Iterates the `"Explosions"` list and delegates each explosion's tooltip to `FireworksChargeItem::appendHoverText()`, with lines after the first indented.
+2. Goes through the `"Explosions"` list and hands off each explosion's tooltip to `FireworksChargeItem::appendHoverText()`, with lines after the first being indented.
 
 ## FireworksChargeItem (star item)
 
@@ -60,28 +60,28 @@ The firework charge (star) item represents a single explosion configuration.
 
 The charge item uses two sprite layers (`hasMultipleSpriteLayers()` returns `true`):
 
-- **Layer 0** -- Base item icon.
-- **Layer 1** -- Overlay icon (registered as `_overlay`), tinted to the charge's color.
+- **Layer 0**: Base item icon.
+- **Layer 1**: Overlay icon (registered as `_overlay`), tinted to the charge's color.
 
 `getColor()` computes the overlay tint for layer 1:
 
-- If a single color exists, uses it directly.
-- If multiple colors exist, averages all RGB channels.
+- If a single color exists, it's used directly.
+- If multiple colors exist, all RGB channels are averaged.
 - If no colors are set, defaults to `0x8A8A8A` (gray).
 
 ### Tooltip rendering
 
 The static `appendHoverText(CompoundTag*, ...)` method builds the tooltip for an explosion compound:
 
-1. **Shape** -- Looks up the type byte against localized shape names (indices 0--4). Falls back to a generic label for unknown types.
-2. **Colors** -- Iterates the `"Colors"` int array. Each color is matched against the 16 dye RGB values (`DyePowderItem::COLOR_RGB`). Known colors display their localized name; unknown colors show "Custom".
-3. **Fade colors** -- Same matching logic as primary colors, prefixed with "Fade to".
-4. **Trail** -- Displays if the `"Trail"` boolean is set.
-5. **Flicker** -- Displays if the `"Flicker"` boolean is set.
+1. **Shape**: Looks up the type byte against localized shape names (indices 0 to 4). Falls back to a generic label for unknown types.
+2. **Colors**: Goes through the `"Colors"` int array. Each color is matched against the 16 dye RGB values (`DyePowderItem::COLOR_RGB`). Known colors show their localized name; unknown colors show "Custom".
+3. **Fade colors**: Same matching logic as primary colors, prefixed with "Fade to".
+4. **Trail**: Displays if the `"Trail"` boolean is set.
+5. **Flicker**: Displays if the `"Flicker"` boolean is set.
 
 ### Tag access
 
-`getExplosionTagField()` is a utility that digs into the item's tag to retrieve a specific field from the `"Explosion"` compound.
+`getExplosionTagField()` is a utility that digs into the item's tag to grab a specific field from the `"Explosion"` compound.
 
 ## FireworksRocketEntity
 
@@ -111,7 +111,7 @@ When created with a source item:
 lifetime = (TICKS_PER_SECOND / 2) * flightCount + random(6) + random(7)
 ```
 
-With default `flightCount = 1` (no gunpowder bonus), this gives roughly 10--23 ticks. Each additional gunpowder adds half a second.
+With default `flightCount = 1` (no gunpowder bonus), this gives roughly 10 to 23 ticks. Each additional gunpowder adds half a second.
 
 4. Initial velocity: tiny random X/Z drift (`nextGaussian * 0.001`) and upward Y velocity of `0.05`.
 
@@ -153,19 +153,19 @@ When `life > lifetime` on the server:
 
 **Source files:** `FireworksRecipe.h/cpp`
 
-The firework recipe is a special shapeless recipe that handles three distinct crafting operations in a single class.
+The firework recipe is a special shapeless recipe that handles three different crafting operations in a single class.
 
 ### Thread safety
 
-The recipe uses thread-local storage (`TlsAlloc`/`TlsSetValue`) to store the result item. Each thread that uses the recipe system must call `CreateNewThreadStorage()` or `UseDefaultThreadStorage()`. This is a 4J addition to support multi-threaded recipe checking.
+The recipe uses thread-local storage (`TlsAlloc`/`TlsSetValue`) to store the result item. Each thread that uses the recipe system needs to call `CreateNewThreadStorage()` or `UseDefaultThreadStorage()`. This is a 4J addition to support multi-threaded recipe checking.
 
 ### Recipe 1: Firework rocket
 
-**Requirements:** 1 paper + 1--3 gunpowder + 0 or more firework charges. No dye, diamond, glowstone, or shape items.
+**Requirements:** 1 paper + 1 to 3 gunpowder + 0 or more firework charges. No dye, diamond, glowstone, or shape items.
 
 **Result:** A firework rocket item with:
 
-- `"Flight"` byte set to the gunpowder count (1--3).
+- `"Flight"` byte set to the gunpowder count (1 to 3).
 - `"Explosions"` list populated from each charge's `"Explosion"` compound.
 
 ### Recipe 2: Firework charge (star)
@@ -199,9 +199,9 @@ The recipe uses thread-local storage (`TlsAlloc`/`TlsSetValue`) to store the res
 
 ### Ingredient validation
 
-`updatePossibleRecipes()` analyzes the current crafting grid to determine which of the three recipes are still possible, setting boolean flags for firework, charge, and fade.
+`updatePossibleRecipes()` looks at the current crafting grid to figure out which of the three recipes are still possible, setting boolean flags for firework, charge, and fade.
 
-`isValidIngredient()` checks whether a given item can participate in any of the currently-possible recipes:
+`isValidIngredient()` checks whether a given item can be used in any of the currently-possible recipes:
 
 | Item | Valid for |
 |------|-----------|
@@ -215,41 +215,41 @@ The recipe uses thread-local storage (`TlsAlloc`/`TlsSetValue`) to store the res
 
 **Source files:** `FireworksMenu.h/cpp`
 
-The firework crafting menu provides a 3x3 crafting grid with a result slot, identical in layout to a standard crafting table.
+The firework crafting menu gives you a 3x3 crafting grid with a result slot, laid out the same as a standard crafting table.
 
 ### Slot layout
 
 | Range | Constant | Purpose |
 |-------|----------|---------|
 | 0 | `RESULT_SLOT` | Crafting output |
-| 1--9 | `CRAFT_SLOT_START` | 3x3 crafting grid |
-| 10--36 | `INV_SLOT_START` | Player inventory |
-| 37--45 | `USE_ROW_SLOT_START` | Player hotbar |
+| 1 to 9 | `CRAFT_SLOT_START` | 3x3 crafting grid |
+| 10 to 36 | `INV_SLOT_START` | Player inventory |
+| 37 to 45 | `USE_ROW_SLOT_START` | Player hotbar |
 
 ### Recipe matching
 
-`slotsChanged()` is called whenever the crafting grid changes. It:
+`slotsChanged()` fires whenever the crafting grid changes. It:
 
-1. Calls `FireworksRecipe::updatePossibleRecipes()` to determine which recipe types are viable.
+1. Calls `FireworksRecipe::updatePossibleRecipes()` to figure out which recipe types are viable.
 2. Uses the global `Recipes::getInstance()` with the fireworks-specific recipe list to compute the result item.
 
 ### Ingredient filtering
 
-`isValidIngredient()` delegates to `FireworksRecipe::isValidIngredient()`, using the current `m_canMakeFireworks`, `m_canMakeCharge`, and `m_canMakeFade` flags. This prevents placing items that cannot participate in any viable recipe.
+`isValidIngredient()` delegates to `FireworksRecipe::isValidIngredient()`, using the current `m_canMakeFireworks`, `m_canMakeCharge`, and `m_canMakeFade` flags. This prevents you from placing items that can't be used in any viable recipe.
 
 ### Menu removal
 
-When the menu is closed, all items remaining in the 3x3 crafting grid are dropped back to the player via `player->drop()`.
+When the menu is closed, all items still in the 3x3 crafting grid are dropped back to the player via `player->drop()`.
 
 ## Particle system
 
 **Source files:** `FireworksParticles.h/cpp`
 
-The client-side particle system consists of three particle classes nested within `FireworksParticles`.
+The client-side particle system has three particle classes nested within `FireworksParticles`.
 
 ### FireworksStarter
 
-The starter particle is an invisible controller that orchestrates the explosion sequence.
+The starter particle is an invisible controller that runs the explosion sequence.
 
 **Initialization:**
 
@@ -258,7 +258,7 @@ The starter particle is an invisible controller that orchestrates the explosion 
 
 **Sound effects:**
 
-On the first tick, a sound is chosen based on explosion size and camera distance:
+On the first tick, a sound is picked based on explosion size and camera distance:
 
 | Condition | Sound |
 |-----------|-------|
@@ -267,7 +267,7 @@ On the first tick, a sound is chosen based on explosion size and camera distance
 | Small + far | `FIREWORKS_BLAST_FAR` |
 | Small + near | `FIREWORKS_BLAST` |
 
-An explosion is "large" if there are 3+ explosions or any explosion has `TYPE_BIG`. "Far" means the camera is more than 16 blocks away.
+An explosion counts as "large" if there are 3+ explosions or any explosion has `TYPE_BIG`. "Far" means the camera is more than 16 blocks away.
 
 **Explosion dispatch (every 2 ticks):**
 
@@ -283,19 +283,19 @@ Each explosion is processed based on its type:
 
 After each explosion, a `FireworksOverlayParticle` is added, tinted to the first color.
 
-**Twinkle sound:** After all explosions complete, if any had flicker, a twinkle sound plays (far or near variant based on distance).
+**Twinkle sound:** After all explosions finish, if any had flicker, a twinkle sound plays (far or near variant based on distance).
 
 ### Particle generation methods
 
-**`createParticleBall(baseSpeed, steps, ...)`** -- Generates particles in a hollow cube pattern by iterating X/Y/Z from `-steps` to `+steps`, skipping interior points. Each particle gets a randomized velocity normalized by `baseSpeed`.
+**`createParticleBall(baseSpeed, steps, ...)`** generates particles in a hollow cube pattern by iterating X/Y/Z from `-steps` to `+steps`, skipping interior points. Each particle gets a randomized velocity normalized by `baseSpeed`.
 
-**`createParticleShape(baseSpeed, coords, ..., flat)`** -- Traces a 2D shape defined by coordinate pairs. The shape is rotated around 3 random angles. For flat shapes (creeper face), the angle modulator is `0.034`; for 3D shapes (star), it is `0.34`. Each line segment is subdivided into 4 sub-steps, and particles are mirrored across the Y axis.
+**`createParticleShape(baseSpeed, coords, ..., flat)`** traces a 2D shape defined by coordinate pairs. The shape is rotated around 3 random angles. For flat shapes (creeper face), the angle modulator is `0.034`; for 3D shapes (star), it's `0.34`. Each line segment is subdivided into 4 sub-steps, and particles are mirrored across the Y axis.
 
-**`createParticleBurst(...)`** -- Spawns 70 particles with gaussian-distributed velocities, creating an asymmetric burst effect.
+**`createParticleBurst(...)`** spawns 70 particles with gaussian-distributed velocities, creating an asymmetric burst effect.
 
 ### FireworksSparkParticle
 
-The individual spark particles that form the visible explosion.
+The individual spark particles that make up the visible explosion.
 
 | Property | Value |
 |----------|-------|
@@ -307,11 +307,11 @@ The individual spark particles that form the visible explosion.
 
 **Visual effects:**
 
-- **Fade** -- After half lifetime, alpha fades linearly to 0. If fade colors are set, the particle color interpolates toward them at 20% per tick.
-- **Flicker** -- In the last third of lifetime, the particle blinks on/off every few ticks.
-- **Trail** -- During the first half of lifetime, every other tick spawns a new stationary spark at the current position with half its lifetime elapsed, creating a fading trail.
-- **Texture** -- Animates through 8 texture frames based on age.
-- **Brightness** -- Always renders at full brightness (`FULLBRIGHT_LIGHTVALUE`).
+- **Fade**: After half lifetime, alpha fades linearly to 0. If fade colors are set, the particle color moves toward them at 20% per tick.
+- **Flicker**: In the last third of lifetime, the particle blinks on/off every few ticks.
+- **Trail**: During the first half of lifetime, every other tick spawns a new stationary spark at the current position with half its lifetime already elapsed, creating a fading trail.
+- **Texture**: Animates through 8 texture frames based on age.
+- **Brightness**: Always renders at full brightness (`FULLBRIGHT_LIGHTVALUE`).
 
 ### FireworksOverlayParticle
 
@@ -327,4 +327,4 @@ The overlay renders as a single quad using a fixed texture region (32x32 pixels 
 
 ## Related pages
 
-- [Redstone Mechanics](/lcemp-docs/mc/redstone/) -- Redstone activation of dispensers for firework launching
+- [Redstone Mechanics](/lcemp-docs/mc/redstone/) for redstone activation of dispensers for firework launching

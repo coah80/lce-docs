@@ -3,7 +3,7 @@ title: "Audio"
 description: "Sound system in LCEMP."
 ---
 
-LCEMP's audio system is built on the Miles Sound System (MSS) library, abstracted through a two-class hierarchy: `ConsoleSoundEngine` defines the platform interface, and `SoundEngine` provides the shared implementation. The system handles positional 3D audio, background music streaming, and UI sound effects.
+LCEMP's audio system is built on the Miles Sound System (MSS) library, wrapped in a two-class hierarchy. `ConsoleSoundEngine` defines the platform interface, and `SoundEngine` provides the shared implementation. The system handles positional 3D audio, background music streaming, and UI sound effects.
 
 ## Architecture
 
@@ -117,11 +117,11 @@ Key playback methods:
 | `playUI(iSound, volume, pitch)` | Play a non-positional UI sound |
 | `playStreaming(name, x, y, z, volume, pitch, bMusicDelay)` | Start streaming music |
 
-The `MAX_SAME_SOUNDS_PLAYING = 8` limit prevents the same sound effect from stacking excessively. Per-sound tracking is maintained in `CurrentSoundsPlaying[eSoundType_MAX + eSFX_MAX]`.
+The `MAX_SAME_SOUNDS_PLAYING = 8` limit stops the same sound effect from stacking too much. Per-sound tracking is kept in `CurrentSoundsPlaying[eSoundType_MAX + eSFX_MAX]`.
 
 ### Sound invocation from game code
 
-`LevelRenderer` provides the bridge between game events and audio:
+`LevelRenderer` is the bridge between game events and audio:
 
 ```cpp
 void playSound(int iSound, double x, double y, double z,
@@ -129,7 +129,7 @@ void playSound(int iSound, double x, double y, double z,
 void playStreamingMusic(const wstring& name, int x, int y, int z);
 ```
 
-The `fSoundClipDist` parameter (default 16 blocks) controls the maximum audible distance.
+The `fSoundClipDist` parameter (default 16 blocks) controls how far away a sound can be heard.
 
 ## Music system
 
@@ -190,7 +190,7 @@ static int OpenStreamThreadProc(void* lpParameter);
 
 ### Music selection
 
-`getMusicID(int iDomain)` selects a random track appropriate for the current dimension. The track ranges are configurable per texture/mash-up pack:
+`getMusicID(int iDomain)` picks a random track that fits the current dimension. The track ranges are configurable per texture/mash-up pack:
 
 ```cpp
 void SetStreamingSounds(int iOverworldMin, int iOverWorldMax,
@@ -198,7 +198,7 @@ void SetStreamingSounds(int iOverworldMin, int iOverWorldMax,
                         int iEndMin, int iEndMax, int iCD1);
 ```
 
-`GetRandomishTrack(iStart, iEnd)` selects a track, using `m_bHeardTrackA` to avoid immediate repeats.
+`GetRandomishTrack(iStart, iEnd)` selects a track, using `m_bHeardTrackA` to avoid playing the same track back to back.
 
 ### Music tick
 
@@ -222,23 +222,23 @@ The master volumes (`m_MasterMusicVolume`, `m_MasterEffectsVolume`) are set from
 ## Sound bank and driver
 
 The Miles Sound System uses:
-- **`HMSOUNDBANK m_hBank`** -- loaded sound bank containing all SFX
-- **`HDIGDRIVER m_hDriver`** -- the digital audio driver
-- **`HSTREAM m_hStream`** -- current streaming music handle
+- **`HMSOUNDBANK m_hBank`** is the loaded sound bank containing all SFX
+- **`HDIGDRIVER m_hDriver`** is the digital audio driver
+- **`HSTREAM m_hStream`** is the current streaming music handle
 
-Sound files and music files are registered through `add()`, `addMusic()`, and `addStreaming()` during initialization.
+Sound files and music files get registered through `add()`, `addMusic()`, and `addStreaming()` during initialization.
 
 ## DLC audio
 
-DLC packs (mash-up packs) can provide their own audio through `DLCAudioFile.h`. The `TexturePack::hasAudio()` method indicates whether a pack includes custom audio. When a DLC pack with audio is active, `SetStreamingSounds()` reconfigures the music track ranges.
+DLC packs (mash-up packs) can provide their own audio through `DLCAudioFile.h`. The `TexturePack::hasAudio()` method tells you whether a pack includes custom audio. When a DLC pack with audio is active, `SetStreamingSounds()` reconfigures the music track ranges.
 
 Audio resources are stored in:
-- `Common/res/audio/` -- base game sound banks
-- `Common/res/TitleUpdate/audio/` -- title update audio additions
+- `Common/res/audio/` for base game sound banks
+- `Common/res/TitleUpdate/audio/` for title update audio additions
 
 ## Platform-specific notes
 
 - **PS3**: `initAudioHardware()` has a platform-specific implementation for Cell audio initialization
-- **PS4 (Orbis)**: Uses `int32_t m_hBGMAudio` for background music audio handle
-- **PS Vita**: Miles integration through Vita-specific MSS build with `updateMiles()` called during the mixer callback
+- **PS4 (Orbis)**: Uses `int32_t m_hBGMAudio` for the background music audio handle
+- **PS Vita**: Miles integration through a Vita-specific MSS build with `updateMiles()` called during the mixer callback
 - **Xbox 360**: Uses native XAudio instead of Miles (no `mss.h` include)

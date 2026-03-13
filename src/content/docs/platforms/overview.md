@@ -3,18 +3,18 @@ title: Overview
 description: Platform abstraction layer in LCEMP.
 ---
 
-The LCEMP codebase targets six platforms through a layered abstraction system developed by 4J Studios. Each platform directory under `Minecraft.Client/` contains platform-specific implementations that plug into shared interfaces defined in `Minecraft.Client/Common/`.
+The LCEMP codebase targets six platforms through a layered abstraction system developed by 4J Studios. Each platform directory under `Minecraft.Client/` has platform-specific implementations that plug into shared interfaces defined in `Minecraft.Client/Common/`.
 
 ## Supported Platforms
 
 | Directory | Platform | Codename | Status |
 |-----------|----------|----------|--------|
-| `Xbox/` | Xbox 360 | -- | Original console port |
+| `Xbox/` | Xbox 360 | | Original console port |
 | `Durango/` | Xbox One | Durango | Next-gen Xbox |
-| `PS3/` | PlayStation 3 | -- | Sony seventh-gen |
+| `PS3/` | PlayStation 3 | | Sony seventh-gen |
 | `Orbis/` | PlayStation 4 | Orbis | Sony eighth-gen |
-| `PSVita/` | PS Vita | -- | Sony handheld |
-| `Windows64/` | Windows 64-bit | -- | PC port (LCEMP primary target) |
+| `PSVita/` | PS Vita | | Sony handheld |
+| `Windows64/` | Windows 64-bit | | PC port (LCEMP primary target) |
 
 ## Abstraction Pattern
 
@@ -39,9 +39,9 @@ extern CConsoleMinecraftApp app;
 
 The UI system uses a two-tier abstraction:
 
-- **`IUIController`** (`Common/UI/IUIController.h`) -- Pure virtual interface defining all UI operations: scene navigation, tooltip management, HUD control, DLC handling, tutorial display, trial timer, and splitscreen support.
-- **`UIController`** (`Common/UI/UIController.h`) -- Base implementation used by most platforms. Uses the Iggy UI library (from RAD Game Tools) for Flash-based menus with custom draw callbacks.
-- **`ConsoleUIController`** -- Platform-specific subclass. Xbox 360 inherits directly from `IUIController` (using XUI), while all other platforms inherit from `UIController` (using Iggy).
+- **`IUIController`** (`Common/UI/IUIController.h`) is the pure virtual interface defining all UI operations: scene navigation, tooltip management, HUD control, DLC handling, tutorial display, trial timer, and splitscreen support.
+- **`UIController`** (`Common/UI/UIController.h`) is the base implementation used by most platforms. It uses the Iggy UI library (from RAD Game Tools) for Flash-based menus with custom draw callbacks.
+- **`ConsoleUIController`** is the platform-specific subclass. Xbox 360 inherits directly from `IUIController` (using XUI), while all other platforms inherit from `UIController` (using Iggy).
 
 Each platform declares a global `ui` instance:
 ```cpp
@@ -52,13 +52,13 @@ extern ConsoleUIController ui;
 
 Networking follows a three-layer architecture:
 
-1. **`CPlatformNetworkManager`** (`Common/Network/PlatformNetworkManagerInterface.h`) -- Abstract interface for session management, player tracking, host/join operations, and data transmission.
-2. **Platform network managers** -- Each platform implements this interface using its native networking SDK:
+1. **`CPlatformNetworkManager`** (`Common/Network/PlatformNetworkManagerInterface.h`) is the abstract interface for session management, player tracking, host/join operations, and data transmission.
+2. **Platform network managers** implement this interface using their native networking SDK:
    - Xbox 360: `CPlatformNetworkManagerXbox` using QNET (`IQNetCallbacks`)
    - Xbox One: `CPlatformNetworkManagerDurango` using `DQRNetworkManager` (Xbox Realtime Networking Sessions / XRNS)
    - PS3/PS4/Vita: `CPlatformNetworkManagerSony` using `SQRNetworkManager` variants (PSN Matching2 + RUDP)
    - Windows 64: `WinsockNetLayer` using raw Winsock2 TCP sockets with LAN discovery via UDP broadcast
-3. **`CGameNetworkManager`** -- Shared game-level manager that delegates to the platform layer.
+3. **`CGameNetworkManager`** is the shared game-level manager that delegates to the platform layer.
 
 ### Rendering (`C4JRender`)
 
@@ -86,7 +86,7 @@ The `ProfileManager` singleton manages player profiles, achievements/trophies, r
 
 ## Per-Platform Extras
 
-Beyond the core abstractions, each platform has unique subsystems:
+Beyond the core abstractions, each platform has its own unique subsystems:
 
 - **Xbox 360**: XUI scene graph for menus, social posting (`CSocialManager`), Kinect integration hooks, avatar awards
 - **Xbox One**: Xbox Live Services (MXSS), party controller, chat integration layer, secure device associations
@@ -99,11 +99,11 @@ Beyond the core abstractions, each platform has unique subsystems:
 
 Platform files follow consistent naming patterns:
 
-- `{Platform}_App.h/.cpp` -- Application class
-- `{Platform}_UIController.h/.cpp` -- UI controller
-- `{Platform}_Minecraft.cpp` -- Entry point and main loop
-- `Network/` subdirectory -- Platform networking implementation
-- `Leaderboards/` subdirectory -- Leaderboard manager
-- `Social/` subdirectory -- Social features (where applicable)
-- `XML/` subdirectory -- XML parser (ATG XML parser, shared across platforms)
-- `{Platform}Extras/` -- Platform-specific utilities and type stubs
+- `{Platform}_App.h/.cpp` for the application class
+- `{Platform}_UIController.h/.cpp` for the UI controller
+- `{Platform}_Minecraft.cpp` for the entry point and main loop
+- `Network/` subdirectory for the platform networking implementation
+- `Leaderboards/` subdirectory for the leaderboard manager
+- `Social/` subdirectory for social features (where applicable)
+- `XML/` subdirectory for the XML parser (ATG XML parser, shared across platforms)
+- `{Platform}Extras/` for platform-specific utilities and type stubs

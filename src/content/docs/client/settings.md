@@ -3,11 +3,11 @@ title: "Settings"
 description: "Game settings and options in LCEMP."
 ---
 
-LCEMP manages settings at two levels: the `Options` class handles legacy Java-style game options (graphics, controls, keybindings), while the `CMinecraftApp` game settings system manages console-specific per-player profile settings. The `Settings` class provides a simple key-value property store for server configuration.
+LCEMP manages settings at two levels. The `Options` class handles legacy Java-style game options (graphics, controls, keybindings), while the `CMinecraftApp` game settings system manages console-specific per-player profile settings. The `Settings` class provides a simple key-value property store for server configuration.
 
 ## Options class
 
-`Options` is the primary settings container, owned by the `Minecraft` instance. It manages graphics preferences, input sensitivity, key bindings, and gameplay toggles.
+`Options` is the main settings container, owned by the `Minecraft` instance. It manages graphics preferences, input sensitivity, key bindings, and gameplay toggles.
 
 ### Option definitions
 
@@ -189,7 +189,7 @@ static const int GAME_SETTINGS_PROFILE_DATA_BYTES = 204;
 static const int GAME_DEFINED_PROFILE_DATA_BYTES = 972; // per user (doubled for extended achievements)
 ```
 
-The 204-byte limit is preserved for backward compatibility with pre-TU5 save data. The remaining profile bytes store statistics and achievement data.
+The 204-byte limit is kept for backward compatibility with pre-TU5 save data. The remaining profile bytes store statistics and achievement data.
 
 ### Access methods
 
@@ -201,7 +201,7 @@ void CheckGameSettingsChanged(bool bOverride5MinuteTimer = false, int iPad = XUS
 void ApplyGameSettingsChanged(int iPad);
 ```
 
-Settings changes are batched and applied through `ApplyGameSettingsChanged()`. The system checks for changes periodically (with a 5-minute timer) or on explicit request.
+Settings changes are batched and applied through `ApplyGameSettingsChanged()`. The system checks for changes periodically (with a 5-minute timer) or when explicitly requested.
 
 ## Game host options (eGameHostOption)
 
@@ -237,7 +237,7 @@ unsigned int GetGameHostOption(eGameHostOption eVal);
 
 ### Achievement eligibility
 
-`CanRecordStatsAndAchievements()` checks whether the current host options allow achievements. Options like creative mode, cheats, and certain debug flags disable achievement recording.
+`CanRecordStatsAndAchievements()` checks whether the current host options allow achievements. Things like creative mode, cheats, and certain debug flags will disable achievement recording.
 
 ## Settings class
 
@@ -255,7 +255,7 @@ class Settings {
 };
 ```
 
-It wraps an `unordered_map<wstring, wstring>` and provides typed getters with defaults. Used by the integrated server for configuration like server name, port, max players, etc.
+It wraps an `unordered_map<wstring, wstring>` and provides typed getters with defaults. The integrated server uses it for configuration like server name, port, max players, etc.
 
 ## Player skin and cape settings
 
@@ -275,7 +275,7 @@ DWORD GetPlayerCapeId(int iPad);
 
 ### Favorite skins
 
-Players can save up to a set of favorite skins:
+Players can save a set of favorite skins:
 
 ```cpp
 void SetPlayerFavoriteSkin(int iPad, int iIndex, unsigned int uiSkinID);
@@ -286,7 +286,7 @@ void ValidateFavoriteSkins(int iPad);  // checks DLC availability
 
 ## Opacity timer
 
-The HUD opacity temporarily returns to full when the player changes hotbar selections:
+The HUD opacity temporarily goes back to full when the player changes hotbar selections:
 
 ```cpp
 void SetOpacityTimer(int iPad);       // starts a 6-second (120 tick) countdown

@@ -3,11 +3,11 @@ title: Entities
 description: Complete documentation of the LCEMP entity system.
 ---
 
-The LCEMP entity system covers every dynamic object in the world: players, mobs, items, projectiles, vehicles, and special objects like lightning bolts and experience orbs. The implementation lives in `Minecraft.World/` with each entity in its own header and source file.
+The LCEMP entity system covers every dynamic object in the world: players, mobs, items, projectiles, vehicles, and special objects like lightning bolts and experience orbs. Each entity lives in its own header and source file under `Minecraft.World/`.
 
 ## Class Hierarchy
 
-The entity class hierarchy is organized into several branches. `Entity` is the root, with `Mob` as the main branch for living creatures.
+The entity class hierarchy branches out from the root `Entity` class, with `Mob` being the main branch for living creatures.
 
 ```
 Entity (abstract)
@@ -66,7 +66,7 @@ Entity (abstract)
 
 ### Marker Interfaces
 
-Several empty or near-empty classes serve as marker interfaces for classification:
+A few empty or near-empty classes act as markers for classification:
 
 | Interface | File | Purpose |
 |-----------|------|---------|
@@ -78,9 +78,9 @@ Several empty or near-empty classes serve as marker interfaces for classificatio
 
 ## Entity Type Enum (`eINSTANCEOF`)
 
-Defined in `Class.h`, the `eINSTANCEOF` enum replaces Java's `instanceof` with a bitfield-based type system. 4J Studios added this to avoid dynamic casts on console hardware. Every entity class overrides `virtual eINSTANCEOF GetType()` to return its type constant.
+Defined in `Class.h`, the `eINSTANCEOF` enum replaces Java's `instanceof` with a bitfield-based type system. 4J Studios added this to skip dynamic casts on console hardware. Every entity class overrides `virtual eINSTANCEOF GetType()` to return its type constant.
 
-The enum values are organized as a bitfield so that a single bitwise AND can check category membership:
+The values are set up as a bitfield so a single bitwise AND can check category membership:
 
 | Bit / Mask | Category | Purpose |
 |-----------|----------|---------|
@@ -95,11 +95,11 @@ The enum values are organized as a bitfield so that a single bitwise AND can che
 | `0x80000` | `eTYPE_ANIMALS_SPAWN_LIMIT_CHECK` | Animals counted for spawn limits |
 | `0x100000` | `eTYPE_OTHERS` | Misc entities (no category bits) |
 
-Specific mob types combine category bits. For example, `eTYPE_COW = 0x82201` has the `ANIMALS_SPAWN_LIMIT_CHECK`, `AGABLE_MOB`, and `ANIMAL` bits set, while `eTYPE_CHICKEN = 0x2206` lacks the `ANIMALS_SPAWN_LIMIT_CHECK` bit because chickens have a separate spawn cap.
+Specific mob types combine these category bits. For example, `eTYPE_COW = 0x82201` has the `ANIMALS_SPAWN_LIMIT_CHECK`, `AGABLE_MOB`, and `ANIMAL` bits set, while `eTYPE_CHICKEN = 0x2206` doesn't have the `ANIMALS_SPAWN_LIMIT_CHECK` bit because chickens have a separate spawn cap.
 
 ### Complete Entity Type ID Table
 
-Registered in `EntityIO::staticCtor()`, each entity has a string ID and a numeric ID used for network serialization:
+Registered in `EntityIO::staticCtor()`, each entity has a string ID and a numeric ID for network serialization:
 
 | Numeric ID | String ID | `eINSTANCEOF` | Class |
 |-----------|-----------|---------------|-------|
@@ -149,11 +149,11 @@ Registered in `EntityIO::staticCtor()`, each entity has a string ID and a numeri
 | 200 | `EnderCrystal` | `eTYPE_ENDER_CRYSTAL` | `EnderCrystal` |
 | 1000 | `DragonFireball` | `eTYPE_DRAGON_FIREBALL` | `DragonFireball` |
 
-Entities with spawn egg colors are registered via the overloaded `setId()` that takes `eMinecraftColour` parameters and a name ID, populating `EntityIO::idsSpawnableInCreative`.
+Entities with spawn egg colors are registered through the overloaded `setId()` that takes `eMinecraftColour` parameters and a name ID, populating `EntityIO::idsSpawnableInCreative`.
 
 ## Entity Registry (`EntityIO`)
 
-`EntityIO` (`EntityIO.h` / `EntityIO.cpp`) is the entity factory and registry. It maintains several parallel lookup maps:
+`EntityIO` (`EntityIO.h` / `EntityIO.cpp`) is the entity factory and registry. It keeps several parallel lookup maps:
 
 | Map | Key | Value | Purpose |
 |-----|-----|-------|---------|
@@ -164,18 +164,18 @@ Entities with spawn egg colors are registered via the overloaded `setId()` that 
 | `numClassMap` | `int` | `eINSTANCEOF` | Get type enum from numeric ID |
 | `idNumMap` | `wstring` | `int` | Get numeric ID from string ID |
 
-Each entity class provides a static `create(Level *level)` factory function, stored as a function pointer (`entityCreateFn`). Key creation methods:
+Each entity class has a static `create(Level *level)` factory function stored as a function pointer (`entityCreateFn`). The key creation methods are:
 
-- **`newEntity(wstring id, Level*)`** -- Create by string ID (used when loading from NBT)
-- **`loadStatic(CompoundTag*, Level*)`** -- Load from NBT tag (reads the `"id"` string, creates, then calls `entity->load()`)
-- **`newById(int id, Level*)`** -- Create by numeric ID (used in network packets)
-- **`newByEnumType(eINSTANCEOF, Level*)`** -- Create by type enum (used by mob spawner)
+- **`newEntity(wstring id, Level*)`**: Create by string ID (used when loading from NBT)
+- **`loadStatic(CompoundTag*, Level*)`**: Load from NBT tag (reads the `"id"` string, creates the entity, then calls `entity->load()`)
+- **`newById(int id, Level*)`**: Create by numeric ID (used in network packets)
+- **`newByEnumType(eINSTANCEOF, Level*)`**: Create by type enum (used by the mob spawner)
 
-If `getId()` cannot find a string ID, it defaults to numeric ID `90` (Pig).
+If `getId()` can't find a string ID, it defaults to numeric ID `90` (Pig).
 
 ## Synched Entity Data
 
-`SynchedEntityData` (`SynchedEntityData.h`) is the entity state synchronization system. It replicates entity properties from server to client using a compact binary protocol.
+`SynchedEntityData` (`SynchedEntityData.h`) is the system that syncs entity state from server to client using a compact binary protocol.
 
 ### Data Types
 
@@ -200,30 +200,30 @@ Each data entry is keyed by an ID. The ID and type are packed into a single byte
 
 ### How Entities Register Data
 
-Each entity calls `defineSynchedData()` (a pure virtual in `Entity`) to register its synched fields. Base `Entity` defines:
+Each entity calls `defineSynchedData()` (a pure virtual in `Entity`) to register its synched fields. The base `Entity` defines:
 
 | ID | Type | Field |
 |----|------|-------|
-| 0 | byte | `DATA_SHARED_FLAGS_ID` -- bitfield of shared flags |
-| 1 | short | `DATA_AIR_SUPPLY_ID` -- air supply |
+| 0 | byte | `DATA_SHARED_FLAGS_ID`, a bitfield of shared flags |
+| 1 | short | `DATA_AIR_SUPPLY_ID`, air supply |
 
 `Mob` adds:
 
 | ID | Type | Field |
 |----|------|-------|
-| 8 | int | `DATA_EFFECT_COLOR_ID` -- potion effect color |
+| 8 | int | `DATA_EFFECT_COLOR_ID`, potion effect color |
 
 `AgableMob` adds:
 
 | ID | Type | Field |
 |----|------|-------|
-| 12 | int | `DATA_AGE_ID` -- entity age |
+| 12 | int | `DATA_AGE_ID`, entity age |
 
 `Animal` adds:
 
 | ID | Type | Field |
 |----|------|-------|
-| 13 | int | `DATA_IN_LOVE` -- love/breeding state |
+| 13 | int | `DATA_IN_LOVE`, love/breeding state |
 
 Specific mobs define additional IDs starting from 16:
 
@@ -258,17 +258,17 @@ The base `Entity` class uses a single byte at ID 0 as a bitfield:
 | 4 | `FLAG_USING_ITEM` | Entity is using an item |
 | 5 | `FLAG_INVISIBLE` | Entity is invisible |
 | 6 | `FLAG_IDLEANIM` | Idle animation state |
-| 7 | `FLAG_EFFECT_WEAKENED` | Weakened by potion (4J addition for cure villager tooltip) |
+| 7 | `FLAG_EFFECT_WEAKENED` | Weakened by potion (4J addition for the cure villager tooltip) |
 
 ### Dirty Tracking
 
-Each `DataItem` has a `dirty` flag. When a value changes via `set()`, the item is marked dirty. `packDirty()` returns only changed items for delta updates. `packAll()` serializes everything (used on initial sync). The `SetEntityDataPacket` carries these updates over the network.
+Each `DataItem` has a `dirty` flag. When a value changes through `set()`, the item gets marked dirty. `packDirty()` returns only the changed items for delta updates. `packAll()` serializes everything (used on initial sync). The `SetEntityDataPacket` carries these updates over the network.
 
 ## Damage System
 
 ### DamageSource
 
-`DamageSource` (`DamageSource.h`) represents the cause of damage. It uses static singleton instances for environmental damage and factory methods for entity-caused damage.
+`DamageSource` (`DamageSource.h`) represents what caused the damage. It uses static singleton instances for environmental damage and factory methods for entity-caused damage.
 
 #### Static Damage Sources
 
@@ -280,17 +280,17 @@ Each `DataItem` has a `dirty` flag. When a value changes via `set()`, the item i
 | `inWall` | Suffocating in a block | Bypasses armor |
 | `drown` | Drowning | Bypasses armor |
 | `starve` | Starvation | Bypasses armor, bypasses invulnerability |
-| `cactus` | Cactus damage | -- |
-| `fall` | Fall damage | -- |
+| `cactus` | Cactus damage | |
+| `fall` | Fall damage | |
 | `outOfWorld` | Falling into the void | Bypasses armor, bypasses invulnerability |
-| `genericSource` | Generic damage | -- |
-| `explosion` | Explosion | -- |
-| `controlledExplosion` | Player-caused explosion | -- |
+| `genericSource` | Generic damage | |
+| `explosion` | Explosion | |
+| `controlledExplosion` | Player-caused explosion | |
 | `magic` | Magic damage | Bypasses armor, magic |
-| `dragonbreath` | Dragon breath | -- |
+| `dragonbreath` | Dragon breath | |
 | `wither` | Wither effect | Bypasses armor |
-| `anvil` | Falling anvil | -- |
-| `fallingBlock` | Falling block | -- |
+| `anvil` | Falling anvil | |
+| `fallingBlock` | Falling block | |
 
 #### Factory Methods for Entity Damage
 
@@ -326,18 +326,18 @@ DamageSource
 
 ### Armor Calculation Pipeline
 
-When `Mob::hurt()` is called, the damage passes through a multi-stage pipeline:
+When `Mob::hurt()` is called, the damage goes through several stages:
 
-1. **`hurtArmor(damage)`** -- Reduces durability on the mob's armor items.
-2. **`getDamageAfterArmorAbsorb(source, damage)`** -- Reduces damage based on `getArmorValue()` (0-20 scale). Bypassed if `source.isBypassArmor()`.
-3. **`getDamageAfterMagicAbsorb(source, damage)`** -- Applies enchantment-based damage reduction. Bypassed if `source.isBypassArmor()`.
-4. **`actuallyHurt(source, damage)`** -- Applies the final damage to health.
+1. **`hurtArmor(damage)`**: Reduces durability on the mob's armor items.
+2. **`getDamageAfterArmorAbsorb(source, damage)`**: Reduces damage based on `getArmorValue()` (0-20 scale). Skipped if `source.isBypassArmor()`.
+3. **`getDamageAfterMagicAbsorb(source, damage)`**: Applies enchantment-based damage reduction. Skipped if `source.isBypassArmor()`.
+4. **`actuallyHurt(source, damage)`**: Applies the final damage to health.
 
 `Player` overrides `getArmorValue()` to compute armor value from equipped `ArmorItem` pieces and overrides `hurtArmor()` to damage the inventory armor items.
 
 ### Entity Damage Telemetry
 
-4J Studios added `EEntityDamageType` for tracking player death telemetry:
+4J Studios added `EEntityDamageType` for tracking player death stats:
 
 | Enum Value | Cause |
 |------------|-------|
@@ -360,7 +360,7 @@ Defined in `MobType.h`, this enum is used by damage enchantments to apply bonus 
 | `UNDEAD` | Undead mobs (Zombie, Skeleton, PigZombie) |
 | `ARTHROPOD` | Arthropods (Spider, CaveSpider, Silverfish) |
 
-Mobs override `getMobType()` to return the appropriate value. For example, `Zombie::getMobType()` returns `UNDEAD`, and `Spider::getMobType()` returns `ARTHROPOD`.
+Mobs override `getMobType()` to return the right value. For example, `Zombie::getMobType()` returns `UNDEAD`, and `Spider::getMobType()` returns `ARTHROPOD`.
 
 ## Entity Lifecycle
 
@@ -368,29 +368,29 @@ Mobs override `getMobType()` to return the appropriate value. For example, `Zomb
 
 Entity IDs are split into two ranges (a 4J console optimization):
 
-- **Small IDs (0-2047)**: Used for network-tracked entities. Allocated from a bitfield (`entityIdUsedFlags[2048/32]`) on the server thread only. Requires only 11 bits in network packets.
-- **Large IDs (2048+)**: Used for particles and other non-tracked entities. Assigned from a simple incrementing counter that wraps at `0x7FFFFFF` back to 2048.
+- **Small IDs (0-2047)**: For network-tracked entities. Allocated from a bitfield (`entityIdUsedFlags[2048/32]`) on the server thread only. Only needs 11 bits in network packets.
+- **Large IDs (2048+)**: For particles and other non-tracked entities. Assigned from an incrementing counter that wraps at `0x7FFFFFF` back to 2048.
 
-Thread-local storage (`TlsGetValue(tlsIdx)`) ensures small IDs are only allocated from the server thread.
+Thread-local storage (`TlsGetValue(tlsIdx)`) makes sure small IDs are only allocated from the server thread.
 
 ### Tick
 
 The core update loop:
 
-1. **`Entity::tick()`** -- Calls `baseTick()`, the entry point for per-tick updates.
-2. **`Entity::baseTick()`** -- Handles:
+1. **`Entity::tick()`**: Calls `baseTick()`, the entry point for per-tick updates.
+2. **`Entity::baseTick()`**: Handles:
    - Fire timer and fire damage (`lavaHurt()`, `burn()`)
    - Water state (`updateInWaterState()`)
    - Air supply (drowning)
    - Web stuck state
    - Portal handling
    - Tick counter increment
-3. **`Mob::tick()`** -- Extends base with:
+3. **`Mob::tick()`**: Adds on top of the base with:
    - `superTick()` for base Entity tick
    - AI step (`aiStep()`)
    - Body rotation updates
    - Effect ticking (`tickEffects()`)
-4. **`Mob::aiStep()`** -- Handles:
+4. **`Mob::aiStep()`**: Handles:
    - Despawn checking (`checkDespawn()`)
    - Sensing updates
    - Target selection
@@ -403,15 +403,15 @@ The core update loop:
 Entities serialize to NBT `CompoundTag` structures:
 
 **`Entity::save(CompoundTag*)`** writes:
-- `"id"` -- String entity type ID (from `EntityIO`)
+- `"id"`: String entity type ID (from `EntityIO`)
 - Then calls `saveWithoutId()`:
-  - `"Pos"` -- DoubleList of x, y, z
-  - `"Motion"` -- DoubleList of xd, yd, zd
-  - `"Rotation"` -- FloatList of yRot, xRot
-  - `"FallDistance"` -- float
-  - `"Fire"` -- short (fire timer)
-  - `"Air"` -- short (air supply)
-  - `"OnGround"` -- boolean
+  - `"Pos"`: DoubleList of x, y, z
+  - `"Motion"`: DoubleList of xd, yd, zd
+  - `"Rotation"`: FloatList of yRot, xRot
+  - `"FallDistance"`: float
+  - `"Fire"`: short (fire timer)
+  - `"Air"`: short (air supply)
+  - `"OnGround"`: boolean
   - Then calls `addAdditonalSaveData()` (virtual, overridden by each entity)
 
 **`Entity::load(CompoundTag*)`** reads:
@@ -420,32 +420,32 @@ Entities serialize to NBT `CompoundTag` structures:
 - Reads fall distance, fire, air supply, on-ground state
 - Calls `readAdditionalSaveData()` (virtual, overridden by each entity)
 
-**`EntityIO::loadStatic(CompoundTag*, Level*)`** is the entry point for loading any entity from NBT. It reads the `"id"` string, creates the entity via the factory, then calls `entity->load()`.
+**`EntityIO::loadStatic(CompoundTag*, Level*)`** is the entry point for loading any entity from NBT. It reads the `"id"` string, creates the entity through the factory, then calls `entity->load()`.
 
 ### Death
 
-1. **`Mob::die(DamageSource*)`** -- Called when health reaches zero:
+1. **`Mob::die(DamageSource*)`**: Called when health reaches zero:
    - Awards XP to the killing player (if `lastHurtByPlayer` is set)
    - Calls `dropDeathLoot()` to spawn item drops
    - Calls `dropRareDeathLoot()` for rare loot (affected by Looting enchantment)
    - Awards kill score
-2. **`Mob::tickDeath()`** -- Called each tick while `deathTime` counts up:
+2. **`Mob::tickDeath()`**: Called each tick while `deathTime` counts up:
    - Increments `deathTime`
    - At `deathTime == 20`, calls `remove()` to despawn the entity
-3. **`Entity::remove()`** -- Marks the entity as `removed = true`, freeing its small ID.
+3. **`Entity::remove()`**: Marks the entity as `removed = true`, freeing its small ID.
 
 ### Despawn Checking
 
-`Mob::checkDespawn()` runs every tick via `aiStep()`. The 4J console version adds a despawn protection system for animals:
+`Mob::checkDespawn()` runs every tick through `aiStep()`. The 4J console version adds despawn protection for animals:
 
 - Animals default to `despawnProtected = true` when spawned
 - `Animal::updateDespawnProtectedState()` tracks how far an animal has wandered
-- If an animal wanders farther than `MAX_WANDER_DISTANCE` (20 tiles) from where it was last protected, it loses protection and becomes eligible for despawning
-- The "extra wandering" system (`Entity::tickExtraWandering()`) periodically selects up to 3 entities at a time (`EXTRA_WANDER_MAX`) to wander for 30 seconds (`EXTRA_WANDER_TICKS`), determining whether they are enclosed in a farm
+- If an animal wanders more than `MAX_WANDER_DISTANCE` (20 tiles) from where it was last protected, it loses protection and can be despawned
+- The "extra wandering" system (`Entity::tickExtraWandering()`) periodically picks up to 3 entities at a time (`EXTRA_WANDER_MAX`) to wander for 30 seconds (`EXTRA_WANDER_TICKS`), figuring out whether they're enclosed in a farm
 
 ## Mob Spawning System
 
-`MobSpawner` (`MobSpawner.h` / `MobSpawner.cpp`) handles natural mob spawning. The console version has significant differences from the Java edition.
+`MobSpawner` (`MobSpawner.h` / `MobSpawner.cpp`) handles natural mob spawning. The console version differs quite a bit from Java edition.
 
 ### Mob Categories
 
@@ -460,7 +460,7 @@ Defined in `MobCategory` (`MobCategory.h`), each category has a spawn material a
 | `creature_chicken` | Yes | Air | 8 |
 | `creature_mushroomcow` | Yes | Air | 2 |
 
-4J Studios broke out wolves, chickens, and mooshrooms into separate categories for finer spawn control. Breeding and spawn eggs allow exceeding the base limits:
+4J Studios broke wolves, chickens, and mooshrooms into separate categories so they could control spawning more precisely. Breeding and spawn eggs let you go past the base limits:
 
 | Entity | Natural | + Breeding | + Spawn Egg |
 |--------|---------|------------|-------------|
@@ -468,23 +468,23 @@ Defined in `MobCategory` (`MobCategory.h`), each category has a spawn material a
 | Chickens | 8 | 16 | 26 |
 | Wolves | 8 | 16 | 26 |
 | Mooshrooms | 2 | 22 | 30 |
-| Monsters | 50 | -- | 70 |
-| Squid | 5 | -- | 13 |
+| Monsters | 50 | | 70 |
+| Squid | 5 | | 13 |
 | Villagers | 35 | 35 | 50 |
-| Snow Golems | 16 | -- | -- |
-| Iron Golems | 16 | -- | -- |
+| Snow Golems | 16 | | |
+| Iron Golems | 16 | | |
 
 ### Spawn Tick Algorithm
 
 `MobSpawner::tick()` runs each server tick:
 
-1. **Build chunk poll set**: Iterates outward from each player in a spiral pattern (radius 8 chunks). Chunks at the edge are marked to prevent spawning at the boundary.
+1. **Build the chunk poll set**: Iterates outward from each player in a spiral (radius 8 chunks). Chunks at the edge are flagged to prevent spawning at the boundary.
 2. **For each mob category**: Check if the global count is below the hard limit.
-3. **For each eligible chunk**: Pick a random position. If the position is valid:
+3. **For each eligible chunk**: Pick a random position. If the position works:
    - Must be at least `MIN_SPAWN_DISTANCE` (24 blocks) from any player
    - Must be at least 24 blocks from the world spawn
    - Must pass `isSpawnPositionOk()` checks
-4. **50% rule**: No single mob type can exceed 50% of its category's total limit (prevents one type dominating).
+4. **50% rule**: No single mob type can take more than 50% of its category's total limit (prevents one type from taking over).
 5. **Special rules**:
    - Ghasts are capped at 4
    - Endermen in The End get a higher cap, scaled by difficulty
@@ -495,19 +495,19 @@ Defined in `MobCategory` (`MobCategory.h`), each category has a spawn material a
 
 ### Water Spawn Position Validation
 
-Water mobs require deep, wide water: 5 blocks deep and at least 5 blocks wide in all cardinal directions.
+Water mobs need deep, wide water: 5 blocks deep and at least 5 blocks wide in all cardinal directions.
 
 ### Bed Enemy Spawning
 
-`MobSpawner::attackSleepingPlayers()` is called when players sleep. It pathfinds from a random position to the player's bed:
+`MobSpawner::attackSleepingPlayers()` runs when players try to sleep. It pathfinds from a random position to the player's bed:
 
 - Eligible enemy types: Spider, Zombie, Skeleton
-- Uses `PathFinder` to verify a valid path exists to the bed position
-- If a path is found, the mob is placed at the bed and the player is woken up
+- Uses `PathFinder` to check if a valid path exists to the bed
+- If a path is found, the mob is placed at the bed and the player gets woken up
 
 ## Entity Events
 
-`EntityEvent` (`EntityEvent.h`) defines byte constants for client-side event notifications sent via `EntityEventPacket`:
+`EntityEvent` (`EntityEvent.h`) defines byte constants for client-side event notifications sent through `EntityEventPacket`:
 
 | Constant | Value | Event |
 |----------|-------|-------|
@@ -532,7 +532,7 @@ Water mobs require deep, wide water: 5 blocks deep and at least 5 blocks wide in
 
 ## Player Entity
 
-`Player` (`Player.h`) extends `Mob` and adds significant functionality.
+`Player` (`Player.h`) extends `Mob` and adds a lot of extra functionality.
 
 ### Key Constants
 
@@ -547,7 +547,7 @@ Water mobs require deep, wide water: 5 blocks deep and at least 5 blocks wide in
 
 ### Player Privileges
 
-The `EPlayerGamePrivileges` enum (a 4J addition) is a bitfield stored in an `unsigned int` controlling trust-based permissions:
+The `EPlayerGamePrivileges` enum (a 4J addition) is a bitfield stored in an `unsigned int` that controls trust-based permissions:
 
 | Privilege | Bit | Description |
 |-----------|-----|-------------|
@@ -584,28 +584,28 @@ The `EPlayerGamePrivileges` enum (a 4J addition) is a bitfield stored in an `uns
 
 ### Player Armor Calculation
 
-`Player::getArmorValue()` sums the defense values from all equipped `ArmorItem` pieces. `getArmorCoverPercentage()` calculates what percentage of armor slots are filled, used for enchantment calculations.
+`Player::getArmorValue()` adds up the defense values from all equipped `ArmorItem` pieces. `getArmorCoverPercentage()` calculates what percentage of armor slots are filled, which is used for enchantment calculations.
 
 ## AI System (Goal Selectors)
 
 Mobs use a goal-based AI system through `GoalSelector` (`GoalSelector.h`). Each `Mob` has two selectors:
 
-- **`goalSelector`** -- Behavior goals (movement, interaction, idle actions)
-- **`targetSelector`** -- Target selection goals (who to attack)
+- **`goalSelector`**: Behavior goals (movement, interaction, idle actions)
+- **`targetSelector`**: Target selection goals (who to attack)
 
 ### GoalSelector Architecture
 
-Goals are wrapped in `InternalGoal` objects with a priority number. Each tick, the selector:
+Goals get wrapped in `InternalGoal` objects with a priority number. Each tick, the selector:
 
 1. Checks which goals can start (`canUseInSystem()`)
-2. Checks which running goals can continue (`canContinueToUse()`)
-3. Evaluates co-existence rules (`canCoExist()`) between goals
+2. Checks which running goals can keep going (`canContinueToUse()`)
+3. Checks co-existence rules (`canCoExist()`) between goals
 
-Lower priority numbers take precedence. Goals are added via `addGoal(priority, goal)`.
+Lower priority numbers take precedence. Goals are added with `addGoal(priority, goal)`.
 
 ### AI Control Systems
 
-Each `Mob` has several control objects initialized in the constructor:
+Each `Mob` creates several control objects in its constructor:
 
 | Control | Class | Purpose |
 |---------|-------|---------|
@@ -696,7 +696,7 @@ These are the most important virtual methods that entity subclasses override:
 
 ## Network Packets
 
-Entity state is communicated through several packet types:
+Entity state gets communicated through several packet types:
 
 | Packet | Purpose |
 |--------|---------|

@@ -3,7 +3,7 @@ title: "Input System"
 description: "How LCEMP handles keyboard, mouse, and controller input."
 ---
 
-LCEMP supports three input methods: gamepad controllers (primary for all console platforms), keyboard/mouse (Windows 64-bit port), and touch (PS Vita). The input system is split across several classes that abstract platform differences and feed into the game's action system.
+LCEMP supports three input methods: gamepad controllers (the main one for all console platforms), keyboard/mouse (Windows 64-bit port), and touch (PS Vita). The input system is spread across several classes that abstract platform differences and feed into the game's action system.
 
 ## Input class hierarchy
 
@@ -25,11 +25,11 @@ public:
 };
 ```
 
-This is the minimal interface that `LocalPlayer` uses each tick to determine movement intent. The `xa`/`ya` values drive horizontal movement, while `jumping`, `sneaking`, and `sprinting` flags trigger their respective behaviors.
+This is the minimal interface that `LocalPlayer` uses each tick to figure out movement intent. The `xa`/`ya` values drive horizontal movement, while `jumping`, `sneaking`, and `sprinting` flags trigger their respective behaviors.
 
 ### KeyboardMouseInput
 
-The `KeyboardMouseInput` class handles keyboard and mouse input for the Windows 64-bit build. It is instantiated as a global (`g_KBMInput`):
+The `KeyboardMouseInput` class handles keyboard and mouse input for the Windows 64-bit build. It's set up as a global (`g_KBMInput`):
 
 ```cpp
 extern KeyboardMouseInput g_KBMInput;
@@ -70,10 +70,10 @@ extern KeyboardMouseInput g_KBMInput;
 The class tracks three states per key and mouse button:
 
 - **Down**: currently held
-- **Pressed**: transitioned from up to down this tick
-- **Released**: transitioned from down to up this tick
+- **Pressed**: went from up to down this tick
+- **Released**: went from down to up this tick
 
-State is double-buffered with accumulators (`m_keyPressedAccum`, `m_keyReleasedAccum`) that collect events between ticks, then are transferred to the readable state arrays during `Tick()`.
+State is double-buffered with accumulators (`m_keyPressedAccum`, `m_keyReleasedAccum`) that collect events between ticks, then get transferred to the readable state arrays during `Tick()`.
 
 #### Key methods
 
@@ -104,11 +104,11 @@ void SetScreenCursorHidden(bool hidden);
 bool HasAnyInput() const;
 ```
 
-`HasAnyInput()` returns true when any key or mouse event has occurred, useful for detecting whether to switch between controller and keyboard/mouse input modes.
+`HasAnyInput()` returns true when any key or mouse event has happened. This is handy for figuring out whether to switch between controller and keyboard/mouse input modes.
 
 ## Controller input (EControllerActions)
 
-Controller input is mapped through the `EControllerActions` enum defined in `Common/App_enums.h`. This provides a unified action system across all console platforms.
+Controller input is mapped through the `EControllerActions` enum defined in `Common/App_enums.h`. This gives you a unified action system across all console platforms.
 
 ### Menu actions
 
@@ -150,7 +150,7 @@ Platform-specific menu actions:
 
 ### Debug actions (created from D-pad)
 
-These are not mapped directly to the input manager but are derived from D-pad presses in `Minecraft::run_middle()`:
+These aren't mapped directly to the input manager but are derived from D-pad presses in `Minecraft::run_middle()`:
 
 | Action | Description |
 |---|---|
@@ -191,7 +191,7 @@ The `Options` class holds 14 key mappings:
 | `keyPickItem` | Pick block |
 | `keyToggleFog` | Toggle fog distance |
 
-These are primarily used by the Windows 64-bit build; console builds use the `EControllerActions` system instead.
+These are mainly used by the Windows 64-bit build. Console builds use the `EControllerActions` system instead.
 
 ## ConsoleInput / ConsoleInputSource
 
@@ -222,5 +222,5 @@ These are used for the integrated server console, not player gameplay input.
 2. **Input abstraction** (`KeyboardMouseInput` or platform controller API) processes raw events into state
 3. **`CMinecraftApp::HandleButtonPresses()`** reads controller state per player and translates to `EControllerActions`
 4. **`Input::tick()`** converts action state into movement axes (`xa`/`ya`) and action flags (`jumping`, `sneaking`, `sprinting`)
-5. **`LocalPlayer`** consumes the `Input` object each tick to update player movement and trigger actions
-6. **`Screen` / `UIScene`** intercepts input when menus are active, consuming events before they reach gameplay
+5. **`LocalPlayer`** reads the `Input` object each tick to update player movement and trigger actions
+6. **`Screen` / `UIScene`** intercepts input when menus are active, grabbing events before they reach gameplay

@@ -3,15 +3,15 @@ title: "Textures & Resources"
 description: "Texture loading and resource management in LCEMP."
 ---
 
-LCEMP manages textures through several cooperating systems: `Textures` handles loading and binding, `TextureManager` provides a name-to-ID registry, `TexturePackRepository` manages texture pack selection, and a hierarchy of `TexturePack` implementations abstracts resource sources.
+LCEMP manages textures through several systems working together. `Textures` handles loading and binding, `TextureManager` provides a name-to-ID registry, `TexturePackRepository` manages texture pack selection, and a hierarchy of `TexturePack` implementations abstracts where resources come from.
 
 ## Textures
 
-The `Textures` class is the primary texture management interface, owned by the `Minecraft` instance. It handles loading images from disk, binding textures for rendering, and managing dynamic/animated textures.
+The `Textures` class is the main texture management interface, owned by the `Minecraft` instance. It handles loading images from disk, binding textures for rendering, and managing dynamic/animated textures.
 
 ### Texture name registry (TEXTURE_NAME enum)
 
-All built-in textures are registered through the `TEXTURE_NAME` enum, which assigns a compile-time ID to each texture resource. The enum contains entries organized by version:
+All built-in textures are registered through the `TEXTURE_NAME` enum, which gives a compile-time ID to each texture resource. The enum has entries organized by version:
 
 **Original textures:**
 
@@ -67,7 +67,7 @@ The total count is `TN_COUNT`.
 
 ### HTTP and memory textures
 
-For multiplayer skins and DLC content, `Textures` supports loading from remote sources:
+For multiplayer skins and DLC content, `Textures` can load from remote sources:
 
 ```cpp
 int loadHttpTexture(const wstring& url, const wstring& backup);
@@ -87,15 +87,15 @@ MemTexture* addMemTexture(const wstring& url, MemTextureProcessor* processor);
 
 ### Anaglyph conversion
 
-When stereoscopic 3D is enabled, `Textures::anaglyph()` converts pixel data to the appropriate color channel separation.
+When stereoscopic 3D is enabled, `Textures::anaglyph()` converts pixel data to the right color channel separation.
 
 ### Title update textures
 
-`Textures::IsTUImage()` and `Textures::IsOriginalImage()` determine whether a texture should be loaded from the title update drive or the original game disc, enabling texture replacements through patches.
+`Textures::IsTUImage()` and `Textures::IsOriginalImage()` figure out whether a texture should be loaded from the title update drive or the original game disc. This is what lets texture replacements work through patches.
 
 ## TextureManager
 
-`TextureManager` is a singleton registry mapping string names to texture IDs and `Texture` objects:
+`TextureManager` is a singleton registry that maps string names to texture IDs and `Texture` objects:
 
 ```cpp
 class TextureManager {
@@ -137,11 +137,11 @@ Some textures animate each tick:
 | `ClockTexture` | Clock item face rotation |
 | `CompassTexture` | Compass needle direction |
 
-These are updated during `Textures::tick()` when `tickDynamics` is true.
+These get updated during `Textures::tick()` when `tickDynamics` is true.
 
 ## BufferedImage
 
-`BufferedImage` is the CPU-side image container used for loading and manipulating texture data before uploading to the GPU. It stores pixel data as integer arrays.
+`BufferedImage` is the CPU-side image container used for loading and working with texture data before uploading to the GPU. It stores pixel data as integer arrays.
 
 ## TexturePack hierarchy
 
@@ -220,11 +220,11 @@ res/
     res/             -- updated textures
 ```
 
-The `1_2_2/` subdirectory contains the original 1.2.2 version resources as a baseline.
+The `1_2_2/` subdirectory has the original 1.2.2 version resources as a baseline.
 
 ## DLC texture packs
 
-Each DLC pack under `TitleUpdate/DLC/` contains a `Data/` subdirectory with pack-specific resources. Available DLC packs in the source tree:
+Each DLC pack under `TitleUpdate/DLC/` has a `Data/` subdirectory with pack-specific resources. Available DLC packs in the source tree:
 
 - Candy
 - Cartoon
@@ -247,4 +247,4 @@ DLC packs are managed through `DLCManager` and `DLCPack` in `Common/DLC/`, with 
 
 ## Texture format
 
-The static member `Textures::TEXTURE_FORMAT` controls the GPU texture format. Mipmapping is controlled by `Textures::MIPMAP`. Format selection via `setTextureFormat()` adapts to platform capabilities.
+The static member `Textures::TEXTURE_FORMAT` controls the GPU texture format. Mipmapping is controlled by `Textures::MIPMAP`. Format selection via `setTextureFormat()` adapts to whatever the platform supports.

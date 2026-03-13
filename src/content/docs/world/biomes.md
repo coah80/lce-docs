@@ -3,7 +3,7 @@ title: Biomes
 description: Complete documentation of LCEMP's biome system.
 ---
 
-LCEMP's biome system controls terrain surface materials, vegetation, mob spawning, climate properties, and visual appearance (grass/foliage/water/sky colors). The implementation lives primarily in `Minecraft.World/`, with the base class in `Biome.h`/`Biome.cpp` and subclasses for each biome variant.
+LCEMP's biome system controls terrain surface materials, vegetation, mob spawning, climate properties, and how things look (grass/foliage/water/sky colors). The code lives mainly in `Minecraft.World/`, with the base class in `Biome.h`/`Biome.cpp` and subclasses for each biome variant.
 
 ## Architecture overview
 
@@ -33,7 +33,7 @@ Biome (base class)
 
 ## Biome base class
 
-`Biome` stores all per-biome properties and maintains a static registry of 256 biome slots. Each biome is instantiated in `Biome::staticCtor()` using a builder-style chain.
+`Biome` stores all per-biome properties and keeps a static registry of 256 biome slots. Each biome gets created in `Biome::staticCtor()` using a builder-style chain.
 
 ### Properties
 
@@ -57,17 +57,17 @@ Biome (base class)
 
 ### Climate logic
 
-- **Snow**: A biome has snow if it has rain enabled and `temperature < 0.15f`.
-- **Rain**: A biome has rain if `_hasRain == true` and it does not have snow.
-- **Humidity**: A biome is classified as humid when `downfall > 0.85f`.
+- **Snow**: A biome has snow if rain is enabled and `temperature < 0.15f`.
+- **Rain**: A biome has rain if `_hasRain == true` and it doesn't snow.
+- **Humidity**: A biome counts as humid when `downfall > 0.85f`.
 
-Colors for grass, foliage, water, and sky are loaded from the texture pack's color table using per-biome `eMinecraftColour` enums rather than computed from temperature/downfall as in vanilla Java Edition. This is a 4J Studios modification.
+Colors for grass, foliage, water, and sky are loaded from the texture pack's color table using per-biome `eMinecraftColour` enums instead of being computed from temperature/downfall like vanilla Java Edition does. This is a 4J Studios change.
 
 ---
 
 ## Biome registry
 
-All 23 biomes (`BIOME_COUNT = 23`) are created in `Biome::staticCtor()`. The table below is derived directly from the source code:
+All 23 biomes (`BIOME_COUNT = 23`) are created in `Biome::staticCtor()`. Here's the full table straight from the source code:
 
 | ID | Name | Class | Temp | Downfall | Depth | Scale | Surface | Snow | Rain |
 |----|------|-------|------|----------|-------|-------|---------|------|------|
@@ -99,24 +99,24 @@ All 23 biomes (`BIOME_COUNT = 23`) are created in `Biome::staticCtor()`. The tab
 
 ## Biome subclasses
 
-Each subclass customizes mob spawns, decorator counts, tree types, and/or decoration behavior.
+Each subclass tweaks mob spawns, decorator counts, tree types, and/or decoration behavior.
 
 ### PlainsBiome (ID 1)
 
-- Trees disabled (`treeCount = -999`)
-- High grass count (10), extra flowers (4)
+- Trees are disabled (`treeCount = -999`)
+- Lots of grass (10), extra flowers (4)
 - Default friendly mob spawns
 
 ### DesertBiome (IDs 2, 17)
 
 - Clears all friendly mob spawns (no passive mobs)
 - Surface: sand over sand
-- Trees disabled, dead bushes (2), reeds (50), cacti (10)
+- No trees, dead bushes (2), reeds (50), cacti (10)
 - Custom `decorate()`: 1/1000 chance per chunk to place a `DesertWellFeature`
 
 ### ExtremeHillsBiome (IDs 3, 20)
 
-- Clears `friendlies` list only (Sheep, Pig, Cow removed; chickens still spawn via `friendlies_chicken`)
+- Clears the `friendlies` list only (Sheep, Pig, Cow removed; chickens still spawn through `friendlies_chicken`)
 - Custom `decorate()`: generates emerald ore (3-8 veins per chunk, Y range 4 to `genDepth / 4`)
 - `GENERATE_EMERALD_ORE` is a compile-time constant set to `true`
 
@@ -136,13 +136,13 @@ Each subclass customizes mob spawns, decorator counts, tree types, and/or decora
 ### SwampBiome (ID 6)
 
 - Trees: 2 per chunk, always `SwampTreeFeature`
-- Flowers disabled (`flowerCount = -999`)
+- Flowers are disabled (`flowerCount = -999`)
 - Dead bushes (1), mushrooms (8), reeds (10), clay (1), waterlilies (4)
 
 ### RiverBiome (IDs 7, 11)
 
 - Clears `friendlies`, `friendlies_chicken`, and `friendlies_wolf` (no passive land mobs on rivers)
-- Inline constructor in header; no additional decoration
+- Inline constructor in header; no extra decoration
 
 ### HellBiome (ID 8)
 
@@ -164,39 +164,39 @@ Each subclass customizes mob spawns, decorator counts, tree types, and/or decora
 
 ### IceBiome (IDs 12, 13)
 
-- No additional customization beyond base class; snow coverage is set via `setSnowCovered()` in `staticCtor()`
+- No extra customization beyond the base class; snow coverage is set through `setSnowCovered()` in `staticCtor()`
 
 ### MushroomIslandBiome (IDs 14, 15)
 
 - Clears all mob lists (enemies, friendlies, water creatures)
 - Adds Mooshroom to `friendlies_mushroomcow` (weight 8, groups of 4-8)
 - Surface: mycelium
-- Trees/flowers/grass all set to `-100` (effectively disabled); mushrooms (1), huge mushrooms (1)
+- Trees/flowers/grass all set to `-100` (basically disabled); mushrooms (1), huge mushrooms (1)
 
 ### BeachBiome (ID 16)
 
-- Clears `friendlies` and `friendlies_chicken` (Sheep, Pig, Cow, Chicken removed; `friendlies_wolf` not cleared but wolves are never added to beaches)
+- Clears `friendlies` and `friendlies_chicken` (Sheep, Pig, Cow, Chicken removed; `friendlies_wolf` isn't cleared but wolves are never added to beaches anyway)
 - Surface: sand/sand
 - Trees disabled (`treeCount = -999`), dead bushes (0), reeds (0), cacti (0)
 
 ### JungleBiome (IDs 21, 22)
 
 - High tree count (50), grass (25), flowers (4)
-- Adds Ocelot to `enemies` (weight 2, groups of 1) and extra Chickens to `friendlies` (weight 10, groups of 4) -- note: added to the main `friendlies` list, not `friendlies_chicken`
+- Adds Ocelot to `enemies` (weight 2, groups of 1) and extra Chickens to `friendlies` (weight 10, groups of 4). Note: added to the main `friendlies` list, not `friendlies_chicken`
 - Tree selection: 1/10 fancy oak, 1/2 ground bush, 1/3 mega jungle tree, otherwise normal jungle tree with vines
 - Custom `getGrassFeature()`: 1/4 chance fern, otherwise tall grass
-- Custom `decorate()`: places 50 `VinesFeature` per chunk after base decoration
+- Custom `decorate()`: places 50 `VinesFeature` per chunk after the base decoration
 
 ### RainforestBiome
 
-- Not assigned to any biome ID in `staticCtor()`; appears to be an unused/legacy biome class
+- Not assigned to any biome ID in `staticCtor()`; seems to be an unused/legacy biome class
 - Tree selection: 1/3 fancy oak, otherwise normal oak
 
 ---
 
 ## Mob spawning
 
-The base `Biome` constructor populates default spawn lists:
+The base `Biome` constructor sets up default spawn lists:
 
 | Category | Mobs | Weights |
 |----------|------|---------|
@@ -205,7 +205,7 @@ The base `Biome` constructor populates default spawn lists:
 | `enemies` | Spider (10), Zombie (10), Skeleton (10), Creeper (10), Slime (10), Enderman (1) | groups of 4 (Enderman: 1-4) |
 | `waterFriendlies` | Squid (10) | groups of 4 |
 
-4J Studios separated chickens, wolves, and mooshrooms into their own `MobCategory` lists (`friendlies_chicken`, `friendlies_wolf`, `friendlies_mushroomcow`) for finer spawn control. The `getMobs()` method dispatches on `MobCategory` to return the appropriate list.
+4J Studios split chickens, wolves, and mooshrooms into their own `MobCategory` lists (`friendlies_chicken`, `friendlies_wolf`, `friendlies_mushroomcow`) for tighter spawn control. The `getMobs()` method looks at the `MobCategory` to return the right list.
 
 ---
 
@@ -233,7 +233,7 @@ The base `Biome` constructor populates default spawn lists:
 
 ### Ore generation
 
-`decorateOres()` places ores with these parameters:
+`decorateOres()` places ores with these settings:
 
 | Ore | Veins/chunk | Vein size | Max height |
 |-----|------------|-----------|------------|
@@ -352,22 +352,22 @@ The set of biomes available for initial assignment depends on `LevelType`:
 - **lvl_normal_1_1** (pre-1.2.3): Desert, Forest, Extreme Hills, Swampland, Plains, Taiga (6 biomes)
 - **Other level types**: Same plus Jungle (7 biomes)
 
-Cold regions (snow layer value >= 2) are restricted to Taiga or Ice Plains.
+Cold regions (snow layer value >= 2) are limited to Taiga or Ice Plains.
 
 ### 4J Studios modifications to the layer pipeline
 
-- **Mushroom islands**: Moved 3 zoom levels later than vanilla Java, making them approximately 1/8 the original size. A custom `GrowMushroomIslandLayer` then region-grows them back into compact shapes that fit within the console world boundaries.
+- **Mushroom islands**: Moved 3 zoom levels later than vanilla Java, making them roughly 1/8 the original size. A custom `GrowMushroomIslandLayer` then region-grows them back into compact shapes that fit within the console world boundaries.
 - **Shore layer**: Applied at zoom iteration 1 instead of 0.
-- **Large biomes**: `zoomLevel` increased from 4 to 6 for `lvl_largeBiomes`.
+- **Large biomes**: `zoomLevel` bumped from 4 to 6 for `lvl_largeBiomes`.
 
 ---
 
 ## BiomeSource
 
-`BiomeSource` is the main interface for querying biomes at world coordinates. It holds two `Layer` references:
+`BiomeSource` is the main way to query biomes at world coordinates. It holds two `Layer` references:
 
-- `layer` -- the main biome layer (used for `getBiomeBlock()`)
-- `zoomedLayer` -- the Voronoi-zoomed layer (used for block-level precision)
+- `layer`: the main biome layer (used for `getBiomeBlock()`)
+- `zoomedLayer`: the Voronoi-zoomed layer (used for block-level precision)
 
 ### Key methods
 
@@ -377,14 +377,14 @@ Cold regions (snow layer value >= 2) are restricted to Taiga or Ice Plains.
 | `getBiomeBlock(x, z, w, h)` | Returns a rectangular array of biomes |
 | `getTemperature(x, y, z)` | Temperature at a position (scaled by altitude) |
 | `getDownfall(x, z)` | Downfall value at a position |
-| `containsOnly(x, z, r, allowed)` | Checks if an area contains only specified biomes (used by structure placement) |
+| `containsOnly(x, z, r, allowed)` | Checks if an area only has the specified biomes (used by structure placement) |
 | `findBiome(x, z, r, toFind, random)` | Searches for a specific biome within a radius |
 | `findSeed(generator)` | Static method that searches for a valid seed (PS Vita has early-out support) |
 
 ### FixedBiomeSource
 
-Used for superflat worlds. Always returns a single biome with constant temperature and downfall values. All spatial queries return the fixed biome.
+Used for superflat worlds. Always returns the same biome with constant temperature and downfall values. Every spatial query returns that fixed biome.
 
 ### BiomeCache
 
-`BiomeCache` caches biome data in 256x256 block regions to avoid redundant layer evaluations. The `BiomeSource` creates and manages this cache internally.
+`BiomeCache` caches biome data in 256x256 block regions so the system doesn't have to re-run the layer pipeline for the same area. `BiomeSource` creates and manages this cache internally.
