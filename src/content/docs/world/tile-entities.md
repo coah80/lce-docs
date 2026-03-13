@@ -3,7 +3,7 @@ title: Tile Entities
 description: Block entities that store extra data in LCEMP.
 ---
 
-Tile entities are blocks that need to store more data than the basic tile ID and 4-bit data value can hold. They attach to a world position `(x, y, z)` and persist through NBT serialization.
+Tile entities are blocks that need more data than the basic tile ID and 4-bit data value can hold. They attach to a world position `(x, y, z)` and persist through NBT serialization.
 
 ## Base class: TileEntity
 
@@ -31,11 +31,11 @@ All tile entities inherit from `TileEntity`, which provides position tracking, N
 | `clearCache()` | Resets cached `tile` and `data` values |
 | `getUpdatePacket()` | Returns a network packet for client sync (null by default) |
 | `triggerEvent(b0, b1)` | Handles block events (empty by default) |
-| `clone()` | Pure virtual -- every subclass must implement deep copy (4J addition) |
+| `clone()` | Pure virtual. Every subclass must implement deep copy (4J addition) |
 
 ### Static registry
 
-The `staticCtor()` method registers all tile entity types with a string ID and a factory function. When loading from NBT, `loadStatic()` looks up the `id` tag in the registry, creates the correct subclass, and calls `load()`.
+The `staticCtor()` method registers all tile entity types with a string ID and a factory function. When loading from NBT, `loadStatic()` looks up the `id` tag in the registry, creates the right subclass, and calls `load()`.
 
 **Registered IDs:**
 
@@ -66,7 +66,7 @@ Implements both `TileEntity` and `Container` (3 slots: input, fuel, result).
 - Tracks `litTime` (remaining fuel), `litDuration` (total fuel time), and `tickCount` (cook progress)
 - `canBurn()` checks if the input can produce a result and the result slot has room
 - `burn()` moves one input item to the result slot
-- `getBurnDuration()` is a static method returning fuel time for any item
+- `getBurnDuration()` is a static method that returns fuel time for any item
 - Tracks `m_charcoalUsed` for the "Renewable Energy" achievement (4J addition)
 
 **NBT:** Saves `BurnTime`, `CookTime`, and the `Items` list tag.
@@ -79,7 +79,7 @@ Implements `TileEntity` and `Container` (27 slots).
 - `checkNeighbors()` finds adjacent chests to form double chests (stores `n`, `e`, `w`, `s` weak pointers)
 - `tick()` manages lid animation (`openness`, `oOpenness`) and plays open/close sounds
 - `startOpen()` / `stopOpen()` increment/decrement `openCount` and fire `triggerEvent` for animation sync
-- Supports bonus chest variant via `isBonusChest` flag (4J addition)
+- Supports bonus chest variant through the `isBonusChest` flag (4J addition)
 - `tickInterval` throttles neighbor checks
 
 **NBT:** Saves the `Items` list tag.
@@ -102,7 +102,7 @@ Implements `TileEntity` and `Container` (4 slots: 3 bottles + 1 ingredient).
 
 **Behavior:**
 - Ticks to process brewing. `brewTime` counts down from 400.
-- `isBrewable()` checks if the ingredient can modify any bottle slot
+- `isBrewable()` checks if the ingredient can change any bottle slot
 - `doBrew()` applies the ingredient effect to all valid bottles
 - `applyIngredient()` computes the new potion data value
 - `getPotionBits()` returns a bitmask of which bottle slots are filled
@@ -127,28 +127,28 @@ Controls mob spawning from a spawner block.
 
 **Behavior:**
 - Ticks to check `isNearPlayer()` (within `MAX_DIST`) and counts down `spawnDelay`
-- `entityId` determines what mob to spawn, with optional `spawnData` CompoundTag for extra configuration
+- `entityId` says what mob to spawn, with optional `spawnData` CompoundTag for extra configuration
 - `delay()` resets the spawn timer between `minSpawnDelay` and `maxSpawnDelay`
 - `fillExtraData()` applies `spawnData` to newly created entities
 - `spawnCount` controls how many mobs spawn per trigger
-- `displayEntity` is a cached reference for client-side spinning preview
+- `displayEntity` is a cached reference for the client-side spinning preview
 - `m_bEntityIdUpdated` tracks whether the entity ID was changed at runtime (4J addition)
 
 **NBT:** Saves `EntityId`, `Delay`, `MinSpawnDelay`, `MaxSpawnDelay`, `SpawnCount`, and optionally `SpawnData`.
 
 ### MusicTileEntity (Note Block)
 
-Simple tile entity with a single `note` value (0--24) and an `on` state.
+Simple tile entity with a single `note` value (0-24) and an `on` state.
 
 **Behavior:**
 - `tune()` cycles the note value
-- `playNote()` triggers the sound at the block's position, pitch determined by `note`
+- `playNote()` triggers the sound at the block's position, with pitch based on `note`
 
 **NBT:** Saves `note`.
 
 ### EnderChestTileEntity
 
-Tracks lid animation state only. The actual inventory is per-player (`PlayerEnderChestContainer`).
+Only tracks lid animation state. The actual inventory is per-player (`PlayerEnderChestContainer`).
 
 **Behavior:**
 - `tick()` manages `openness` / `oOpenness` animation like ChestTileEntity
@@ -162,9 +162,9 @@ Tracks lid animation state only. The actual inventory is per-player (`PlayerEnde
 Stores a player head or mob skull on a block.
 
 **Fields:**
-- `skullType` -- one of: Skeleton (0), Wither (1), Zombie (2), Char/Player (3), Creeper (4)
-- `rotation` -- placement rotation
-- `extraType` -- player name for player skulls
+- `skullType`: one of Skeleton (0), Wither (1), Zombie (2), Char/Player (3), Creeper (4)
+- `rotation`: placement rotation
+- `extraType`: player name for player skulls
 
 **NBT:** Saves `SkullType`, `Rot`, `ExtraType`.
 
@@ -174,13 +174,13 @@ Manages the book animation on enchanting tables.
 
 **Fields:** `time`, `flip`, `oFlip`, `flipT`, `flipA`, `open`, `oOpen`, `rot`, `oRot`, `tRot`
 
-**Behavior:** `tick()` updates book page-flipping and rotation animation based on nearby player position.
+**Behavior:** `tick()` updates book page-flipping and rotation animation based on the nearby player's position.
 
 **NBT:** No additional tags.
 
 ### TheEndPortalTileEntity
 
-Minimal tile entity with no extra data or behavior. Exists only to mark end portal frame blocks.
+Minimal tile entity with no extra data or behavior. It just exists to mark end portal frame blocks.
 
 ### PistonPieceEntity
 
@@ -190,7 +190,7 @@ Tracks a block being moved by a piston.
 
 **Behavior:**
 - `tick()` advances `progress` and calls `moveCollidedEntities()` to push entities in the piston's path
-- `finalTick()` places the final block when extension completes
+- `finalTick()` places the final block when extension is done
 
 **NBT:** Saves `blockId`, `blockData`, `facing`, `extending`, `progress`.
 
@@ -198,8 +198,8 @@ Tracks a block being moved by a piston.
 
 4J added a staged removal system for tile entities to prevent rendering artifacts:
 
-1. **Keep** (`e_RenderRemoveStageKeep`) -- normal state
-2. **FlaggedAtChunk** (`e_RenderRemoveStageFlaggedAtChunk`) -- marked at chunk level
-3. **Remove** (`e_RenderRemoveStageRemove`) -- safe to remove from renderer
+1. **Keep** (`e_RenderRemoveStageKeep`): normal state
+2. **FlaggedAtChunk** (`e_RenderRemoveStageFlaggedAtChunk`): marked at chunk level
+3. **Remove** (`e_RenderRemoveStageRemove`): safe to remove from renderer
 
 `upgradeRenderRemoveStage()` transitions from FlaggedAtChunk to Remove. `shouldRemoveForRender()` returns true only at the Remove stage.

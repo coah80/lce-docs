@@ -8,7 +8,7 @@ Entity types are registered in `EntityIO::staticCtor()` in
 `EntityIO::setId()` maps a factory function, an internal enum value (`eINSTANCEOF`),
 a string identifier, and a numeric ID.
 
-Entities that are spawnable in Creative mode via the Monster Placer (Spawn Egg) also
+Entities that can be spawned in Creative mode through the Monster Placer (Spawn Egg) also
 include egg colors and a name string ID.
 
 ## Entity ID Table
@@ -63,14 +63,14 @@ include egg colors and a name string ID.
 
 :::note
 IDs 3-8, 19, 22-39, 42-47, 64-89, 100-119, 121-199, 201-999 are unassigned.
-The base types `Mob` (48) and `Monster` (49) are registered but serve as generic
+The base types `Mob` (48) and `Monster` (49) are registered but act as generic
 fallbacks; specific mob types override them.
 :::
 
 ## Spawnable Entities (Spawn Eggs)
 
-The following entities can be spawned via the Monster Placer item (ID 383) using the
-entity ID as the data value. These are the entities registered with the
+These entities can be spawned with the Monster Placer item (ID 383) using the
+entity ID as the data value. They're the entities registered with the
 `SpawnableMobInfo` overload of `setId()`:
 
 | Entity ID | Name | Egg Colors |

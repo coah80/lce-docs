@@ -3,11 +3,11 @@ title: Container Menus
 description: Inventory management and container menu system in LCEMP.
 ---
 
-LCEMP uses a two-layer container system: **Container** objects hold raw item data, and **AbstractContainerMenu** subclasses manage the GUI logic, slot layout, click handling, and synchronization between server and client.
+LCEMP uses a two-layer container system: **Container** objects hold the raw item data, and **AbstractContainerMenu** subclasses manage the GUI logic, slot layout, click handling, and sync between server and client.
 
 ## Container (data layer)
 
-`Container` is the pure-virtual interface every item-holding object implements. It defines the fundamental storage contract.
+`Container` is the pure-virtual interface that every item-holding object implements. It defines the basic storage contract.
 
 **Key constants and methods:**
 
@@ -34,7 +34,7 @@ LCEMP uses a two-layer container system: **Container** objects hold raw item dat
 | `MerchantContainer` | Villager trade slots | 3 slots: two payment, one result. Calls `updateSellItem()` on changes. Tracks `activeRecipe` and `selectionHint`. |
 | `EnchantmentContainer` | Enchanting table input | Extends `SimpleContainer` with a max stack size of 1 and menu callbacks. |
 | `RepairContainer` | Anvil input slots | Extends `SimpleContainer`. Triggers `RepairMenu::createResult()` on changes. |
-| `PlayerEnderChestContainer` | Per-player ender chest | Extends `SimpleContainer`. Persists via NBT through `setItemsByTag()` / `createTag()`. Tracks the currently active `EnderChestTileEntity`. |
+| `PlayerEnderChestContainer` | Per-player ender chest | Extends `SimpleContainer`. Persists through NBT with `setItemsByTag()` / `createTag()`. Tracks the currently active `EnderChestTileEntity`. |
 
 ## AbstractContainerMenu (GUI layer)
 
@@ -60,18 +60,18 @@ LCEMP uses a two-layer container system: **Container** objects hold raw item dat
 
 ### Core methods
 
-- **`addSlot(Slot*)`** -- Registers a slot, assigning it a sequential index.
-- **`broadcastChanges()`** -- Compares each slot against `lastSlots` and fires `ContainerListener::slotChanged()` on differences.
-- **`clicked(slotIndex, buttonNum, clickType, player)`** -- The central click dispatcher. Handles pickup, quick-move, swap, and clone logic. Manages carried items via the player's `Inventory`.
-- **`quickMoveStack(player, slotIndex)`** -- Virtual. Subclasses override to define shift-click transfer rules between slot regions.
-- **`moveItemStackTo(itemStack, start, end, backwards)`** -- Helper that moves items into a slot range, first trying to stack with existing items, then filling empty slots.
-- **`removed(player)`** -- Drops any carried item when the menu closes.
-- **`stillValid(player)`** -- Pure virtual. Each subclass defines the distance/validity check.
-- **`mayCombine(slot, item)`** -- Hook for dyeable armor and damaged item combination (4J addition).
+- **`addSlot(Slot*)`**: Registers a slot, giving it a sequential index.
+- **`broadcastChanges()`**: Compares each slot against `lastSlots` and fires `ContainerListener::slotChanged()` when things differ.
+- **`clicked(slotIndex, buttonNum, clickType, player)`**: The main click dispatcher. Handles pickup, quick-move, swap, and clone logic. Manages carried items through the player's `Inventory`.
+- **`quickMoveStack(player, slotIndex)`**: Virtual. Subclasses override this to define shift-click transfer rules between slot regions.
+- **`moveItemStackTo(itemStack, start, end, backwards)`**: Helper that moves items into a slot range, first trying to stack with existing items, then filling empty slots.
+- **`removed(player)`**: Drops any carried item when the menu closes.
+- **`stillValid(player)`**: Pure virtual. Each subclass defines the distance/validity check.
+- **`mayCombine(slot, item)`**: Hook for dyeable armor and damaged item combination (4J addition).
 
 ### Synchronization
 
-The menu tracks `unSynchedPlayers` -- a set of players whose client state is out of date. `isSynched()` and `setSynched()` control this flag. Change detection uses `ItemInstance::matches()` to compare current slot contents against `lastSlots` snapshots.
+The menu tracks `unSynchedPlayers`, a set of players whose client state is out of date. `isSynched()` and `setSynched()` control this flag. Change detection uses `ItemInstance::matches()` to compare current slot contents against `lastSlots` snapshots.
 
 `MenuBackup` provides transactional rollback support, storing snapshots keyed by `changeUid`. It supports `save()`, `rollback()`, and `deleteBackup()`.
 
@@ -83,7 +83,7 @@ The menu tracks `unSynchedPlayers` -- a set of players whose client state is out
 
 | Method | Purpose |
 |---|---|
-| `mayPlace(item)` | Whether the item can be placed here (overridden for type-restricted slots) |
+| `mayPlace(item)` | Whether the item can go here (overridden for type-restricted slots) |
 | `mayPickup(player)` | Whether the player can take the item out |
 | `getMaxStackSize()` | Stack limit for this slot (delegates to container by default) |
 | `set(item)` / `getItem()` | Read/write the slot contents |
@@ -91,30 +91,30 @@ The menu tracks `unSynchedPlayers` -- a set of players whose client state is out
 | `onTake(player, item)` | Callback after a player takes items (used for achievements, XP) |
 | `swap(other)` | Swap contents with another slot |
 | `mayCombine(item)` | 4J addition for item combination support |
-| `combine(item)` | 4J addition that performs the combination |
+| `combine(item)` | 4J addition that does the combination |
 | `isAt(container, index)` | Identity check for finding a slot by its backing container and index |
 
-Specialized slot subclasses exist within menus. For example, `BrewingStandMenu::PotionSlot` restricts placement to bottles and caps stack size at 1, while `BrewingStandMenu::IngredientsSlot` only accepts valid brewing ingredients.
+Specialized slot subclasses exist within menus. For example, `BrewingStandMenu::PotionSlot` only allows bottles and caps stack size at 1, while `BrewingStandMenu::IngredientsSlot` only accepts valid brewing ingredients.
 
 ## Menu subclasses
 
 ### InventoryMenu
 
-The player's own inventory screen. Contains a 2x2 crafting grid, 4 armor slots, 27 main inventory slots, and 9 hotbar slots.
+The player's own inventory screen. Has a 2x2 crafting grid, 4 armor slots, 27 main inventory slots, and 9 hotbar slots.
 
 | Region | Constant | Range |
 |---|---|---|
 | Result | `RESULT_SLOT` | 0 |
-| Crafting grid | `CRAFT_SLOT_START` .. `CRAFT_SLOT_END` | 1--4 |
-| Armor | `ARMOR_SLOT_START` .. `ARMOR_SLOT_END` | 5--8 |
-| Main inventory | `INV_SLOT_START` .. `INV_SLOT_END` | 9--35 |
-| Hotbar | `USE_ROW_SLOT_START` .. `USE_ROW_SLOT_END` | 36--44 |
+| Crafting grid | `CRAFT_SLOT_START` .. `CRAFT_SLOT_END` | 1-4 |
+| Armor | `ARMOR_SLOT_START` .. `ARMOR_SLOT_END` | 5-8 |
+| Main inventory | `INV_SLOT_START` .. `INV_SLOT_END` | 9-35 |
+| Hotbar | `USE_ROW_SLOT_START` .. `USE_ROW_SLOT_END` | 36-44 |
 
 Overrides `slotsChanged()` to re-check crafting recipes. Supports `mayCombine` for dyeable armor.
 
 ### CraftingMenu
 
-The 3x3 crafting table screen. Tied to a world position for the `stillValid()` distance check. Drops crafting grid contents on close via `removed()`.
+The 3x3 crafting table screen. Tied to a world position for the `stillValid()` distance check. Drops crafting grid contents on close through `removed()`.
 
 ### FurnaceMenu
 
@@ -132,14 +132,14 @@ Shift-click logic routes fuel items to the fuel slot, smeltable items to the ing
 
 Wraps a `BrewingStandTileEntity`. Uses custom slot classes:
 
-- **`PotionSlot`** -- Restricts to potion bottles, max stack 1. Fires an achievement on take.
-- **`IngredientsSlot`** -- Restricts to valid brewing ingredients, max stack 1.
+- **`PotionSlot`**: Only takes potion bottles, max stack 1. Fires an achievement on take.
+- **`IngredientsSlot`**: Only takes valid brewing ingredients, max stack 1.
 
 Broadcasts `brewTime` as data ID 0.
 
 ### EnchantmentMenu
 
-Single input slot (max stack 1). Generates three random enchantment `costs[]` based on nearby bookshelves. `clickMenuButton()` applies the chosen enchantment, consuming player XP. Uses a `Random` seeded by `nameSeed`.
+Single input slot (max stack 1). Generates three random enchantment `costs[]` based on nearby bookshelves. `clickMenuButton()` applies the chosen enchantment, spending player XP. Uses a `Random` seeded by `nameSeed`.
 
 ### MerchantMenu
 
@@ -147,7 +147,7 @@ Three slots: two payment inputs and one result output. Wraps a `Merchant` (villa
 
 ### RepairMenu (Anvil)
 
-Two input slots and one result slot. Computes `cost` (XP levels) via `createResult()`. Supports item renaming through `setItemName()`. The `DATA_TOTAL_COST` (0) data ID broadcasts the repair cost to listeners.
+Two input slots and one result slot. Computes `cost` (XP levels) through `createResult()`. Supports item renaming with `setItemName()`. The `DATA_TOTAL_COST` (0) data ID broadcasts the repair cost to listeners.
 
 ### TrapMenu (Dispenser/Dropper)
 
@@ -155,4 +155,4 @@ Simple 9-slot grid wrapping a `DispenserTileEntity`. No special slot logic beyon
 
 ### ContainerMenu (Generic chest)
 
-Used for single and double chests. Calculates `containerRows` from the container size and creates the appropriate slot grid. Calls `startOpen()` / `stopOpen()` for chest animations.
+Used for single and double chests. Calculates `containerRows` from the container size and creates the right slot grid. Calls `startOpen()` / `stopOpen()` for chest animations.

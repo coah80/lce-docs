@@ -3,7 +3,7 @@ title: Tile Class Index
 description: Index of all Tile (block) subclasses in LCEMP.
 ---
 
-In LCEMP, blocks are called "Tiles." Every block type is a subclass of `Tile` (defined in `Minecraft.World/Tile.h`). Some tiles inherit from intermediate base classes that provide shared behavior.
+In LCEMP, blocks are called "Tiles." Every block type is a subclass of `Tile` (defined in `Minecraft.World/Tile.h`). Some tiles inherit from intermediate base classes that share common behavior.
 
 ## Inheritance Hierarchy
 
@@ -164,10 +164,10 @@ Tile
 
 ## Notes
 
-- `Bush` is declared in `Bush.h` / `Bush.cpp` and is a Tile subclass for plant-type blocks. It does not follow the `*Tile.h` naming convention.
-- `LiquidTile` has two concrete subclasses -- `LiquidTileDynamic` and `LiquidTileStatic` -- defined in their own files, but they are not separate `*Tile.h` headers.
-- `FallingTile` (in `FallingTile.h`) extends `Entity`, not `Tile`. It is the falling-block entity (sand, gravel in motion), not a block type.
+- `Bush` is declared in `Bush.h` / `Bush.cpp` and is a Tile subclass for plant-type blocks. It doesn't follow the `*Tile.h` naming convention.
+- `LiquidTile` has two concrete subclasses (`LiquidTileDynamic` and `LiquidTileStatic`) defined in their own files, but they don't have separate `*Tile.h` headers.
+- `FallingTile` (in `FallingTile.h`) extends `Entity`, not `Tile`. It's the falling-block entity (sand, gravel in motion), not a block type.
 - The `Tile` base class itself is defined in `Tile.h` / `Tile.cpp` and holds the static tile registry (all block IDs are registered there).
-- Related tile items (e.g., `ClothTileItem`, `StoneSlabTileItem`, `TreeTileItem`) handle aux-data variants and are in separate files.
+- Related tile items (like `ClothTileItem`, `StoneSlabTileItem`, `TreeTileItem`) handle aux-data variants and live in separate files.
 
 **Source directory:** `Minecraft.World/`

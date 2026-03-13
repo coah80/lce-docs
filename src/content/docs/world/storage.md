@@ -16,22 +16,22 @@ The top-level factory that manages world listings and creates `LevelStorage` ins
 | `selectLevel(saveFile, levelId, createPlayerDir)` | Opens a world and returns a `LevelStorage` |
 | `getLevelList()` | Returns summaries of all saved worlds |
 | `getDataTagFor(saveFile, levelId)` | Reads `LevelData` without fully loading |
-| `isNewLevelIdAcceptable(levelId)` | Validates a world name (no reserved names, no conflicts) |
+| `isNewLevelIdAcceptable(levelId)` | Checks if a world name is valid (no reserved names, no conflicts) |
 | `deleteLevel(levelId)` | Removes a saved world |
 | `renameLevel(levelId, newName)` | Renames a saved world |
-| `isConvertible(saveFile, levelId)` / `requiresConversion()` | Checks if a world needs format upgrade |
-| `convertLevel(saveFile, levelId, progress)` | Performs the format conversion |
+| `isConvertible(saveFile, levelId)` / `requiresConversion()` | Checks if a world needs a format upgrade |
+| `convertLevel(saveFile, levelId, progress)` | Does the format conversion |
 
 Implementations: `McRegionLevelStorageSource`, `MemoryLevelStorageSource`.
 
 ### LevelStorage
 
-The main interface for world persistence operations.
+The main interface for world persistence.
 
 | Method | Purpose |
 |---|---|
 | `prepareLevel()` | Loads or creates `LevelData` |
-| `checkSession()` | Validates the save session is still owned by this instance |
+| `checkSession()` | Makes sure the save session is still owned by this instance |
 | `createChunkStorage(dimension)` | Returns a `ChunkStorage` for the given dimension |
 | `saveLevelData(levelData)` | Writes world metadata |
 | `saveLevelData(levelData, players)` | Writes world metadata with player list |
@@ -53,9 +53,9 @@ The main interface for world persistence operations.
 The main storage backend. Inherits both `LevelStorage` and `PlayerIO`.
 
 **Key features:**
-- Maintains a `sessionId` for ownership validation
+- Keeps a `sessionId` for ownership validation
 - Manages per-player save directories and data file paths
-- Handles map data mappings via `MapDataMappings` (tracks PlayerUID-to-map-ID associations)
+- Handles map data mappings through `MapDataMappings` (tracks PlayerUID-to-map-ID associations)
 - For large worlds (`_LARGE_WORLDS`), uses a `PlayerMappings` class with per-player hash maps; for standard worlds, uses a fixed-size `MapDataMappings` struct
 - `saveMapIdLookup()` persists map ID assignments
 - `deleteMapFilesForPlayer()` cleans up map data when a player leaves
@@ -78,7 +78,7 @@ Extends `DirectoryLevelStorage` for the McRegion save format. Sets `MCREGION_VER
 
 #### MemoryLevelStorage
 
-An in-memory implementation for testing or temporary worlds. No persistent storage.
+An in-memory implementation for testing or temporary worlds. Nothing gets saved to disk.
 
 #### MockedLevelStorage
 
@@ -95,24 +95,24 @@ Test double for unit testing storage behavior.
 | `saveEntities(level, levelChunk)` | Saves entities and tile entities separately |
 | `tick()` | Periodic maintenance |
 | `flush()` | Forces all pending writes |
-| `WaitForAll()` | Blocks until all async saves complete (4J addition) |
-| `WaitIfTooManyQueuedChunks()` | Back-pressure for save queue (4J addition) |
+| `WaitForAll()` | Blocks until all async saves finish (4J addition) |
+| `WaitIfTooManyQueuedChunks()` | Back-pressure for the save queue (4J addition) |
 
 ### McRegionChunkStorage
 
-The primary chunk storage implementation using the McRegion file format.
+The main chunk storage implementation using the McRegion file format.
 
 - Uses a `RegionFileCache` for the underlying `.mcr` region files
-- Maintains an `m_entityData` cache mapping chunk keys to byte arrays
+- Keeps an `m_entityData` cache mapping chunk keys to byte arrays
 - Supports threaded saving with up to 3 save threads (`s_saveThreads`) and a `s_chunkDataQueue`
 - `loadEntities()` restores entities from the cached `m_entityData` map
-- Thread-safe via `CRITICAL_SECTION cs_memory`
+- Thread-safe through `CRITICAL_SECTION cs_memory`
 
 Other implementations: `MemoryChunkStorage`, `OldChunkStorage` (legacy format), `ZonedChunkStorage`.
 
 ## LevelData
 
-`LevelData` stores all world metadata. It is serialized to/from `CompoundTag` for NBT persistence.
+`LevelData` stores all world metadata. It gets serialized to/from `CompoundTag` for NBT persistence.
 
 ### NBT tags
 
@@ -156,9 +156,9 @@ DIMENSION_END       =  1
 
 ### Console-specific fields
 
-The `hasBeenInCreative` flag is set to `true` whenever the game mode is switched to Creative or cheats are enabled. This flag prevents achievement awarding on worlds that have been in creative mode.
+The `hasBeenInCreative` flag gets set to `true` whenever the game mode is switched to Creative or cheats are turned on. This flag prevents achievements from being awarded on worlds that have been in creative mode.
 
-`XZSize` and `HellScale` are clamped between `LEVEL_MIN_WIDTH`/`LEVEL_MAX_WIDTH` and `HELL_LEVEL_MIN_SCALE`/`HELL_LEVEL_MAX_SCALE`. The Nether size is computed as `XZSize / HellScale`, with the scale auto-adjusted if the Nether would exceed `HELL_LEVEL_MAX_WIDTH`.
+`XZSize` and `HellScale` are clamped between `LEVEL_MIN_WIDTH`/`LEVEL_MAX_WIDTH` and `HELL_LEVEL_MIN_SCALE`/`HELL_LEVEL_MAX_SCALE`. The Nether size is computed as `XZSize / HellScale`, with the scale auto-adjusted if the Nether would end up too big (`HELL_LEVEL_MAX_WIDTH`).
 
 ## NBT system
 
@@ -183,24 +183,24 @@ All structured data in LCEMP is stored using the NBT (Named Binary Tag) format.
 
 ### CompoundTag
 
-The central container type, stored as `unordered_map<wstring, Tag*>`. Provides typed put/get methods for all tag types.
+The main container type, stored as `unordered_map<wstring, Tag*>`. Provides typed put/get methods for all tag types.
 
 - `load()` reads tags until it hits a `TAG_End`, with a safety limit of `MAX_COMPOUND_TAGS` (10,000)
-- `copy()` performs a deep copy of all contained tags
+- `copy()` does a deep copy of all contained tags
 - `equals()` recursively compares all entries
 
 ### Serialization flow
 
-Tags are read and written via `DataInput` / `DataOutput` streams. `Tag::readNamedTag()` reads a type byte, a name string, and then dispatches to the appropriate `Tag` subclass's `load()` method. `Tag::writeNamedTag()` does the reverse.
+Tags are read and written through `DataInput` / `DataOutput` streams. `Tag::readNamedTag()` reads a type byte, a name string, and then dispatches to the right `Tag` subclass's `load()` method. `Tag::writeNamedTag()` does the reverse.
 
 ## Player data
 
-Player save/load is handled through the `PlayerIO` interface:
+Player save/load goes through the `PlayerIO` interface:
 
 | Method | Purpose |
 |---|---|
 | `save(player)` | Serializes player data to storage |
-| `load(player)` | Deserializes and returns whether the player existed (4J change: returns `bool`) |
+| `load(player)` | Reads player data and returns whether the player existed (4J change: returns `bool`) |
 | `loadPlayerDataTag(xuid)` | Loads raw player NBT by Xbox UID |
 | `clearOldPlayerFiles()` | Removes stale player data files (4J addition) |
 

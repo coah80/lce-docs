@@ -3,13 +3,13 @@ title: Enchantments
 description: The LCEMP enchantment system and all enchantment types.
 ---
 
-The enchantment system is built around the `Enchantment` base class and a static array of 256 possible enchantment slots. Each enchantment has an ID, a frequency (rarity weight), a category that determines which items it can apply to, and cost/level ranges used during the enchanting table selection process.
+The enchantment system is built around the `Enchantment` base class and a static array of 256 possible enchantment slots. Each enchantment has an ID, a frequency (rarity weight), a category that controls which items it can go on, and cost/level ranges used during the enchanting table selection process.
 
 **Key source files:** `Minecraft.World/Enchantment.h`, `Minecraft.World/EnchantmentHelper.h`, `Minecraft.World/EnchantmentCategory.h`, `Minecraft.World/EnchantmentInstance.h`
 
 ## Enchantment registry
 
-All enchantments are initialized in `Enchantment::staticCtor()` and stored in a static array of 256 entries. A `validEnchantments` vector is built by iterating that array and collecting non-null entries.
+All enchantments get set up in `Enchantment::staticCtor()` and stored in a static array of 256 entries. A `validEnchantments` vector is built by going through that array and collecting non-null entries.
 
 ```cpp
 static EnchantmentArray enchantments; // 256 slots
@@ -20,7 +20,7 @@ Duplicate IDs trigger a debug break (`"Duplicate enchantment id!"`).
 
 ## Rarity frequencies
 
-Each enchantment is assigned a frequency constant that controls how likely it is to appear during random enchantment selection:
+Each enchantment has a frequency constant that controls how often it shows up during random enchantment selection:
 
 | Constant | Value | Examples |
 |---|---|---|
@@ -31,7 +31,7 @@ Each enchantment is assigned a frequency constant that controls how likely it is
 
 ## All enchantment types
 
-### Armor enchantments (IDs 0--7)
+### Armor enchantments (IDs 0-7)
 
 | ID | Static name | Class | Category | Max Level | Frequency |
 |---|---|---|---|---|---|
@@ -44,7 +44,7 @@ Each enchantment is assigned a frequency constant that controls how likely it is
 | 6 | `waterWorker` | `WaterWorkerEnchantment` | `armor_head` | 1 | Rare |
 | 7 | `thorns` | `ThornsEnchantment` | `armor_torso` | 3 | Very Rare |
 
-### Weapon enchantments (IDs 16--21)
+### Weapon enchantments (IDs 16-21)
 
 | ID | Static name | Class | Category | Max Level | Frequency |
 |---|---|---|---|---|---|
@@ -55,7 +55,7 @@ Each enchantment is assigned a frequency constant that controls how likely it is
 | 20 | `fireAspect` | `FireAspectEnchantment` | `weapon` | 2 | Rare |
 | 21 | `lootBonus` | `LootBonusEnchantment` | `weapon` | 3 | Rare |
 
-### Digger/tool enchantments (IDs 32--35)
+### Digger/tool enchantments (IDs 32-35)
 
 | ID | Static name | Class | Category | Max Level | Frequency |
 |---|---|---|---|---|---|
@@ -64,7 +64,7 @@ Each enchantment is assigned a frequency constant that controls how likely it is
 | 34 | `digDurability` | `DigDurabilityEnchantment` | `digger` | 3 | Uncommon |
 | 35 | `resourceBonus` | `LootBonusEnchantment` | `digger` | 3 | Rare |
 
-### Bow enchantments (IDs 48--51)
+### Bow enchantments (IDs 48-51)
 
 | ID | Static name | Class | Category | Max Level | Frequency |
 |---|---|---|---|---|---|
@@ -89,15 +89,15 @@ Each enchantment is assigned a frequency constant that controls how likely it is
 | `digger` | Any `DiggerItem` |
 | `bow` | Any `BowItem` |
 
-Some enchantment subclasses override `canEnchant()` to expand compatibility. For example, `DamageEnchantment` also accepts `HatchetItem`, `DiggingEnchantment` also accepts shears, `UntouchingEnchantment` (Silk Touch) also accepts shears, `ThornsEnchantment` accepts any `ArmorItem` (not just torso), and `DigDurabilityEnchantment` accepts any damageable item.
+Some enchantment subclasses override `canEnchant()` to accept more items. For example, `DamageEnchantment` also accepts `HatchetItem`, `DiggingEnchantment` also accepts shears, `UntouchingEnchantment` (Silk Touch) also accepts shears, `ThornsEnchantment` accepts any `ArmorItem` (not just torso), and `DigDurabilityEnchantment` accepts any damageable item.
 
 ## Compatibility rules
 
-The base `Enchantment::isCompatibleWith()` returns `true` for any enchantment that is not the same instance (`this != other`). Subclasses add restrictions:
+The base `Enchantment::isCompatibleWith()` returns `true` for any enchantment that isn't the same instance (`this != other`). Subclasses add restrictions:
 
-- **Protection types** are mutually exclusive (only one of Protection, Fire Protection, Blast Protection, Projectile Protection can exist), except Feather Falling is compatible with all other protection types.
+- **Protection types** are mutually exclusive (only one of Protection, Fire Protection, Blast Protection, Projectile Protection can exist), except Feather Falling works with all other protection types.
 - **Damage types** are mutually exclusive (only one of Sharpness, Smite, Bane of Arthropods).
-- **Silk Touch** and **Fortune** (resourceBonus) are mutually exclusive --- each checks incompatibility with the other.
+- **Silk Touch** and **Fortune** (resourceBonus) are mutually exclusive. Each one checks for incompatibility with the other.
 
 ## Damage and protection formulas
 
@@ -125,11 +125,11 @@ The total protection across all armor pieces is capped at 25. Fire Protection al
 
 ### Thorns
 
-Thorns has a `15% * level` chance to trigger per hit. When triggered, it deals 1--4 random damage to the attacker (or `level - 10` if level exceeds 10). The thorns item takes 3 durability on trigger, 1 durability on non-trigger.
+Thorns has a `15% * level` chance to trigger on each hit. When it triggers, it deals 1-4 random damage to the attacker (or `level - 10` if the level is over 10). The thorns item takes 3 durability on trigger, 1 durability when it doesn't trigger.
 
 ### Unbreaking
 
-`DigDurabilityEnchantment::shouldIgnoreDurabilityDrop()` rolls `random.nextInt(level + 1) > 0` to skip durability loss. For armor items, there is an additional 60% chance that the durability drop is *not* ignored.
+`DigDurabilityEnchantment::shouldIgnoreDurabilityDrop()` rolls `random.nextInt(level + 1) > 0` to skip durability loss. For armor items, there's an extra 60% chance that the durability drop is *not* ignored.
 
 ## Enchanting table mechanics
 
@@ -137,7 +137,7 @@ Managed by `EnchantmentMenu` and `EnchantmentHelper`.
 
 ### Cost calculation
 
-`EnchantmentHelper::getEnchantmentCost()` computes the XP level cost for each of the 3 enchanting table slots. Bookshelves are capped at 15:
+`EnchantmentHelper::getEnchantmentCost()` computes the XP level cost for each of the 3 enchanting table slots. Bookshelves cap at 15:
 
 ```
 selected = random(8) + 1 + (bookcases / 2) + random(bookcases + 1)
@@ -149,7 +149,7 @@ Slot 2: selected
 
 ### Enchantment selection
 
-`EnchantmentHelper::selectEnchantment()` determines which enchantments and levels are applied:
+`EnchantmentHelper::selectEnchantment()` figures out which enchantments and levels get applied:
 
 1. Compute an `itemBonus` from the item's enchantment value.
 2. Add enchantment cost to get `enchantmentValue`.

@@ -3,7 +3,7 @@ title: Crafting & Recipes
 description: How LCEMP handles crafting recipes and smelting.
 ---
 
-The crafting system centers around the `Recipes` singleton (for crafting table and inventory crafting) and the `FurnaceRecipes` singleton (for smelting). Recipes are registered programmatically in constructors using variadic C-style functions --- a significant departure from the original Java implementation.
+The crafting system centers on the `Recipes` singleton (for crafting table and inventory crafting) and the `FurnaceRecipes` singleton (for smelting). Recipes are registered in code using variadic C-style functions, which is quite different from the original Java implementation.
 
 **Key source files:** `Minecraft.World/Recipes.h`, `Minecraft.World/Recipy.h`, `Minecraft.World/ShapedRecipy.h`, `Minecraft.World/ShapelessRecipy.h`, `Minecraft.World/FurnaceRecipes.h`
 
@@ -18,11 +18,11 @@ Recipes (singleton)       -- manages all crafting recipes
 FurnaceRecipes (singleton) -- manages all smelting recipes
 ```
 
-Both singletons are initialized via `staticCtor()` and accessed through `getInstance()`.
+Both singletons get set up through `staticCtor()` and accessed with `getInstance()`.
 
 ## Recipe groups
 
-4J Studios added a recipe group system for the console crafting UI. Each recipe is assigned to one of seven groups:
+4J Studios added a recipe group system for the console crafting UI. Each recipe belongs to one of seven groups:
 
 | Group | Code | Character |
 |---|---|---|
@@ -45,7 +45,7 @@ Recipes also track whether they fit in a 2x2 or 3x3 grid:
 
 ## Recipy base class
 
-The `Recipy` abstract class defines the interface all recipes must implement:
+The `Recipy` abstract class defines the interface all recipes must follow:
 
 ```cpp
 virtual bool matches(shared_ptr<CraftingContainer> craftSlots, Level *level) = 0;
@@ -55,7 +55,7 @@ virtual const ItemInstance *getResultItem() = 0;
 virtual const int getGroup() = 0;
 ```
 
-It also defines an `INGREDIENTS_REQUIRED` struct used by 4J's console crafting UI to precompute what ingredients each recipe needs, including a per-player `bCanMake` flag and a bitmask of missing grid ingredients.
+It also defines an `INGREDIENTS_REQUIRED` struct that 4J's console crafting UI uses to precompute what ingredients each recipe needs, including a per-player `bCanMake` flag and a bitmask of missing grid ingredients.
 
 ## Shaped recipes
 
@@ -71,34 +71,34 @@ When checking if a `CraftingContainer` matches, shaped recipes:
 
 ### Tag preservation
 
-The `keepTag()` method enables NBT tag transfer from ingredients to the result. This is used for recipes like Carrot on a Stick, where the fishing rod's durability tag carries over.
+The `keepTag()` method lets NBT tags transfer from ingredients to the result. This is used for recipes like Carrot on a Stick, where the fishing rod's durability tag carries over.
 
 ## Shapeless recipes
 
-`ShapelessRecipy` stores a list of ingredient `ItemInstance` pointers. Order does not matter.
+`ShapelessRecipy` stores a list of ingredient `ItemInstance` pointers. Order doesn't matter.
 
 ### Pattern matching
 
 1. Copy the ingredient list to a temporary list.
-2. Iterate over every slot in the 3x3 crafting grid.
+2. Go through every slot in the 3x3 crafting grid.
 3. For each item found, search the ingredient list for a match (by ID and optionally aux value).
 4. Remove matched ingredients from the temporary list.
-5. The recipe matches only if all ingredients were consumed and no extra items remain.
+5. The recipe matches only if all ingredients were used up and no extra items are left.
 
 ## How recipes are registered
 
 ### The variadic argument system
 
-4J rewrote the Java recipe registration to use C-style variadic arguments (`va_list`). The second argument after the result item is always a wide-character type string that encodes the types of subsequent arguments:
+4J rewrote the Java recipe registration to use C-style variadic arguments (`va_list`). The second argument after the result item is always a wide-character type string that encodes what comes next:
 
 | Type char | Meaning |
 |---|---|
-| `s` | `wchar_t *` --- a row of the crafting pattern |
-| `c` | `wchar_t` --- a character key for ingredient mapping |
-| `z` | `ItemInstance *` --- an item instance mapped to the preceding character |
-| `i` | `Item *` --- an item mapped to the preceding character |
-| `t` | `Tile *` --- a tile/block mapped to the preceding character (auto-wrapped with `ANY_AUX_VALUE`) |
-| `g` | `wchar_t` --- the recipe group character (must be last) |
+| `s` | `wchar_t *`: a row of the crafting pattern |
+| `c` | `wchar_t`: a character key for ingredient mapping |
+| `z` | `ItemInstance *`: an item instance mapped to the preceding character |
+| `i` | `Item *`: an item mapped to the preceding character |
+| `t` | `Tile *`: a tile/block mapped to the preceding character (auto-wrapped with `ANY_AUX_VALUE`) |
+| `g` | `wchar_t`: the recipe group character (must be last) |
 
 ### Example: enchanting table recipe
 
@@ -126,7 +126,7 @@ addShapelessRecipy(new ItemInstance(Item::eyeOfEnder, 1),
 
 ## Recipe sub-managers
 
-Recipe registration is delegated to seven specialized classes, each with an `addRecipes(Recipes *)` method:
+Recipe registration is split across seven specialized classes, each with an `addRecipes(Recipes *)` method:
 
 | Class | Responsibility |
 |---|---|
@@ -142,15 +142,15 @@ The main `Recipes` constructor calls these sub-managers at specific points to co
 
 ## Tool repair
 
-Before checking registered recipes, `Recipes::getItemFor()` has a special-case for tool repair: if exactly two items of the same damageable type are in the crafting grid (each with count 1), they combine. The remaining durability is: `remaining1 + remaining2 + 5% of maxDamage`.
+Before checking registered recipes, `Recipes::getItemFor()` has a special case for tool repair: if exactly two items of the same damageable type are in the crafting grid (each with count 1), they combine. The remaining durability is: `remaining1 + remaining2 + 5% of maxDamage`.
 
 ## Ingredients array
 
-After all recipes are registered, `buildRecipeIngredientsArray()` iterates every recipe and calls `requires()` to precompute the `INGREDIENTS_REQUIRED` struct for each. This is used by the console-specific crafting UI to quickly determine which recipes the player can make based on their inventory.
+After all recipes are registered, `buildRecipeIngredientsArray()` goes through every recipe and calls `requires()` to precompute the `INGREDIENTS_REQUIRED` struct for each one. The console crafting UI uses this to quickly figure out which recipes the player can make based on their inventory.
 
 ## Furnace recipes
 
-`FurnaceRecipes` is a simpler system that maps input item IDs to output `ItemInstance` results and XP values.
+`FurnaceRecipes` is simpler. It maps input item IDs to output `ItemInstance` results and XP values.
 
 ### Data structure
 
@@ -183,7 +183,7 @@ unordered_map<int, float> recipeValue;         // result ID -> XP value
 | Lapis Ore | Lapis Lazuli | 0.2 |
 | Nether Quartz Ore | Nether Quartz | 0.2 |
 
-The last four entries (Coal Ore, Redstone Ore, Lapis Ore, Nether Quartz Ore) are noted in the source as "special silk touch related recipes" --- they exist so that silk-touched ore blocks can be smelted.
+The last four entries (Coal Ore, Redstone Ore, Lapis Ore, Nether Quartz Ore) are noted in the source as "special silk touch related recipes." They exist so that silk-touched ore blocks can be smelted.
 
 ### API
 
@@ -194,4 +194,4 @@ ItemInstance *getResult(int itemId);
 float getRecipeValue(int itemId);
 ```
 
-The `FurnaceTileEntity` handles the actual smelting process, checking `FurnaceRecipes::getInstance()->getResult()` to determine if an item can be smelted.
+The `FurnaceTileEntity` handles the actual smelting process, checking `FurnaceRecipes::getInstance()->getResult()` to see if an item can be smelted.

@@ -3,15 +3,15 @@ title: Complete File Index
 description: Index of all source files in both LCEMP modules.
 ---
 
-LCEMP consists of two modules: **Minecraft.World** (game logic, networking, world simulation) and **Minecraft.Client** (rendering, UI, platform integration, server hosting). This page indexes every `.cpp` and `.h` source file in both.
+LCEMP has two modules: **Minecraft.World** (game logic, networking, world simulation) and **Minecraft.Client** (rendering, UI, platform integration, server hosting). This page lists every `.cpp` and `.h` source file in both.
 
-**Totals: 1,567 files in Minecraft.World -- 1,392 files in Minecraft.Client -- 2,959 files overall.**
+**Totals: 1,567 files in Minecraft.World, 1,392 files in Minecraft.Client, 2,959 files overall.**
 
 ---
 
 ## Minecraft.World (1,567 files)
 
-All files reside in a flat directory (`Minecraft.World/`) except for 7 headers in `x64headers/`.
+All files live in a flat directory (`Minecraft.World/`) except for 7 headers in `x64headers/`.
 
 ### Tiles / Blocks (200 files)
 
@@ -207,7 +207,7 @@ Platform-specific headers for Xbox 360 / x64: `extraX64.h`, `qnet.h`, `xmcore.h`
 
 The Client module has a deeper directory structure with platform-specific subdirectories.
 
-### Root Directory -- Rendering (174 files)
+### Root Directory: Rendering (174 files)
 
 Core rendering, models, entity renderers, and particle effects at the top level.
 
@@ -232,7 +232,7 @@ BreakingItemParticle, BubbleParticle, CritParticle, CritParticle2, DragonBreathP
 
 </details>
 
-### Root Directory -- Screens / UI (82 files)
+### Root Directory: Screens / UI (82 files)
 
 <details>
 <summary>Screen classes</summary>
@@ -241,7 +241,7 @@ AbstractContainerScreen, AchievementPopup, AchievementScreen, Button, ChatScreen
 
 </details>
 
-### Root Directory -- Core Engine (90 files)
+### Root Directory: Core Engine (90 files)
 
 <details>
 <summary>Core client classes</summary>
@@ -250,7 +250,7 @@ AllowAllCuller, Camera, Chunk, ClientConnection, ClientConstants, ClockTexture, 
 
 </details>
 
-### Root Directory -- Textures (38 files)
+### Root Directory: Textures (38 files)
 
 <details>
 <summary>Texture system</summary>
@@ -259,7 +259,7 @@ AbstractTexturePack, ArchiveFile, BufferedImage, DefaultTexturePack, DLCTextureP
 
 </details>
 
-### Root Directory -- Server (18 files)
+### Root Directory: Server (18 files)
 
 <details>
 <summary>Server-side classes at root</summary>

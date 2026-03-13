@@ -3,25 +3,25 @@ title: Networking & Packets
 description: How LCEMP handles multiplayer networking and packet communication.
 ---
 
-LCEMP's networking layer is a console-adapted version of the original Minecraft Java Edition protocol, heavily modified by 4J Studios to work over platform-specific network APIs (QNET on Xbox, SQR on PlayStation, ad-hoc on PS Vita). The system uses a client-server model where the host machine runs an integrated server and all players (including the host's local players) communicate through packet-based connections.
+LCEMP's networking layer is a console-adapted version of the original Minecraft Java Edition protocol, heavily modified by 4J Studios to work over platform-specific network APIs (QNET on Xbox, SQR on PlayStation, ad-hoc on PS Vita). The system follows a client-server model where the host machine runs an integrated server and all players (including the host's local players) communicate through packet-based connections.
 
 ## Architecture Overview
 
 The networking code is split across two layers:
 
 **Platform-independent layer** (`Minecraft.World` and `Minecraft.Client`):
-- `Packet` -- base class for all packet types, with a static registry mapping IDs to factory functions
-- `Connection` -- manages a bidirectional socket with dedicated read/write threads
-- `PacketListener` -- abstract interface with virtual handlers for every packet type
-- `ServerConnection` -- server-side manager that tracks pending and active player connections
-- `ClientConnection` -- client-side `PacketListener` implementation that handles incoming server packets
-- `PlayerConnection` -- server-side `PacketListener` implementation that handles incoming client packets
-- `PendingConnection` -- temporary server-side handler for connections still in the login handshake
+- `Packet`: base class for all packet types, with a static registry mapping IDs to factory functions
+- `Connection`: manages a bidirectional socket with dedicated read/write threads
+- `PacketListener`: abstract interface with virtual handlers for every packet type
+- `ServerConnection`: server-side manager that tracks pending and active player connections
+- `ClientConnection`: client-side `PacketListener` implementation that handles incoming server packets
+- `PlayerConnection`: server-side `PacketListener` implementation that handles incoming client packets
+- `PendingConnection`: temporary server-side handler for connections still in the login handshake
 
 **Platform-specific layer** (`Minecraft.Client/Common/Network` and platform subdirectories):
-- `CGameNetworkManager` -- platform-independent game-side networking coordinator (global instance `g_NetworkManager`)
-- `CPlatformNetworkManager` -- abstract interface implemented per-platform
-- `INetworkPlayer` -- abstract player interface with methods for sending data, checking RTT, and managing socket state
+- `CGameNetworkManager`: platform-independent game-side networking coordinator (global instance `g_NetworkManager`)
+- `CPlatformNetworkManager`: abstract interface with one implementation per platform
+- `INetworkPlayer`: abstract player interface with methods for sending data, checking RTT, and managing socket state
 - Platform implementations: `CPlatformNetworkManagerXbox`, `CPlatformNetworkManagerDurango`, `CPlatformNetworkManagerSony`, `CPlatformNetworkManagerStub`
 
 The relationship between these layers is documented in `/Users/cole/Documents/LCEMP/Minecraft.Client/Network Implementation Notes.txt`:
@@ -38,39 +38,39 @@ Game --> GameNetworkManager <--> NetworkPlayerInterface    (platform independent
 
 ## The Socket Abstraction
 
-The `Socket` class (`Minecraft.World/Socket.h`) provides a unified interface over two different transport mechanisms:
+The `Socket` class (`Minecraft.World/Socket.h`) provides a unified interface over two different transport methods:
 
-- **Local sockets**: Used for connections between the host player and the integrated server on the same machine. Data passes through in-memory queues (`s_hostQueue`) protected by critical sections -- no actual network traffic occurs.
-- **Network sockets**: Used for connections to remote players. Data flows through `INetworkPlayer::SendData()` which delegates to the platform's network layer (QNET on Xbox, SQR on PlayStation).
+- **Local sockets**: For connections between the host player and the integrated server on the same machine. Data passes through in-memory queues (`s_hostQueue`) protected by critical sections, so no actual network traffic happens.
+- **Network sockets**: For connections to remote players. Data goes through `INetworkPlayer::SendData()` which passes it to the platform's network layer (QNET on Xbox, SQR on PlayStation).
 
-Each socket has two "ends" (`SOCKET_CLIENT_END` and `SOCKET_SERVER_END`) with independent input and output streams. The `isLocal()` method distinguishes local from networked connections, and the system skips outgoing packet statistics recording for local connections.
+Each socket has two "ends" (`SOCKET_CLIENT_END` and `SOCKET_SERVER_END`) with independent input and output streams. The `isLocal()` method tells local and networked connections apart, and the system skips outgoing packet stats recording for local connections.
 
 ## The Connection Class
 
 `Connection` (`Minecraft.World/Connection.h`) wraps a `Socket` with:
 
-- **Dedicated read and write threads** that run on `CPU_CORE_CONNECTIONS`, using event-based wake signals with 100ms timeout fallback
+- **Dedicated read and write threads** running on `CPU_CORE_CONNECTIONS`, using event-based wake signals with a 100ms timeout fallback
 - **Three packet queues** protected by critical sections:
-  - `incoming` -- packets read from the network, waiting to be dispatched to the `PacketListener`
-  - `outgoing` -- normal-priority packets queued for sending
-  - `outgoing_slow` -- low-priority packets (e.g., chunk data marked with `shouldDelay`), sent with `QNET_SENDDATA_LOW_PRIORITY | QNET_SENDDATA_SECONDARY` flags
-- **KeepAlive heartbeat** -- sends a `KeepAlivePacket` every 20 ticks
-- **Timeout detection** -- disconnects after `MAX_TICKS_WITHOUT_INPUT` (1200 ticks / 60 seconds) of silence
-- **Overflow protection** -- disconnects if the estimated outgoing buffer exceeds 1 MB
-- **Buffered output** -- uses a 5 KB send buffer (`SEND_BUFFER_SIZE = 1024 * 5`)
+  - `incoming`: packets read from the network, waiting to be dispatched to the `PacketListener`
+  - `outgoing`: normal-priority packets queued for sending
+  - `outgoing_slow`: low-priority packets (e.g., chunk data marked with `shouldDelay`), sent with `QNET_SENDDATA_LOW_PRIORITY | QNET_SENDDATA_SECONDARY` flags
+- **KeepAlive heartbeat**: sends a `KeepAlivePacket` every 20 ticks
+- **Timeout detection**: disconnects after `MAX_TICKS_WITHOUT_INPUT` (1200 ticks / 60 seconds) of silence
+- **Overflow protection**: disconnects if the estimated outgoing buffer goes over 1 MB
+- **Buffered output**: uses a 5 KB send buffer (`SEND_BUFFER_SIZE = 1024 * 5`)
 
-The `tick()` method processes up to 1000 incoming packets per call, dispatching each to its `PacketListener` via the packet's `handle()` method.
+The `tick()` method processes up to 1000 incoming packets per call, dispatching each to its `PacketListener` through the packet's `handle()` method.
 
 ## The Packet Base Class
 
-All packets derive from `Packet` (`Minecraft.World/Packet.h`). Each packet must implement:
+All packets inherit from `Packet` (`Minecraft.World/Packet.h`). Each packet must implement:
 
 | Method | Purpose |
 |--------|---------|
 | `getId()` | Returns the packet's numeric ID (0-255) |
-| `read(DataInputStream*)` | Deserializes the packet from the stream |
-| `write(DataOutputStream*)` | Serializes the packet to the stream |
-| `handle(PacketListener*)` | Dispatches to the appropriate handler on the listener |
+| `read(DataInputStream*)` | Reads the packet from the stream |
+| `write(DataOutputStream*)` | Writes the packet to the stream |
+| `handle(PacketListener*)` | Dispatches to the right handler on the listener |
 | `getEstimatedSize()` | Returns estimated byte size for buffer management |
 
 Optional overrides include `canBeInvalidated()` and `isInvalidatedBy()` for packet deduplication, and `isAync()` for async-safe packets (only `KeepAlivePacket` uses this).
@@ -83,33 +83,33 @@ Packets are written as a single ID byte followed by packet-specific data:
 [1 byte: packet ID] [N bytes: packet payload]
 ```
 
-The `Packet::readPacket()` static method reads the ID byte, validates it against the allowed set for the connection side (client or server), creates the packet via its registered factory function, and calls `read()` to deserialize the payload.
+The `Packet::readPacket()` static method reads the ID byte, validates it against the allowed set for the connection side (client or server), creates the packet through its registered factory function, and calls `read()` to parse the payload.
 
 ### Packet Registration
 
-`Packet::staticCtor()` registers all packets via the `Packet::map()` function:
+`Packet::staticCtor()` registers all packets through the `Packet::map()` function:
 
 ```cpp
 map(id, receiveOnClient, receiveOnServer, sendToAnyClient, renderStats, typeid(Class), Class::create);
 ```
 
 Parameters:
-- **`id`** -- numeric packet ID (0-255)
-- **`receiveOnClient`** -- whether the client processes this packet
-- **`receiveOnServer`** -- whether the server processes this packet
-- **`sendToAnyClient`** -- if `true`, sent to all clients; if `false`, sent to only one player per dimension per machine (a 4J splitscreen optimization)
-- **`renderStats`** -- whether to include in debug statistics rendering
-- **Factory function** -- creates a new packet instance via `shared_ptr<Packet>`
+- **`id`**: numeric packet ID (0-255)
+- **`receiveOnClient`**: whether the client processes this packet
+- **`receiveOnServer`**: whether the server processes this packet
+- **`sendToAnyClient`**: if `true`, sent to all clients; if `false`, sent to only one player per dimension per machine (a 4J splitscreen optimization)
+- **`renderStats`**: whether to include in debug statistics rendering
+- **Factory function**: creates a new packet instance as `shared_ptr<Packet>`
 
 Three sets track directionality: `clientReceivedPackets`, `serverReceivedPackets`, and `sendToAnyClientPackets`.
 
 ### Utility Methods
 
 `Packet` provides shared serialization helpers:
-- `readUtf()` / `writeUtf()` -- length-prefixed UTF-16 strings
-- `readItem()` / `writeItem()` -- `ItemInstance` with NBT data
-- `readNbt()` / `writeNbt()` -- compressed NBT compound tags
-- `readBytes()` / `writeBytes()` -- length-prefixed byte arrays
+- `readUtf()` / `writeUtf()`: length-prefixed UTF-16 strings
+- `readItem()` / `writeItem()`: `ItemInstance` with NBT data
+- `readNbt()` / `writeNbt()`: compressed NBT compound tags
+- `readBytes()` / `writeBytes()`: length-prefixed byte arrays
 
 ## Complete Packet Registry
 
@@ -257,11 +257,11 @@ All packet IDs as registered in `Packet::staticCtor()`:
 
 ### 1. Socket Creation
 
-When a new player joins, `CGameNetworkManager::CreateSocket()` creates a `Socket` object. For the host player, this is a local socket backed by in-memory queues. For remote players, the socket wraps the platform's `INetworkPlayer` network layer. The socket is then passed to `ServerConnection::NewIncomingSocket()`.
+When a new player joins, `CGameNetworkManager::CreateSocket()` creates a `Socket` object. For the host player, this is a local socket backed by in-memory queues. For remote players, the socket wraps the platform's `INetworkPlayer` network layer. The socket then goes to `ServerConnection::NewIncomingSocket()`.
 
 ### 2. Pending Connection (PreLogin)
 
-The server wraps the new socket in a `PendingConnection`, which creates a `Connection` with read/write threads. The connection has 30 seconds (`MAX_TICKS_BEFORE_LOGIN = 600 ticks`) to complete the login process.
+The server wraps the new socket in a `PendingConnection`, which creates a `Connection` with read/write threads. The connection has 30 seconds (`MAX_TICKS_BEFORE_LOGIN = 600 ticks`) to finish the login process.
 
 The client sends a `PreLoginPacket` (ID 2) containing:
 - Player XUIDs (offline and online) for all local players
@@ -273,11 +273,11 @@ The client sends a `PreLoginPacket` (ID 2) containing:
 - Texture pack ID
 - **Network version number** (`m_netcodeVersion`, checked against `MINECRAFT_NET_VERSION`)
 
-If the version does not match, the server disconnects with `eDisconnect_OutdatedServer` or `eDisconnect_OutdatedClient`. On success, the server sends back a `PreLoginPacket` response with its own UGC privilege information.
+If the version doesn't match, the server disconnects with `eDisconnect_OutdatedServer` or `eDisconnect_OutdatedClient`. On success, the server sends back a `PreLoginPacket` response with its own UGC privilege information.
 
 ### 3. Login Exchange
 
-After the PreLogin succeeds, the client sends a `LoginPacket` (ID 1) containing:
+After the PreLogin succeeds, the client sends a `LoginPacket` (ID 1) with:
 - Username and client version
 - Offline/online XUIDs
 - UGC privileges and skin/cape IDs
@@ -291,10 +291,10 @@ The server responds with a `LoginPacket` containing world information:
 
 ### 4. World Data Transfer
 
-Once login completes, the `PendingConnection` is promoted: its `Connection` is transferred to a new `PlayerConnection` and associated with a `ServerPlayer`. The server then sends:
+Once login completes, the `PendingConnection` gets promoted: its `Connection` is transferred to a new `PlayerConnection` and linked to a `ServerPlayer`. The server then sends:
 
-- `ChunkVisibilityAreaPacket` (ID 155) -- a 4J addition that batches the initial visible chunk area rather than sending individual `ChunkVisibilityPacket` messages per chunk
-- `BlockRegionUpdatePacket` (ID 51) -- bulk chunk data for each visible chunk
+- `ChunkVisibilityAreaPacket` (ID 155), a 4J addition that batches the initial visible chunk area instead of sending individual `ChunkVisibilityPacket` messages per chunk
+- `BlockRegionUpdatePacket` (ID 51) with bulk chunk data for each visible chunk
 - Entity spawn packets for nearby entities
 - Inventory and player state packets
 
@@ -306,13 +306,13 @@ During gameplay, `Connection::tick()` processes incoming packets and the `Packet
 
 ### 6. Disconnection
 
-Disconnection can occur for many reasons, tracked by `DisconnectPacket::eDisconnectReason`:
+Disconnection can happen for many reasons, tracked by `DisconnectPacket::eDisconnectReason`:
 
 | Reason | Trigger |
 |--------|---------|
 | `eDisconnect_Quitting` | Player chose to leave |
 | `eDisconnect_TimeOut` | No input for 60 seconds |
-| `eDisconnect_Overflow` | Outgoing buffer exceeded 1 MB |
+| `eDisconnect_Overflow` | Outgoing buffer went over 1 MB |
 | `eDisconnect_Kicked` | Kicked by host |
 | `eDisconnect_ServerFull` | No slots available |
 | `eDisconnect_OutdatedServer/Client` | Version mismatch |
@@ -321,23 +321,23 @@ Disconnection can occur for many reasons, tracked by `DisconnectPacket::eDisconn
 | `eDisconnect_Banned` | Player is banned |
 | `eDisconnect_NotFriendsWithHost` | Friends-only session restriction |
 
-The `Connection::close()` method stops the read/write threads, closes streams, and notifies the `PacketListener` via `onDisconnect()`.
+The `Connection::close()` method stops the read/write threads, closes streams, and notifies the `PacketListener` through `onDisconnect()`.
 
 ## Entity Synchronization
 
 Entity movement uses a tiered packet system optimized for bandwidth:
 
 **Standard entities** use `MoveEntityPacket` (IDs 30-33):
-- `MoveEntityPacket` (ID 30) -- base with no movement data (heartbeat-like)
-- `MoveEntityPacket::Pos` (ID 31) -- relative position deltas as signed bytes
-- `MoveEntityPacket::Rot` (ID 32) -- rotation as compressed bytes
-- `MoveEntityPacket::PosRot` (ID 33) -- both position and rotation deltas
+- `MoveEntityPacket` (ID 30): base with no movement data (heartbeat-like)
+- `MoveEntityPacket::Pos` (ID 31): relative position deltas as signed bytes
+- `MoveEntityPacket::Rot` (ID 32): rotation as compressed bytes
+- `MoveEntityPacket::PosRot` (ID 33): both position and rotation deltas
 
 **Small entities** (a 4J optimization) use `MoveEntityPacketSmall` (IDs 162-165) with the same sub-packet pattern but for entities that need less precision.
 
-**Absolute positioning** uses `TeleportEntityPacket` (ID 34) for when deltas are insufficient (large movements or corrections).
+**Absolute positioning** uses `TeleportEntityPacket` (ID 34) for when deltas aren't enough (large movements or corrections).
 
-Entity metadata (health, custom name, status flags, etc.) is synchronized via `SetEntityDataPacket` (ID 40). The `sendToAnyClient` flag on entity packets determines splitscreen behavior: motion packets (ID 28) are sent to all clients because knockback effects must be visible to everyone, while some entity metadata is scoped per-dimension per-machine.
+Entity metadata (health, custom name, status flags, etc.) syncs through `SetEntityDataPacket` (ID 40). The `sendToAnyClient` flag on entity packets controls splitscreen behavior: motion packets (ID 28) go to all clients because knockback effects need to be visible to everyone, while some entity metadata is scoped per-dimension per-machine.
 
 ## Block Change Propagation
 
@@ -345,7 +345,7 @@ Block changes flow through several packets depending on scope:
 
 - **Single block**: `TileUpdatePacket` (ID 53) sends the block position, block ID, data value, and level index.
 - **Multi-block in a chunk**: `ChunkTilesUpdatePacket` (ID 52) batches multiple block changes within a single chunk section.
-- **Region update**: `BlockRegionUpdatePacket` (ID 51) sends a rectangular volume of block data as a compressed byte buffer. The `bIsFullChunk` flag indicates whether this represents a complete chunk.
+- **Region update**: `BlockRegionUpdatePacket` (ID 51) sends a rectangular volume of block data as a compressed byte buffer. The `bIsFullChunk` flag says whether this is a complete chunk.
 - **Chunk visibility**: `ChunkVisibilityPacket` (ID 50) toggles whether a chunk column is visible (loaded) on the client.
 - **Block events**: `TileEventPacket` (ID 54) handles interactive block state (pistons, chests, note blocks).
 - **Block destruction**: `TileDestructionPacket` (ID 55) shows block break progress.
@@ -357,15 +357,15 @@ LAN multiplayer is the core feature of LCEMP. The architecture supports multiple
 
 ### Local vs. Remote Connections
 
-The `Socket` class distinguishes connections via the `m_hostLocal` flag:
-- **Host's local connection**: Uses static in-memory queues (`s_hostQueue`) shared between client and server ends. No serialization to network occurs -- data is passed directly through `SocketInputStreamLocal` / `SocketOutputStreamLocal`.
+The `Socket` class tells connections apart through the `m_hostLocal` flag:
+- **Host's local connection**: Uses static in-memory queues (`s_hostQueue`) shared between client and server ends. No serialization to the network happens. Data is passed directly through `SocketInputStreamLocal` / `SocketOutputStreamLocal`.
 - **Remote connections**: Use `SocketInputStreamNetwork` / `SocketOutputStreamNetwork`, which push data through `INetworkPlayer::SendData()` to the platform networking layer.
 
 ### The `sendToAnyClient` System
 
-A key 4J addition is the `sendToAnyClient` parameter on packet registration. When `false`, the server sends the packet to only one player per dimension per machine rather than broadcasting to all players. This is a splitscreen optimization: since multiple local players share the same screen/system, sending duplicate world data to each is wasteful. The `Packet::canSendToAnyClient()` check determines this at send time.
+A key 4J addition is the `sendToAnyClient` parameter on packet registration. When set to `false`, the server sends the packet to only one player per dimension per machine instead of broadcasting to everyone. This is a splitscreen optimization: since multiple local players share the same screen/system, sending duplicate world data to each one would be wasteful. The `Packet::canSendToAnyClient()` check handles this at send time.
 
-Packets like chunk data (`ChunkVisibilityPacket`, `BlockRegionUpdatePacket`, `TileUpdatePacket`) are marked `sendToAnyClient = true` because all players need world state. Packets like `SetTimePacket` (ID 4) or `AddMobPacket` (ID 24) are `sendToAnyClient = false` as they only need to reach each machine once.
+Packets like chunk data (`ChunkVisibilityPacket`, `BlockRegionUpdatePacket`, `TileUpdatePacket`) are marked `sendToAnyClient = true` because all players need world state. Packets like `SetTimePacket` (ID 4) or `AddMobPacket` (ID 24) are `sendToAnyClient = false` since they only need to reach each machine once.
 
 ### Session Management
 
@@ -373,7 +373,7 @@ Packets like chunk data (`ChunkVisibilityPacket`, `BlockRegionUpdatePacket`, `Ti
 - `HostGame()` creates a session with configurable public/private slots (up to `MINECRAFT_NET_MAX_PLAYERS`)
 - `JoinGame()` connects to a discovered session
 - `SetLocalGame()` / `SetPrivateGame()` control session visibility
-- `IsLocalGame()` distinguishes LAN-only from online sessions
+- `IsLocalGame()` tells LAN-only from online sessions apart
 - Player change callbacks notify the game when players join or leave
 
 ### Platform Network Backends
@@ -389,7 +389,7 @@ Each console platform has its own `CPlatformNetworkManager` and `INetworkPlayer`
 | PS4 (Orbis) | `CPlatformNetworkManagerSony` | SQR |
 | Stub (PC/debug) | `CPlatformNetworkManagerStub` | Stub/QNET stub |
 
-The PS Vita additionally supports **ad-hoc mode** for direct wireless connections between consoles without network infrastructure, exposed through `CGameNetworkManager::usingAdhocMode()` and `setAdhocMode()`.
+The PS Vita also supports **ad-hoc mode** for direct wireless connections between consoles without network infrastructure, exposed through `CGameNetworkManager::usingAdhocMode()` and `setAdhocMode()`.
 
 ## Key Source Files
 

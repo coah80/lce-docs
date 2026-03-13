@@ -5,8 +5,8 @@ description: Complete table of all item IDs in LCEMP.
 
 Items are registered in `Item::staticCtor()` in
 [`Minecraft.World/Item.cpp`](/lcemp-docs/reference/file-index/). Block IDs 0-255 also
-occupy the item ID space (blocks are automatically wrapped in `TileItem`). True item IDs
-start at 256.
+take up space in the item ID range (blocks are automatically wrapped in `TileItem`). True
+item IDs start at 256.
 
 The constructor argument (e.g., `new Item(9)`) is an **internal slot index**. The actual
 item ID is `256 + slot`, declared as `*_Id` constants in `Item.h`.
@@ -195,14 +195,14 @@ IDs 0-255 are reserved for block items (see the [Block ID Registry](/lcemp-docs/
 | 2267 | `record_08` | where are we now |
 
 :::note
-The field names `record_08` through `record_12` do not correspond 1:1 with their IDs
-due to records being added across different title updates. The table above reflects the
+The field names `record_08` through `record_12` don't match up 1:1 with their IDs
+because records were added across different title updates. The table above shows the
 actual assignments in the source.
 :::
 
 ## Tool Tiers
 
-Tools are constructed with a `Tier` that determines durability, speed, damage, and
+Tools are built with a `Tier` that sets durability, speed, damage, and
 enchantability:
 
 | Tier | Level | Durability | Speed | Damage Bonus | Enchantability |

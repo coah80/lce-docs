@@ -3,13 +3,13 @@ title: Effects (Potions)
 description: Status effects and the potion/brewing system in LCEMP.
 ---
 
-The status effect system is built around three main classes: `MobEffect` (the effect type definition), `MobEffectInstance` (an active effect on a mob with duration and amplifier), and `PotionBrewing` (the bit-manipulation system that maps potion data values to effects).
+The status effect system is built on three main classes: `MobEffect` (the effect type definition), `MobEffectInstance` (an active effect on a mob with duration and amplifier), and `PotionBrewing` (the bit-manipulation system that maps potion data values to effects).
 
 **Key source files:** `Minecraft.World/MobEffect.h`, `Minecraft.World/MobEffectInstance.h`, `Minecraft.World/PotionBrewing.h`, `Minecraft.World/BrewingStandTileEntity.h`, `Minecraft.World/PotionItem.h`
 
 ## Effect registry
 
-Effects are stored in a static array of 32 slots (`MobEffect::effects[32]`). Each effect is constructed with an ID, a harmful/beneficial flag, and a color enum value.
+Effects are stored in a static array of 32 slots (`MobEffect::effects[32]`). Each effect is created with an ID, a harmful/beneficial flag, and a color enum value.
 
 ## All effect types
 
@@ -34,20 +34,20 @@ Effects are stored in a static array of 32 slots (`MobEffect::effects[32]`). Eac
 | 17 | `hunger` | Yes | Hunger | 0.5 |
 | 18 | `weakness` | Yes | Weakness | 0.5 |
 | 19 | `poison` | Yes | Poison | 0.25 |
-| 20--31 | `reserved_20` ... `reserved_31` | --- | --- | Not initialized (NULL) |
+| 20-31 | `reserved_20` ... `reserved_31` | --- | --- | Not initialized (NULL) |
 
-IDs 6 and 7 (Heal and Harm) are `InstantenousMobEffect` subclasses, meaning they apply immediately rather than ticking over time.
+IDs 6 and 7 (Heal and Harm) are `InstantenousMobEffect` subclasses, meaning they apply immediately instead of ticking over time.
 
 ## Duration modifier
 
-The `durationModifier` field scales the base duration calculated by `PotionBrewing`. Harmful effects default to `0.5`, beneficial to `1.0`. Some effects override this:
+The `durationModifier` field scales the base duration calculated by `PotionBrewing`. Harmful effects default to `0.5`, beneficial ones to `1.0`. Some effects override this:
 
 - Haste: `1.5` (longer than normal)
 - Nausea, Regeneration, Blindness, Poison: `0.25` (much shorter)
 
 ## MobEffectInstance
 
-`MobEffectInstance` represents an active effect applied to a mob. It stores three fields, all sent over the network:
+`MobEffectInstance` represents an active effect on a mob. It stores three fields, all sent over the network:
 
 | Field | Network type | Description |
 |---|---|---|
@@ -57,19 +57,19 @@ The `durationModifier` field scales the base duration calculated by `PotionBrewi
 
 ### Tick behavior
 
-Each game tick, `MobEffectInstance::tick()` is called on the mob's active effects:
+Each game tick, `MobEffectInstance::tick()` runs on the mob's active effects:
 
 1. Check if the effect's `isDurationEffectTick()` returns true for the current remaining duration and amplifier.
-2. If yes, call `applyEffect()` which delegates to `MobEffect::applyEffectTick()`.
+2. If yes, call `applyEffect()` which hands off to `MobEffect::applyEffectTick()`.
 3. Decrement duration by 1.
-4. Return `true` if duration is still positive (effect continues).
+4. Return `true` if duration is still positive (effect keeps going).
 
 ### Effect application logic
 
 The `applyEffectTick()` method handles periodic effects:
 
 - **Regeneration**: Heals 1 HP if below max health.
-- **Poison**: Deals 1 magic damage if health is above 1 (cannot kill).
+- **Poison**: Deals 1 magic damage if health is above 1 (can't kill).
 - **Hunger**: Causes food exhaustion equal to `EXHAUSTION_MINE * (amplifier + 1)` every tick.
 - **Heal** (on undead) / **Harm** (on non-undead): Deals `6 << amplifier` magic damage.
 - **Harm** (on undead) / **Heal** (on non-undead): Heals `6 << amplifier` HP.
@@ -86,7 +86,7 @@ When the same effect is applied again, `MobEffectInstance::update()` follows the
 
 - If the new amplifier is **higher**, replace both amplifier and duration.
 - If the amplifier is **equal** and the new duration is **longer**, extend the duration.
-- Otherwise, keep the existing effect unchanged.
+- Otherwise, keep the existing effect as is.
 
 ### Hash code
 
@@ -103,7 +103,7 @@ When the same effect is applied again, `MobEffectInstance::update()` follows the
 - `isInstantenous()` returns `true`
 - `isDurationEffectTick()` returns `true` when `remainingDuration >= 1`
 
-The `applyInstantenousEffect()` method handles splash potion scaling --- the `scale` parameter (based on distance from the splash) multiplies the base `6 << amplifier` value.
+The `applyInstantenousEffect()` method handles splash potion scaling. The `scale` parameter (based on distance from the splash) multiplies the base `6 << amplifier` value.
 
 ## Duration formatting
 
@@ -113,12 +113,12 @@ The `applyInstantenousEffect()` method handles splash potion scaling --- the `sc
 
 Two packet types handle effect synchronization:
 
-- `UpdateMobEffectPacket` -- sent when an effect is applied or updated
-- `RemoveMobEffectPacket` -- sent when an effect expires or is removed
+- `UpdateMobEffectPacket`: sent when an effect is applied or updated
+- `RemoveMobEffectPacket`: sent when an effect expires or is removed
 
 ## Potion brewing system
 
-LCEMP uses a **bit-manipulation brewing system** where each potion's data value is a 15-bit integer. The bits encode which effects the potion grants, their duration/amplifier, and whether the potion is throwable.
+LCEMP uses a **bit-manipulation brewing system** where each potion's data value is a 15-bit integer. The bits encode which effects the potion gives, their duration/amplifier, and whether the potion is throwable.
 
 ### Simplified brewing mode
 
@@ -128,16 +128,16 @@ LCEMP compiles with `SIMPLIFIED_BREWING = true` (a compile-time constant). This 
 
 | Bits | Purpose |
 |---|---|
-| 0--3 | Effect identifier |
+| 0-3 | Effect identifier |
 | 4 | Enabler bit (set by Nether Wart) |
 | 5 | Amplifier-related |
-| 6--7 | Duration-related |
+| 6-7 | Duration-related |
 | 13 | Functional potion marker |
 | 14 | Throwable (splash) flag |
 
 ### Brewing ingredients
 
-Each ingredient has a formula string that manipulates the potion's bit pattern via `PotionBrewing::applyBrew()`:
+Each ingredient has a formula string that changes the potion's bit pattern through `PotionBrewing::applyBrew()`:
 
 | Ingredient | Formula | Effect |
 |---|---|---|
@@ -158,15 +158,15 @@ Each ingredient has a formula string that manipulates the potion's bit pattern v
 
 The `applyBrew()` function parses formula strings character by character:
 
-- `+N` -- Set bit N
-- `-N` -- Clear bit N
-- `!N` -- Toggle bit N
-- `&N` -- Require bit N to be set (if not, brewing fails and returns 0)
-- `&!N` -- Require bit N to be off
+- `+N`: Set bit N
+- `-N`: Clear bit N
+- `!N`: Toggle bit N
+- `&N`: Require bit N to be set (if not, brewing fails and returns 0)
+- `&!N`: Require bit N to be off
 
 ### Effect resolution
 
-`PotionBrewing::getEffects()` determines which `MobEffectInstance` objects a potion data value produces. For each registered effect, it evaluates a duration formula string against the potion bits. The duration formulas use `&` (AND) operators and bit references:
+`PotionBrewing::getEffects()` figures out which `MobEffectInstance` objects a potion data value produces. For each registered effect, it checks a duration formula string against the potion bits. The duration formulas use `&` (AND) operators and bit references:
 
 | Effect | Duration formula |
 |---|---|
@@ -182,11 +182,11 @@ The `applyBrew()` function parses formula strings character by character:
 | Night Vision | `!0 & 1 & 2 & !3 & 2+6` |
 | Invisibility | `!0 & 1 & 2 & 3 & 2+6` |
 
-The resolved duration is calculated as: `TICKS_PER_SECOND * 60 * (duration * 3 + (duration - 1) * 2)`, yielding durations of 3, 8, 13, 18... minutes. Duration is then halved per amplifier level, multiplied by the effect's `durationModifier`, and reduced by 25% for splash (throwable) potions.
+The resolved duration is calculated as: `TICKS_PER_SECOND * 60 * (duration * 3 + (duration - 1) * 2)`, giving durations of 3, 8, 13, 18... minutes. Duration is then halved per amplifier level, multiplied by the effect's `durationModifier`, and reduced by 25% for splash (throwable) potions.
 
 ### Amplifier formulas
 
-Certain effects can have their amplifier increased (by Glowstone dust). The amplifier is resolved from bit 5:
+Certain effects can have their amplifier boosted (by Glowstone dust). The amplifier comes from bit 5:
 
 Effects with amplifier support: Speed, Haste, Strength, Regeneration, Harming, Healing, Resistance, Poison.
 
@@ -194,9 +194,9 @@ Effects with amplifier support: Speed, Haste, Strength, Regeneration, Harming, H
 
 The `BrewingStandTileEntity` handles the brewing process:
 
-- **4 slots**: 3 potion slots (0--2) and 1 ingredient slot (3)
+- **4 slots**: 3 potion slots (0-2) and 1 ingredient slot (3)
 - **Brew time**: 20 seconds (`TICKS_PER_SECOND * BREWING_TIME_SECONDS`)
-- Each tick, if `brewTime > 0`, it decrements. When it hits 0, `doBrew()` applies the ingredient formula to all potion slots.
+- Each tick, if `brewTime > 0`, it counts down. When it hits 0, `doBrew()` applies the ingredient formula to all potion slots.
 - Brewing is validated by `isBrewable()`: the ingredient must have a potion brewing formula, and at least one potion slot must produce a different result.
 - Max stack size is 1 per slot.
 

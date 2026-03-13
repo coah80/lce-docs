@@ -3,7 +3,7 @@ title: Packet ID Registry
 description: Complete table of all network packet IDs in LCEMP.
 ---
 
-Every packet in LCEMP is registered in `Packet::staticCtor()` inside `Minecraft.World/Packet.cpp`. The `map()` call signature is:
+Every packet in LCEMP is registered in `Packet::staticCtor()` inside `Minecraft.World/Packet.cpp`. The `map()` call signature looks like this:
 
 ```cpp
 map(id, receiveOnClient, receiveOnServer, sendToAnyClient, renderStats, typeid, createFn)
@@ -11,9 +11,9 @@ map(id, receiveOnClient, receiveOnServer, sendToAnyClient, renderStats, typeid, 
 
 **Direction key:**
 
-- **S->C** -- Server sends to client (`receiveOnClient = true`, `receiveOnServer = false`)
-- **C->S** -- Client sends to server (`receiveOnClient = false`, `receiveOnServer = true`)
-- **Both** -- Either direction (`receiveOnClient = true`, `receiveOnServer = true`)
+- **S->C** means the server sends it to the client (`receiveOnClient = true`, `receiveOnServer = false`)
+- **C->S** means the client sends it to the server (`receiveOnClient = false`, `receiveOnServer = true`)
+- **Both** means either direction (`receiveOnClient = true`, `receiveOnServer = true`)
 
 ## Packet Table
 
@@ -108,11 +108,11 @@ map(id, receiveOnClient, receiveOnServer, sendToAnyClient, renderStats, typeid, 
 | 254 | `GetInfoPacket` | C->S | no | Server list ping (added 1.8.2) |
 | 255 | `DisconnectPacket` | Both | yes | Disconnect / kick reason |
 
-**Total registered packets: 88** (IDs 0--255, with gaps)
+**Total registered packets: 88** (IDs 0 to 255, with gaps)
 
 ## Unused / Commented-Out IDs
 
-The following IDs appear in comments but are not registered:
+These IDs show up in comments but aren't registered:
 
 | ID | Class Name | Notes |
 |----|-----------|-------|
@@ -125,9 +125,9 @@ The following IDs appear in comments but are not registered:
 
 ## Notes
 
-- The **Broadcast** column corresponds to the `sendToAnyClient` parameter. When `yes`, the packet is sent to all connected clients. When `no`, it is sent per-dimension per-machine (a 4J splitscreen optimization).
-- Packets marked **(4J added)** are custom additions by 4J Studios for the Legacy Console Edition and do not exist in vanilla Java Edition.
-- `MoveEntityPacketSmall` (162--165) is an optimized variant of `MoveEntityPacket` (30--33) for smaller position deltas.
+- The **Broadcast** column matches the `sendToAnyClient` parameter. When `yes`, the packet goes to all connected clients. When `no`, it's sent per-dimension per-machine (a 4J splitscreen optimization).
+- Packets marked **(4J added)** are custom additions by 4J Studios for the Legacy Console Edition and don't exist in vanilla Java Edition.
+- `MoveEntityPacketSmall` (162 to 165) is an optimized version of `MoveEntityPacket` (30 to 33) for smaller position changes.
 - `ContainerSetSlotPacket` (103) has conditional direction: in non-content-package builds it can also be sent C->S for debug purposes.
 
 **Source file:** `Minecraft.World/Packet.cpp`
