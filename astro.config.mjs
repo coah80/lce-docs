@@ -25,6 +25,7 @@ export default defineConfig({
 						{ label: 'Introduction', slug: 'overview/introduction' },
 						{ label: 'Architecture', slug: 'overview/architecture' },
 						{ label: 'Building & Compiling', slug: 'overview/building' },
+						{ label: 'Glossary', slug: 'overview/glossary' },
 					],
 				},
 				{
