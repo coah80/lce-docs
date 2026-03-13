@@ -3,7 +3,7 @@ title: Block Textures
 description: How the terrain atlas works, how blocks reference textures, and how to add your own.
 ---
 
-Blocks in LCEMP get their textures from a single big image called the **terrain atlas**. Unlike Java Edition (which stitches individual image files at runtime), Legacy Console Edition uses a pre-stitched `terrain.png` where every block texture sits at a fixed position on a 16x16 grid. This guide covers how that system works and how to add your own textures to it.
+Blocks in LCE get their textures from a single big image called the **terrain atlas**. Unlike Java Edition (which stitches individual image files at runtime), Legacy Console Edition uses a pre-stitched `terrain.png` where every block texture sits at a fixed position on a 16x16 grid. This guide covers how that system works and how to add your own textures to it.
 
 ## How the Terrain Atlas Works
 

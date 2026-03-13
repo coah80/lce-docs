@@ -3,7 +3,7 @@ title: Custom Dimensions
 description: How to create a new dimension with custom terrain, sky, fog, biomes, and portal travel.
 ---
 
-Adding a new dimension to LCEMP means building out several pieces: a `Dimension` subclass, a `ChunkSource` for terrain generation, a biome, portal logic, and then wiring it all together. This guide walks through each piece, with real examples from the Aether dimension implementation in the client source.
+Adding a new dimension to LCE means building out several pieces: a `Dimension` subclass, a `ChunkSource` for terrain generation, a biome, portal logic, and then wiring it all together. This guide walks through each piece, with real examples from the Aether dimension implementation in the client source.
 
 ## How the Dimension Class Works
 

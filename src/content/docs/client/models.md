@@ -1,9 +1,9 @@
 ---
 title: "Models"
-description: "3D model definitions for entities in LCEMP."
+description: "3D model definitions for entities in LCE."
 ---
 
-LCEMP uses a hierarchical box-based model system to define the geometry of all entities. Models are built from `ModelPart` nodes, each containing one or more `Cube` primitives. These are arranged in parent-child trees that allow jointed animation.
+LCE uses a hierarchical box-based model system to define the geometry of all entities. Models are built from `ModelPart` nodes, each containing one or more `Cube` primitives. These are arranged in parent-child trees that allow jointed animation.
 
 ## Core classes
 
@@ -265,7 +265,7 @@ The `g` parameter is a "growth" or "inflation" factor that expands boxes outward
 
 ## MinecraftConsoles differences
 
-MinecraftConsoles adds several new model classes that don't exist in LCEMP:
+MinecraftConsoles adds several new model classes that don't exist in LCE:
 
 ### New mob models
 
@@ -275,10 +275,10 @@ MinecraftConsoles adds several new model classes that don't exist in LCEMP:
 | `ModelHorse` | Horses | One of the most complex models in the game. Has head, upper/lower mouth, two ears, mule ears, neck, mane, body, three-segment tail, four multi-joint legs (each with 3 parts: A/B/C), saddle bags, and a full saddle assembly with stirrups and mouth lines. |
 | `WitchModel` | Witches | Extends `VillagerModel` with a mole and hat. Has a `holdingItem` flag for the potion-drinking animation. |
 | `WitherBossModel` | Wither boss | Body parts array and heads array. Has `prepareMobModel` for invulnerability animation. |
-| `OcelotModel` | Ocelots/cats | Dedicated model with 4 animation states: sneak, walk, sprint, and sitting. Much more detailed than the generic version in LCEMP. |
+| `OcelotModel` | Ocelots/cats | Dedicated model with 4 animation states: sneak, walk, sprint, and sitting. Much more detailed than the generic version in LCE. |
 | `SkiModel` | Player ski attachment | A 4J-added cosmetic model for DLC skins. Has left/right ski variants. |
 | `LeashKnotModel` | Leash fence knots | Simple model for the leash attachment point on fences. |
 
 ### Model rendering changes
 
-The `render()` method signature across models gains a `bool usecompiled` parameter in MinecraftConsoles. LCEMP already has this, but the entity parameter type changes from raw `Entity` references to `shared_ptr<Entity>` in some models, and `LivingEntity` is used more consistently for mob-specific methods like `prepareMobModel`.
+The `render()` method signature across models gains a `bool usecompiled` parameter in MinecraftConsoles. LCE already has this, but the entity parameter type changes from raw `Entity` references to `shared_ptr<Entity>` in some models, and `LivingEntity` is used more consistently for mob-specific methods like `prepareMobModel`.

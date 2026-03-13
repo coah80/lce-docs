@@ -1,9 +1,9 @@
 ---
 title: Custom Paintings
-description: How to add new painting motives to LCEMP, including the motive registry, size system, texture atlas, and rendering.
+description: How to add new painting motives to LCE, including the motive registry, size system, texture atlas, and rendering.
 ---
 
-Paintings in LCEMP are entities that hang on walls. Each painting has a "motive" that controls what image it shows and how big it is. This guide covers how the whole system works and how to add your own paintings.
+Paintings in LCE are entities that hang on walls. Each painting has a "motive" that controls what image it shows and how big it is. This guide covers how the whole system works and how to add your own paintings.
 
 ## How Paintings Work
 

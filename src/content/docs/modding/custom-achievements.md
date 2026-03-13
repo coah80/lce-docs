@@ -1,9 +1,9 @@
 ---
 title: Custom Achievements
-description: How to add new achievements and custom trigger conditions to LCEMP.
+description: How to add new achievements and custom trigger conditions to LCE.
 ---
 
-Achievements in LCEMP are a tree of unlockable goals that extend the `Stat` class. Each one has a parent dependency, an icon, a position on the achievement screen map, and a trigger condition defined in gameplay code. This guide breaks down the whole system and shows you how to add your own.
+Achievements in LCE are a tree of unlockable goals that extend the `Stat` class. Each one has a parent dependency, an icon, a position on the achievement screen map, and a trigger condition defined in gameplay code. This guide breaks down the whole system and shows you how to add your own.
 
 ## How the Achievement System Works
 
@@ -189,7 +189,7 @@ Taking Inventory (root)
 Stars mark golden achievements. The 4J console-specific achievements all use `buildSword` as their parent (though this is mostly ignored since the position params are `0,0` on console).
 
 :::tip
-In the LCEMP codebase, `StatsCounter::canTake()` always returns `true`. The dependency system is effectively disabled at the code level. The tree structure still matters for the visual display on the achievement screen though.
+In the LCE codebase, `StatsCounter::canTake()` always returns `true`. The dependency system is effectively disabled at the code level. The tree structure still matters for the visual display on the achievement screen though.
 :::
 
 ## Creating a New Achievement
@@ -547,7 +547,7 @@ void AchievementPopup::popup(Achievement *ach)
 The popup animation uses a smooth ease-in-out curve. After 3 seconds (`time > 1.0` where `time = elapsed / 3000.0`), it disappears.
 
 :::note
-In the current LCEMP codebase, the Java-style popup is commented out (`//minecraft->achievementPopup->popup(ach)`). The platform-native award system handles the notification instead. If you want to re-enable the in-game popup, uncomment that line in `LocalPlayer::awardStat()`.
+In the current LCE codebase, the Java-style popup is commented out (`//minecraft->achievementPopup->popup(ach)`). The platform-native award system handles the notification instead. If you want to re-enable the in-game popup, uncomment that line in `LocalPlayer::awardStat()`.
 :::
 
 ## Full Example: Adding a "Master Builder" Achievement

@@ -1,9 +1,9 @@
 ---
 title: Custom Loot & Drops
-description: How mob drops, block drops, fortune, looting, and silk touch work in LCEMP.
+description: How mob drops, block drops, fortune, looting, and silk touch work in LCE.
 ---
 
-This guide covers how items get dropped in LCEMP, both from mobs dying and blocks being broken. We'll look at the actual drop systems and show you how to add your own custom loot.
+This guide covers how items get dropped in LCE, both from mobs dying and blocks being broken. We'll look at the actual drop systems and show you how to add your own custom loot.
 
 ## How Mob Drops Work
 

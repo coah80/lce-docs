@@ -1,9 +1,9 @@
 ---
 title: Custom Animations
-description: How entity animations work in LCEMP and how to write your own.
+description: How entity animations work in LCE and how to write your own.
 ---
 
-Entity animations in LCEMP are driven by the `setupAnim` method on model classes. The engine calls this every single frame before rendering, and your job is to set rotation values on `ModelPart` instances to pose the entity. That's pretty much the whole system. No keyframes, no timeline editor. Just math and rotation floats.
+Entity animations in LCE are driven by the `setupAnim` method on model classes. The engine calls this every single frame before rendering, and your job is to set rotation values on `ModelPart` instances to pose the entity. That's pretty much the whole system. No keyframes, no timeline editor. Just math and rotation floats.
 
 ## The Animation Loop
 

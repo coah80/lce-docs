@@ -1,9 +1,9 @@
 ---
 title: Complete File Index
-description: Index of all source files in both LCEMP modules.
+description: Index of all source files in both LCE modules.
 ---
 
-LCEMP has two modules: **Minecraft.World** (game logic, networking, world simulation) and **Minecraft.Client** (rendering, UI, platform integration, server hosting). This page lists every `.cpp` and `.h` source file in both.
+LCE has two modules: **Minecraft.World** (game logic, networking, world simulation) and **Minecraft.Client** (rendering, UI, platform integration, server hosting). This page lists every `.cpp` and `.h` source file in both.
 
 **Totals: 1,567 files in Minecraft.World, 1,392 files in Minecraft.Client, 2,959 files overall.**
 

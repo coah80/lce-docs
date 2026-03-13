@@ -1,16 +1,16 @@
 ---
 title: Getting Started
-description: How to set up your environment for modding LCEMP.
+description: How to set up your environment for modding LCE.
 ---
 
-This guide covers the basics of adding new content to the LCEMP codebase. Before you start modding, make sure you can build the project first by following the [Building & Compiling](/lcemp-docs/overview/building/) guide.
+This guide covers the basics of adding new content to the LCE codebase. Before you start modding, make sure you can build the project first by following the [Building & Compiling](/lcemp-docs/overview/building/) guide.
 
 ## Prerequisites
 
 - **CMake** 3.10+
 - **MSVC** (Visual Studio 2022 recommended)
 - **C++11**, the project standard is set via `set(CMAKE_CXX_STANDARD 11)` in `CMakeLists.txt`
-- A working LCEMP build (see [Building & Compiling](/lcemp-docs/overview/building/))
+- A working LCE build (see [Building & Compiling](/lcemp-docs/overview/building/))
 
 ## Project Structure
 
@@ -59,7 +59,7 @@ The codebase uses aggregate include headers to pull in related classes. Your `.c
 
 ## The Static Constructor Pattern
 
-LCEMP uses a **static constructor** (`staticCtor`) pattern to register all game objects at startup. This is the main way new content gets added.
+LCE uses a **static constructor** (`staticCtor`) pattern to register all game objects at startup. This is the main way new content gets added.
 
 ### How It Works
 

@@ -1,9 +1,9 @@
 ---
 title: Custom Potions & Brewing
-description: How LCEMP's potion system works, and how to add new effects, ingredients, and brewing recipes.
+description: How LCE's potion system works, and how to add new effects, ingredients, and brewing recipes.
 ---
 
-This guide covers the LCEMP potion and brewing system end to end: how `MobEffect` defines status effects, how `MobEffectInstance` tracks duration and amplifier on a mob, how the bitfield-based brewing chain works, how splash potions apply area damage, and how to add your own custom effects and ingredients.
+This guide covers the LCE potion and brewing system end to end: how `MobEffect` defines status effects, how `MobEffectInstance` tracks duration and amplifier on a mob, how the bitfield-based brewing chain works, how splash potions apply area damage, and how to add your own custom effects and ingredients.
 
 ## Key Files
 
@@ -211,7 +211,7 @@ Higher amplifier always wins. Same amplifier, longer duration wins.
 
 ## The Brewing System (Bitfield Magic)
 
-This is the most interesting part. LCEMP uses a **simplified** bitfield-based brewing system (4J's version, not the original Notch bit-twiddling madness). Every potion is represented by a 15-bit integer. Ingredients work by flipping specific bits in that integer according to a formula string.
+This is the most interesting part. LCE uses a **simplified** bitfield-based brewing system (4J's version, not the original Notch bit-twiddling madness). Every potion is represented by a 15-bit integer. Ingredients work by flipping specific bits in that integer according to a formula string.
 
 ### The Potion Bitfield
 

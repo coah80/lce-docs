@@ -1,11 +1,11 @@
 ---
 title: Architecture
-description: How the LCEMP codebase is organized and how the two main modules connect.
+description: How the LCE codebase is organized and how the two main modules connect.
 ---
 
 ## Two-Module Architecture
 
-LCEMP is split into two clearly separated modules:
+LCE is split into two clearly separated modules:
 
 ```
 LCEMP/

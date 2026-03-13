@@ -1,9 +1,9 @@
 ---
 title: Packet ID Registry
-description: Complete table of all network packet IDs in LCEMP.
+description: Complete table of all network packet IDs in LCE.
 ---
 
-Every packet in LCEMP is registered in `Packet::staticCtor()` inside `Minecraft.World/Packet.cpp`. The `map()` call signature looks like this:
+Every packet in LCE is registered in `Packet::staticCtor()` inside `Minecraft.World/Packet.cpp`. The `map()` call signature looks like this:
 
 ```cpp
 map(id, receiveOnClient, receiveOnServer, sendToAnyClient, renderStats, typeid, createFn)

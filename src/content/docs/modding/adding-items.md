@@ -1,9 +1,9 @@
 ---
 title: Adding Items
-description: Step-by-step guide to adding new items to LCEMP.
+description: Step-by-step guide to adding new items to LCE.
 ---
 
-Items in LCEMP are managed by the `Item` class defined in `Minecraft.World/Item.h`. Every holdable object (tools, food, materials, armor) is an `Item` subclass registered in `Item::staticCtor()`. This guide covers how to create and register new items based on the actual source code.
+Items in LCE are managed by the `Item` class defined in `Minecraft.World/Item.h`. Every holdable object (tools, food, materials, armor) is an `Item` subclass registered in `Item::staticCtor()`. This guide covers how to create and register new items based on the actual source code.
 
 ## Overview of the Item System
 

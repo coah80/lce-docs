@@ -1,9 +1,9 @@
 ---
 title: Overview
-description: Platform abstraction layer in LCEMP.
+description: Platform abstraction layer in LCE.
 ---
 
-The LCEMP codebase targets six platforms through a layered abstraction system developed by 4J Studios. Each platform directory under `Minecraft.Client/` has platform-specific implementations that plug into shared interfaces defined in `Minecraft.Client/Common/`.
+The LCE codebase targets six platforms through a layered abstraction system developed by 4J Studios. Each platform directory under `Minecraft.Client/` has platform-specific implementations that plug into shared interfaces defined in `Minecraft.Client/Common/`.
 
 ## Supported Platforms
 
@@ -14,7 +14,7 @@ The LCEMP codebase targets six platforms through a layered abstraction system de
 | `PS3/` | PlayStation 3 | | Sony seventh-gen |
 | `Orbis/` | PlayStation 4 | Orbis | Sony eighth-gen |
 | `PSVita/` | PS Vita | | Sony handheld |
-| `Windows64/` | Windows 64-bit | | PC port (LCEMP primary target) |
+| `Windows64/` | Windows 64-bit | | PC port (LCE primary target) |
 
 ## Abstraction Pattern
 

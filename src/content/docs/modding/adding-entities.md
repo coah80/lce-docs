@@ -1,13 +1,13 @@
 ---
 title: Adding Entities
-description: Step-by-step guide to adding new entities to LCEMP.
+description: Step-by-step guide to adding new entities to LCE.
 ---
 
-This guide walks you through creating a new mob entity in LCEMP. We'll cover the class hierarchy, registration, AI goals, synched data, spawning rules, and client-side rendering.
+This guide walks you through creating a new mob entity in LCE. We'll cover the class hierarchy, registration, AI goals, synched data, spawning rules, and client-side rendering.
 
 ## Entity Class Hierarchy
 
-Every entity in LCEMP inherits from `Entity` (`Minecraft.World/Entity.h`). Here's the full mob hierarchy:
+Every entity in LCE inherits from `Entity` (`Minecraft.World/Entity.h`). Here's the full mob hierarchy:
 
 ```
 Entity
@@ -40,7 +40,7 @@ Pick whichever base class matches the behavior you want:
 
 ## Step 1: Add an eINSTANCEOF Type
 
-LCEMP uses an `eINSTANCEOF` enum instead of C++ `dynamic_cast` to identify entity types at runtime. Add a new entry to the enum in `Minecraft.World/Definitions.h` (or wherever the full enum is defined):
+LCE uses an `eINSTANCEOF` enum instead of C++ `dynamic_cast` to identify entity types at runtime. Add a new entry to the enum in `Minecraft.World/Definitions.h` (or wherever the full enum is defined):
 
 ```cpp
 // In the eINSTANCEOF enum
@@ -346,7 +346,7 @@ ForestBiome::ForestBiome(int id) : Biome(id)
 
 ### Mob Categories and Limits
 
-LCEMP has console-specific spawn limits defined in `MobCategory.h`:
+LCE has console-specific spawn limits defined in `MobCategory.h`:
 
 | Category | Hard Limit | With Breeding | With Spawn Egg |
 |----------|-----------|---------------|----------------|

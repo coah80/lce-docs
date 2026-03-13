@@ -176,7 +176,7 @@ Three new minecart types are added:
 | `minecart_hopper` | `MinecartHopper` | Hopper minecart that sucks in items while moving. Extends `MinecartContainer` and `Hopper`. Has an enabled/disabled state and a cooldown timer. |
 | Spawner minecart | `MinecartSpawner` | Minecart with a mob spawner inside. Has a `MinecartMobSpawner` inner class that extends `BaseMobSpawner`. |
 
-`MinecartChest` and `MinecartFurnace` also get split into their own classes (they were handled generically in LCEMP's `Minecart`/`MinecartItem`).
+`MinecartChest` and `MinecartFurnace` also get split into their own classes (they were handled generically in LCE's `Minecart`/`MinecartItem`).
 
 ### New entities
 

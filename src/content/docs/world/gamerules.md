@@ -1,9 +1,9 @@
 ---
 title: Game Rules
-description: Configurable game rules in LCEMP.
+description: Configurable game rules in LCE.
 ---
 
-LCEMP uses a **Console Game Rules** system that works completely differently from vanilla Minecraft's simple key-value game rules. Instead of boolean/integer rules like `keepInventory` or `doDaylightCycle`, LCEMP's game rules are a data-driven, hierarchical system mainly used for custom game modes (like Battle, Tumble, Glide) and DLC mashup packs.
+LCE uses a **Console Game Rules** system that works completely differently from vanilla Minecraft's simple key-value game rules. Instead of boolean/integer rules like `keepInventory` or `doDaylightCycle`, LCE's game rules are a data-driven, hierarchical system mainly used for custom game modes (like Battle, Tumble, Glide) and DLC mashup packs.
 
 ## Architecture overview
 
@@ -170,7 +170,7 @@ Rule progress updates are sent through `UpdateGameRuleProgressPacket` (packet ID
 
 ## MinecraftConsoles Differences
 
-This is one of the bigger differences between LCEMP and MC. MC adds a **vanilla-style `GameRules` class** alongside the existing console game rules system.
+This is one of the bigger differences between LCE and MC. MC adds a **vanilla-style `GameRules` class** alongside the existing console game rules system.
 
 ### Vanilla GameRules class
 
@@ -190,7 +190,7 @@ MC has `GameRules.h` / `GameRules.cpp` with a proper key-value rule system. Each
 
 MC also adds a `GameRuleCommand` for toggling these rules in-game via the `/gamerule` command.
 
-LCEMP doesn't have any of this. The console game rules system documented above (the `GameRuleManager` / `GameRuleDefinition` / `EGameRuleType` stuff) still exists in MC too. So MC has *both* systems running at the same time: the vanilla `GameRules` for simple boolean toggles, and the console `GameRuleManager` for the complex data-driven DLC/minigame rules.
+LCE doesn't have any of this. The console game rules system documented above (the `GameRuleManager` / `GameRuleDefinition` / `EGameRuleType` stuff) still exists in MC too. So MC has *both* systems running at the same time: the vanilla `GameRules` for simple boolean toggles, and the console `GameRuleManager` for the complex data-driven DLC/minigame rules.
 
 ### How they coexist
 

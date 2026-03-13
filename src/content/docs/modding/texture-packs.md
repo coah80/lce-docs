@@ -1,13 +1,13 @@
 ---
 title: Texture Packs
-description: How texture packs and resource replacement work in LCEMP, including the pack system architecture, file structure, and how to make your own.
+description: How texture packs and resource replacement work in LCE, including the pack system architecture, file structure, and how to make your own.
 ---
 
 Texture packs in LCE work pretty differently from Java Edition resource packs. The console versions use a pre-stitched texture atlas system, a class hierarchy for pack types, and a DLC-based packaging format that 4J Studios built from scratch. This guide breaks down how all of it works and how you can replace textures yourself.
 
 ## How the Pack System Works
 
-At the core, every texture pack in LCEMP is an object that implements the `TexturePack` interface. This base class lives in `Minecraft.Client/TexturePack.h` and defines the contract that all packs must follow:
+At the core, every texture pack in LCE is an object that implements the `TexturePack` interface. This base class lives in `Minecraft.Client/TexturePack.h` and defines the contract that all packs must follow:
 
 ```cpp
 class TexturePack
@@ -236,7 +236,7 @@ Notice the `L"res/"` prefix check. Texture files in packs are expected to be und
 
 ## The Preloaded Texture List
 
-LCEMP has a big enum (`TEXTURE_NAME` in `Textures.h`) and a matching string array (`preLoaded[]` in `Textures.cpp`) that defines every standalone texture (not part of an atlas) that gets loaded at startup. These cover:
+LCE has a big enum (`TEXTURE_NAME` in `Textures.h`) and a matching string array (`preLoaded[]` in `Textures.cpp`) that defines every standalone texture (not part of an atlas) that gets loaded at startup. These cover:
 
 - **Mob textures**: `mob/creeper`, `mob/zombie`, `mob/enderman`, etc.
 - **Environment**: `environment/clouds`, `environment/rain`, `environment/snow`

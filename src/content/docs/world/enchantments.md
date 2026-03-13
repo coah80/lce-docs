@@ -1,6 +1,6 @@
 ---
 title: Enchantments
-description: The LCEMP enchantment system and all enchantment types.
+description: The LCE enchantment system and all enchantment types.
 ---
 
 The enchantment system is built around the `Enchantment` base class and a static array of 256 possible enchantment slots. Each enchantment has an ID, a frequency (rarity weight), a category that controls which items it can go on, and cost/level ranges used during the enchanting table selection process.
@@ -162,8 +162,9 @@ Enchantments are stored on items as NBT data using `"ench"` tags with `TAG_ENCH_
 
 ## MinecraftConsoles Differences
 
-The enchantment system is the same between LCEMP and MC. Both register the exact same 22 enchantments (IDs 0-7, 16-21, 32-35, 48-51) with the same frequencies, categories, max levels, and formulas.
+The enchantment system is the same between LCE and MC. Both register the exact same 22 enchantments (IDs 0-7, 16-21, 32-35, 48-51) with the same frequencies, categories, max levels, and formulas.
 
 No new enchantments are added in MC. The enchanting table mechanics, compatibility rules, damage/protection formulas, and cost calculations are all identical.
 
 The only indirect difference is that MC's attribute system (`SharedMonsterAttributes`, `AttributeModifier`) could theoretically interact with enchantment effects differently, but the actual enchantment code itself is unchanged.
+

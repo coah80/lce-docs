@@ -82,8 +82,8 @@ So the texture files are named `record_13`, `record_cat`, `record_blocks`, etc.
 
 ## MinecraftConsoles differences
 
-The music disc system (`RecordingItem`) is the same between LCEMP and MinecraftConsoles. Same 12 disc IDs (2256-2267), same recording names, same jukebox interaction through `RecordPlayerTile`, same tooltip formatting.
+The music disc system (`RecordingItem`) is the same between LCE and MinecraftConsoles. Same 12 disc IDs (2256-2267), same recording names, same jukebox interaction through `RecordPlayerTile`, same tooltip formatting.
 
 The LCE-exclusive disc "where are we now" (ID 2267) is present in both codebases.
 
-MinecraftConsoles does rename `JukeboxTile` as a separate header (it gets its own `JukeboxTile.h` file), but the functionality is the same `RecordPlayerTile` system that LCEMP uses.
+MinecraftConsoles does rename `JukeboxTile` as a separate header (it gets its own `JukeboxTile.h` file), but the functionality is the same `RecordPlayerTile` system that LCE uses.

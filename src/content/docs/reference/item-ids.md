@@ -1,6 +1,6 @@
 ---
 title: Item ID Registry
-description: Complete table of all item IDs in LCEMP.
+description: Complete table of all item IDs in LCE.
 ---
 
 Items are registered in `Item::staticCtor()` in

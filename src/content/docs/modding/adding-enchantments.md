@@ -1,9 +1,9 @@
 ---
 title: Adding Enchantments
-description: Step-by-step guide to adding new enchantments to LCEMP.
+description: Step-by-step guide to adding new enchantments to LCE.
 ---
 
-This guide covers the LCEMP enchantment system: how to create enchantment subclasses, register them, define cost curves, implement damage/protection modifiers, set up compatibility rules, and how the enchanting table's selection algorithm works.
+This guide covers the LCE enchantment system: how to create enchantment subclasses, register them, define cost curves, implement damage/protection modifiers, set up compatibility rules, and how the enchanting table's selection algorithm works.
 
 ## Enchantment System Overview
 

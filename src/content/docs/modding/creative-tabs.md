@@ -1,9 +1,9 @@
 ---
 title: Creative Mode Tabs
-description: How creative inventory tabs work in LCEMP and how to modify them.
+description: How creative inventory tabs work in LCE and how to modify them.
 ---
 
-The creative inventory in LCEMP is split into 8 tabs across the top of the screen. Each tab shows a grid of items that players can pick from. Unlike Java Edition where items register themselves into categories, LCE takes a different approach: every single item in every tab is listed by hand in one big function.
+The creative inventory in LCE is split into 8 tabs across the top of the screen. Each tab shows a grid of items that players can pick from. Unlike Java Edition where items register themselves into categories, LCE takes a different approach: every single item in every tab is listed by hand in one big function.
 
 This guide covers how the tab system works, what lives in each tab, and how to change things around.
 
@@ -167,7 +167,7 @@ Then potions, split across four groups by tier:
 | `Potions_Extended` | Extended duration potions plus Night Vision and Invisibility |
 | `Potions_Level2_Extended` | Level II Extended potions, all remaining variants |
 
-The Brewing tab originally used dynamic groups (LT to cycle through potion tiers) but in LCEMP all four potion groups are combined as static groups on the same tab, so players just scroll through pages instead.
+The Brewing tab originally used dynamic groups (LT to cycle through potion tiers) but in LCE all four potion groups are combined as static groups on the same tab, so players just scroll through pages instead.
 
 ### Miscellaneous
 

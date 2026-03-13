@@ -1,9 +1,9 @@
 ---
 title: Custom World Generation
-description: How to modify terrain generation in LCEMP.
+description: How to modify terrain generation in LCE.
 ---
 
-LCEMP world generation follows the same pipeline as legacy console Minecraft: a `ChunkSource` generates raw terrain, `BiomeDecorator` places ores and vegetation, and a `Layer` stack picks biome placement. Once you understand these systems, you can add new ores, trees, structures, and even completely custom terrain shapes.
+LCE world generation follows the same pipeline as legacy console Minecraft: a `ChunkSource` generates raw terrain, `BiomeDecorator` places ores and vegetation, and a `Layer` stack picks biome placement. Once you understand these systems, you can add new ores, trees, structures, and even completely custom terrain shapes.
 
 ## Generation pipeline
 

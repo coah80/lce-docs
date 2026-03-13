@@ -1,9 +1,9 @@
 ---
 title: Adding Biomes
-description: Step-by-step guide to adding new biomes to LCEMP.
+description: Step-by-step guide to adding new biomes to LCE.
 ---
 
-This guide covers creating new biomes in LCEMP, including how to subclass `Biome`, configure properties, set up mob spawns, customize decorators, and hook into the layer-based world generation pipeline.
+This guide covers creating new biomes in LCE, including how to subclass `Biome`, configure properties, set up mob spawns, customize decorators, and hook into the layer-based world generation pipeline.
 
 ## Biome System Overview
 
@@ -17,7 +17,7 @@ The biome system lives entirely in `Minecraft.World/`. Here are the core classes
 | `BiomeInitLayer.h` | Picks which biomes show up during world gen |
 | `Layer.h` / `Layer.cpp` | Layer pipeline that turns noise into biome IDs |
 
-LCEMP supports up to 256 biomes (the `Biome::biomes[256]` static array). The 23 vanilla biomes use IDs 0-22.
+LCE supports up to 256 biomes (the `Biome::biomes[256]` static array). The 23 vanilla biomes use IDs 0-22.
 
 ## Step 1: Create a Biome Subclass
 

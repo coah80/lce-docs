@@ -1,9 +1,9 @@
 ---
 title: Custom Particles
-description: How the particle system works in LCEMP and how to create your own particle types.
+description: How the particle system works in LCE and how to create your own particle types.
 ---
 
-Particles in LCEMP are those little visual effects you see everywhere: smoke puffs from torches, block break chunks, lava sparks, portal swirls. They're all subclasses of the `Particle` base class, managed by the `ParticleEngine`, and rendered as camera-facing quads (billboards) using the `Tesselator`.
+Particles in LCE are those little visual effects you see everywhere: smoke puffs from torches, block break chunks, lava sparks, portal swirls. They're all subclasses of the `Particle` base class, managed by the `ParticleEngine`, and rendered as camera-facing quads (billboards) using the `Tesselator`.
 
 This guide covers the full particle pipeline so you can make your own.
 
@@ -147,7 +147,7 @@ The renderer:
 
 ## All Existing Particle Types
 
-Here's every particle type in LCEMP with its enum value, implementing class, and a quick description:
+Here's every particle type in LCE with its enum value, implementing class, and a quick description:
 
 | Enum | Class | Description |
 |------|-------|-------------|

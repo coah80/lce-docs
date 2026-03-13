@@ -1,9 +1,9 @@
 ---
 title: Networking & Packets
-description: How LCEMP handles multiplayer networking and packet communication.
+description: How LCE handles multiplayer networking and packet communication.
 ---
 
-LCEMP's networking layer is a console-adapted version of the original Minecraft Java Edition protocol, heavily modified by 4J Studios to work over platform-specific network APIs (QNET on Xbox, SQR on PlayStation, ad-hoc on PS Vita). The system follows a client-server model where the host machine runs an integrated server and all players (including the host's local players) communicate through packet-based connections.
+LCE's networking layer is a console-adapted version of the original Minecraft Java Edition protocol, heavily modified by 4J Studios to work over platform-specific network APIs (QNET on Xbox, SQR on PlayStation, ad-hoc on PS Vita). The system follows a client-server model where the host machine runs an integrated server and all players (including the host's local players) communicate through packet-based connections.
 
 ## Architecture Overview
 
@@ -353,7 +353,7 @@ Block changes flow through several packets depending on scope:
 
 ## LAN / Splitscreen Multiplayer
 
-LAN multiplayer is the core feature of LCEMP. The architecture supports multiple local players on a single console (splitscreen) alongside remote players over the network.
+LAN multiplayer is the core feature of LCE. The architecture supports multiple local players on a single console (splitscreen) alongside remote players over the network.
 
 ### Local vs. Remote Connections
 
@@ -410,7 +410,7 @@ The PS Vita also supports **ad-hoc mode** for direct wireless connections betwee
 
 ## MinecraftConsoles Differences
 
-MC registers **104 packets** compared to LCEMP's **98**. The core networking architecture (Socket, Connection, PacketListener, client/server split) is the same. Here are the new packets:
+MC registers **104 packets** compared to LCE's **98**. The core networking architecture (Socket, Connection, PacketListener, client/server split) is the same. Here are the new packets:
 
 ### New packets in MC
 
@@ -429,7 +429,7 @@ MC registers **104 packets** compared to LCEMP's **98**. The core networking arc
 
 - **`AddMobPacket` (ID 24)**: In MC, this packet can also carry initial attribute data for the spawned mob, since the attribute system needs to sync on spawn.
 - **`SetEntityDataPacket` (ID 40)**: Same structure, but MC mobs can have more synched data fields (like horse type, wither invulnerability timer, etc.)
-- **Packet IDs 39 and 44**: In LCEMP these IDs are unused. MC assigns them to `SetEntityLinkPacket` and `UpdateAttributesPacket`.
+- **Packet IDs 39 and 44**: In LCE these IDs are unused. MC assigns them to `SetEntityLinkPacket` and `UpdateAttributesPacket`.
 
 ### Platform backends
 

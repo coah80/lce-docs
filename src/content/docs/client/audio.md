@@ -1,9 +1,9 @@
 ---
 title: "Audio"
-description: "Sound system in LCEMP."
+description: "Sound system in LCE."
 ---
 
-LCEMP's audio system is built on the Miles Sound System (MSS) library, wrapped in a two-class hierarchy. `ConsoleSoundEngine` defines the platform interface, and `SoundEngine` provides the shared implementation. The system handles positional 3D audio, background music streaming, and UI sound effects.
+LCE's audio system is built on the Miles Sound System (MSS) library, wrapped in a two-class hierarchy. `ConsoleSoundEngine` defines the platform interface, and `SoundEngine` provides the shared implementation. The system handles positional 3D audio, background music streaming, and UI sound effects.
 
 ## Architecture
 
@@ -245,7 +245,7 @@ Audio resources are stored in:
 
 ## MinecraftConsoles differences
 
-MinecraftConsoles adds a large batch of new sound types to `SoundTypes.h`. These cover mobs and features that don't exist in LCEMP:
+MinecraftConsoles adds a large batch of new sound types to `SoundTypes.h`. These cover mobs and features that don't exist in LCE:
 
 ### Firework sounds
 
@@ -272,7 +272,7 @@ MinecraftConsoles adds a large batch of new sound types to `SoundTypes.h`. These
 
 ### Mob step/ambient sounds
 
-A bunch of mob step sounds are added that LCEMP was missing:
+A bunch of mob step sounds are added that LCE was missing:
 
 - `eSoundType_MOB_COW_STEP`, `_CHICKEN_STEP`, `_PIG_STEP`
 - `eSoundType_MOB_ENDERMAN_STARE`, `_SCREAM`

@@ -1,6 +1,6 @@
 ---
 title: Entity Type Registry
-description: Complete table of all entity type IDs in LCEMP.
+description: Complete table of all entity type IDs in LCE.
 ---
 
 Entity types are registered in `EntityIO::staticCtor()` in

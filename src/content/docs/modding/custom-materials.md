@@ -1,6 +1,6 @@
 ---
 title: Custom Materials
-description: How to create and modify block materials in LCEMP to control solidity, flammability, piston behavior, and more.
+description: How to create and modify block materials in LCE to control solidity, flammability, piston behavior, and more.
 ---
 
 Every block (called a `Tile` in the codebase) has a `Material` pointer that tells the game how that block should behave at a fundamental level. Is it solid? Can fire burn it? Does water flow through it? Can a piston push it? All of that comes from the material.

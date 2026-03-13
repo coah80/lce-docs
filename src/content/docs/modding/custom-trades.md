@@ -1,13 +1,13 @@
 ---
 title: Custom Trades
-description: How the villager trading system works in LCEMP and how to add custom trades.
+description: How the villager trading system works in LCE and how to add custom trades.
 ---
 
-This guide covers the villager trading system in LCEMP. We'll look at how trade offers are built, how the `Merchant` interface works, and how you can add your own trades or even create custom merchant entities.
+This guide covers the villager trading system in LCE. We'll look at how trade offers are built, how the `Merchant` interface works, and how you can add your own trades or even create custom merchant entities.
 
 ## Trading System Overview
 
-Trading in LCEMP is built around a few key classes:
+Trading in LCE is built around a few key classes:
 
 | Class | Role |
 |-------|------|
@@ -515,7 +515,7 @@ int MyMerchant::getDisplayName()
 
 ### Client-Side Merchant
 
-On the client side, LCEMP uses `ClientSideMerchant` as a proxy. It receives the offer list over the network and renders the trade UI. The server sends trade data through `TradeItemPacket`, which serializes the recipe list with `MerchantRecipeList::writeToStream()`.
+On the client side, LCE uses `ClientSideMerchant` as a proxy. It receives the offer list over the network and renders the trade UI. The server sends trade data through `TradeItemPacket`, which serializes the recipe list with `MerchantRecipeList::writeToStream()`.
 
 You don't need to touch `ClientSideMerchant` for custom merchants. It works automatically as long as your entity implements `Merchant` and calls `player->openTrading()`.
 

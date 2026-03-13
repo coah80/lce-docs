@@ -1,9 +1,9 @@
 ---
 title: Multiplayer & Packets
-description: How to create custom packets for multiplayer mod sync in LCEMP.
+description: How to create custom packets for multiplayer mod sync in LCE.
 ---
 
-LCEMP uses a packet-based networking system from Minecraft's legacy console networking. The server and each client talk over TCP sockets by sending `Packet` objects that get serialized with `DataOutputStream` and deserialized with `DataInputStream`. This guide covers how the system works and how to add your own custom packets.
+LCE uses a packet-based networking system from Minecraft's legacy console networking. The server and each client talk over TCP sockets by sending `Packet` objects that get serialized with `DataOutputStream` and deserialized with `DataInputStream`. This guide covers how the system works and how to add your own custom packets.
 
 ## Architecture overview
 
@@ -257,7 +257,7 @@ Key design points:
 
 ### LAN architecture
 
-LCEMP uses a **listen server** model for multiplayer. One console is both the server and a client:
+LCE uses a **listen server** model for multiplayer. One console is both the server and a client:
 
 1. The host runs `MinecraftServer` which listens on a socket
 2. Remote players connect through `ClientConnection` over the LAN
@@ -415,7 +415,7 @@ The `read()` and `write()` methods must serialize fields in exactly the same ord
 
 ## Thread safety
 
-Networking in LCEMP runs on separate threads. Keep these rules in mind:
+Networking in LCE runs on separate threads. Keep these rules in mind:
 
 - Packet `read()` and `write()` run on the Connection's read/write threads
 - Packet `handle()` runs on the main game thread during `Connection::tick()`

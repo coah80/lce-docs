@@ -1,9 +1,9 @@
 ---
 title: "Particles"
-description: "Particle system in LCEMP."
+description: "Particle system in LCE."
 ---
 
-The LCEMP particle system renders visual effects like smoke, flames, block breaking debris, and spell effects. `ParticleEngine` manages it all, and it's built on the `Particle` base class, which extends `Entity` from `Minecraft.World`.
+The LCE particle system renders visual effects like smoke, flames, block breaking debris, and spell effects. `ParticleEngine` manages it all, and it's built on the `Particle` base class, which extends `Entity` from `Minecraft.World`.
 
 ## ParticleEngine
 

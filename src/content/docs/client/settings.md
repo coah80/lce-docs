@@ -1,9 +1,9 @@
 ---
 title: "Settings"
-description: "Game settings and options in LCEMP."
+description: "Game settings and options in LCE."
 ---
 
-LCEMP manages settings at two levels. The `Options` class handles legacy Java-style game options (graphics, controls, keybindings), while the `CMinecraftApp` game settings system manages console-specific per-player profile settings. The `Settings` class provides a simple key-value property store for server configuration.
+LCE manages settings at two levels. The `Options` class handles legacy Java-style game options (graphics, controls, keybindings), while the `CMinecraftApp` game settings system manages console-specific per-player profile settings. The `Settings` class provides a simple key-value property store for server configuration.
 
 ## Options class
 
@@ -325,9 +325,9 @@ MinecraftConsoles tweaks the settings system in a few places:
 
 ### New game settings
 
-- **`eGameSetting_RenderDistance`** is added for per-player render distance control. LCEMP handles render distance only through the `Options` class.
-- **`eGameSetting_FOV`** is added for per-player field of view. Same deal, LCEMP only has this in `Options`.
-- **`eGameSetting_Fullscreen`** is removed (it was a Windows 64-bit only setting in LCEMP).
+- **`eGameSetting_RenderDistance`** is added for per-player render distance control. LCE handles render distance only through the `Options` class.
+- **`eGameSetting_FOV`** is added for per-player field of view. Same deal, LCE only has this in `Options`.
+- **`eGameSetting_Fullscreen`** is removed (it was a Windows 64-bit only setting in LCE).
 
 ### New host options
 

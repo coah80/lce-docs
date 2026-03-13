@@ -1,9 +1,9 @@
 ---
 title: Custom AI Behaviors
-description: How the Goal system works and how to write custom mob AI in LCEMP.
+description: How the Goal system works and how to write custom mob AI in LCE.
 ---
 
-Every mob in LCEMP that uses the new AI system (`useNewAi()` returns `true`) gets its behavior from **Goals**. A Goal is just a class that says "can I run right now?" and then does stuff every tick while it's active. The engine picks which goals to run based on priority and what they conflict with.
+Every mob in LCE that uses the new AI system (`useNewAi()` returns `true`) gets its behavior from **Goals**. A Goal is just a class that says "can I run right now?" and then does stuff every tick while it's active. The engine picks which goals to run based on priority and what they conflict with.
 
 This page covers how the whole system works, all the built-in goals, and how to write your own.
 

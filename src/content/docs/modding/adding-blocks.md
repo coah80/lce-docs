@@ -1,9 +1,9 @@
 ---
 title: Adding Blocks
-description: Step-by-step guide to adding new blocks (tiles) to LCEMP.
+description: Step-by-step guide to adding new blocks (tiles) to LCE.
 ---
 
-Blocks in LCEMP are called **tiles**. Every block in the game (stone, dirt, furnaces, doors, you name it) is either a subclass or direct instance of the `Tile` class defined in `Minecraft.World/Tile.h`. This guide walks you through creating a new tile from scratch, based on how existing tiles work in the source code.
+Blocks in LCE are called **tiles**. Every block in the game (stone, dirt, furnaces, doors, you name it) is either a subclass or direct instance of the `Tile` class defined in `Minecraft.World/Tile.h`. This guide walks you through creating a new tile from scratch, based on how existing tiles work in the source code.
 
 ## Overview of the Tile System
 

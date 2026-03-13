@@ -1,9 +1,9 @@
 ---
 title: Adding Recipes
-description: Step-by-step guide to adding crafting and smelting recipes to LCEMP.
+description: Step-by-step guide to adding crafting and smelting recipes to LCE.
 ---
 
-LCEMP has three recipe types: **shaped** (grid pattern matters), **shapeless** (any arrangement), and **furnace** (smelting). All crafting recipes go through the `Recipes` singleton, while smelting recipes use `FurnaceRecipes`.
+LCE has three recipe types: **shaped** (grid pattern matters), **shapeless** (any arrangement), and **furnace** (smelting). All crafting recipes go through the `Recipes` singleton, while smelting recipes use `FurnaceRecipes`.
 
 ## Architecture overview
 
@@ -201,7 +201,7 @@ FurnaceRecipes::getInstance()->addFurnaceRecipy(
 
 ## Recipe category modules
 
-LCEMP organizes recipes into dedicated classes that each register their own set. The `Recipes` constructor calls them in a specific order to control crafting menu layout:
+LCE organizes recipes into dedicated classes that each register their own set. The `Recipes` constructor calls them in a specific order to control crafting menu layout:
 
 ```cpp
 pToolRecipies->addRecipes(this);

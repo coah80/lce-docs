@@ -1,6 +1,6 @@
 ---
 title: Building & Compiling
-description: How to set up and build the LCEMP project.
+description: How to set up and build the LCE project.
 ---
 
 ## Prerequisites
@@ -68,7 +68,7 @@ You need to provide these directories yourself. They're not included in the repo
 ## Build Steps
 
 1. Get the required assets listed above
-2. Replace your `Minecraft.Client` and `Minecraft.World` source folders with the LCEMP ones
+2. Replace your `Minecraft.Client` and `Minecraft.World` source folders with the LCE ones
 3. Build using CMake:
 
 ```bash

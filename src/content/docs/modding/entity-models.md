@@ -1,6 +1,6 @@
 ---
 title: Entity Models
-description: How entity models work in LCEMP and how to build your own from scratch.
+description: How entity models work in LCE and how to build your own from scratch.
 ---
 
 Entity models are how mobs and other entities get their 3D shape. Every pig, zombie, spider, and dragon you see in the game is built from the same simple system: `ModelPart` objects containing `Cube` objects, arranged in a tree. This guide covers how that system works and how to create your own models.

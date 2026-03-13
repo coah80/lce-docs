@@ -1,9 +1,9 @@
 ---
 title: Custom GUI Screens
-description: How to create custom GUI screens in LCEMP.
+description: How to create custom GUI screens in LCE.
 ---
 
-The LCEMP GUI system is built around the `Screen` class. Every menu you see in the game (title screen, pause menu, death screen, inventory, chat) is a `Screen` subclass. This guide shows you how to make your own.
+The LCE GUI system is built around the `Screen` class. Every menu you see in the game (title screen, pause menu, death screen, inventory, chat) is a `Screen` subclass. This guide shows you how to make your own.
 
 ## Architecture overview
 

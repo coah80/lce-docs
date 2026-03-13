@@ -1,6 +1,6 @@
 ---
 title: Custom Structures
-description: How to add new generated structures like dungeons, temples, and fortresses to LCEMP.
+description: How to add new generated structures like dungeons, temples, and fortresses to LCE.
 ---
 
 Structures are the big generated buildings you find in the world: strongholds, villages, nether fortresses, mineshafts, temples. They span multiple chunks and are built from smaller pieces that connect together. This guide walks through how all of that works and how to make your own.

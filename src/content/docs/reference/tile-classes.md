@@ -1,9 +1,9 @@
 ---
 title: Tile Class Index
-description: Index of all Tile (block) subclasses in LCEMP.
+description: Index of all Tile (block) subclasses in LCE.
 ---
 
-In LCEMP, blocks are called "Tiles." Every block type is a subclass of `Tile` (defined in `Minecraft.World/Tile.h`). Some tiles inherit from intermediate base classes that share common behavior.
+In LCE, blocks are called "Tiles." Every block type is a subclass of `Tile` (defined in `Minecraft.World/Tile.h`). Some tiles inherit from intermediate base classes that share common behavior.
 
 ## Inheritance Hierarchy
 

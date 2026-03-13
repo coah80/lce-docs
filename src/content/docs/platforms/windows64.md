@@ -3,7 +3,7 @@ title: Windows 64
 description: Windows 64-bit platform implementation.
 ---
 
-The Windows 64-bit port is the main development target for LCEMP. It lives in `Minecraft.Client/Windows64/` and provides a full PC implementation using Direct3D 11 for rendering and Winsock2 for networking.
+The Windows 64-bit port is the main development target for LCE. It lives in `Minecraft.Client/Windows64/` and provides a full PC implementation using Direct3D 11 for rendering and Winsock2 for networking.
 
 ## Key Files
 

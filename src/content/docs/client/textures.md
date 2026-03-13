@@ -1,9 +1,9 @@
 ---
 title: "Textures & Resources"
-description: "Texture loading and resource management in LCEMP."
+description: "Texture loading and resource management in LCE."
 ---
 
-LCEMP manages textures through several systems working together. `Textures` handles loading and binding, `TextureManager` provides a name-to-ID registry, `TexturePackRepository` manages texture pack selection, and a hierarchy of `TexturePack` implementations abstracts where resources come from.
+LCE manages textures through several systems working together. `Textures` handles loading and binding, `TextureManager` provides a name-to-ID registry, `TexturePackRepository` manages texture pack selection, and a hierarchy of `TexturePack` implementations abstracts where resources come from.
 
 ## Textures
 
@@ -255,7 +255,7 @@ MinecraftConsoles expands the texture system in a few ways:
 
 ### New mob textures
 
-The `TEXTURE_NAME` enum gains a lot of new entries for mobs that don't exist in LCEMP:
+The `TEXTURE_NAME` enum gains a lot of new entries for mobs that don't exist in LCE:
 
 - **Bat:** `TN_MOB_BAT`
 - **Horse variants:** `TN_MOB_HORSE_BLACK`, `TN_MOB_HORSE_BROWN`, `TN_MOB_HORSE_CHESTNUT`, `TN_MOB_HORSE_CREAMY`, `TN_MOB_HORSE_DARKBROWN`, `TN_MOB_HORSE_GRAY`, `TN_MOB_HORSE_WHITE`, `TN_MOB_HORSE_SKELETON`, `TN_MOB_HORSE_ZOMBIE`

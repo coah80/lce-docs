@@ -1,9 +1,9 @@
 ---
 title: Custom Death Messages
-description: How DamageSource works and how to add your own death messages in LCEMP.
+description: How DamageSource works and how to add your own death messages in LCE.
 ---
 
-Death messages in LCEMP are driven by the `DamageSource` system. Every time something hurts a player or mob, a `DamageSource` tells the game what kind of damage it was, who caused it, and what message to show when the victim dies. Understanding this system lets you add completely new death messages for custom damage types.
+Death messages in LCE are driven by the `DamageSource` system. Every time something hurts a player or mob, a `DamageSource` tells the game what kind of damage it was, who caused it, and what message to show when the victim dies. Understanding this system lets you add completely new death messages for custom damage types.
 
 ## How DamageSource Works
 

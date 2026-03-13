@@ -1,9 +1,9 @@
 ---
 title: "New Blocks & Items"
-description: "Blocks and items added in MinecraftConsoles but not in LCEMP."
+description: "Blocks and items added in MinecraftConsoles but not in LCE."
 ---
 
-MinecraftConsoles adds several blocks and items that aren't in the LCEMP base. This page documents each addition based on the actual source code.
+MinecraftConsoles adds several blocks and items that aren't in the LCE base. This page documents each addition based on the actual source code.
 
 ## New blocks
 

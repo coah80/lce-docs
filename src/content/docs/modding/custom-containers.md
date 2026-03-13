@@ -1,6 +1,6 @@
 ---
 title: Custom Container Menus & UIs
-description: How the container menu system works in LCEMP and how to build your own.
+description: How the container menu system works in LCE and how to build your own.
 ---
 
 When you open a chest, crafting table, furnace, or anvil in Minecraft, you're looking at a container menu. It's the system that manages slots, items, click behavior, shift-clicking, and syncing everything between client and server. This guide breaks down how all of that works and shows you how to build your own.

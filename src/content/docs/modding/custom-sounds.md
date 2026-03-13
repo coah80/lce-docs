@@ -1,9 +1,9 @@
 ---
 title: Custom Sounds & Music
-description: How the LCEMP sound system works and how to add your own sounds and music.
+description: How the LCE sound system works and how to add your own sounds and music.
 ---
 
-LCEMP uses the **Miles Sound System** (MSS) for all audio on console platforms. Sounds are stored in a compiled soundbank (`Minecraft.msscmp`), and music tracks are streamed from `.binka` files on disk. The engine supports full 3D positional audio, distance-based falloff, splitscreen listener handling, and per-domain music selection.
+LCE uses the **Miles Sound System** (MSS) for all audio on console platforms. Sounds are stored in a compiled soundbank (`Minecraft.msscmp`), and music tracks are streamed from `.binka` files on disk. The engine supports full 3D positional audio, distance-based falloff, splitscreen listener handling, and per-domain music selection.
 
 This guide covers the whole audio pipeline, from how the sound system boots up to how you add your own custom sounds and music tracks.
 

@@ -1,6 +1,6 @@
 ---
 title: Custom Enchantments
-description: Deep dive into LCEMP's enchantment system with advanced customization examples.
+description: Deep dive into LCE's enchantment system with advanced customization examples.
 ---
 
 import { Aside } from '@astrojs/starlight/components';

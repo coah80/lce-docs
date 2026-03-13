@@ -1,9 +1,9 @@
 ---
 title: "Screens & GUI"
-description: "GUI screen system in LCEMP."
+description: "GUI screen system in LCE."
 ---
 
-LCEMP has two GUI layers: the legacy Java-style `Screen` system (used for basic menus) and the console-native `UIScene` system (in `Common/UI/`) for the actual in-game console UI. Both systems exist side by side, with the console UI handling most player-facing menus.
+LCE has two GUI layers: the legacy Java-style `Screen` system (used for basic menus) and the console-native `UIScene` system (in `Common/UI/`) for the actual in-game console UI. Both systems exist side by side, with the console UI handling most player-facing menus.
 
 ## Legacy Screen system
 
@@ -382,7 +382,7 @@ Computes screen dimensions accounting for console safe zones and split-screen la
 
 ## MinecraftConsoles differences
 
-MinecraftConsoles adds a bunch of new screens and UI scenes for features that don't exist in LCEMP:
+MinecraftConsoles adds a bunch of new screens and UI scenes for features that don't exist in LCE:
 
 ### New UIScene classes
 
@@ -392,7 +392,7 @@ MinecraftConsoles adds a bunch of new screens and UI scenes for features that do
 | `UIScene_FireworksMenu` | Firework rocket crafting UI |
 | `UIScene_HopperMenu` | Hopper inventory (5-slot single-row container) |
 | `UIScene_HorseInventoryMenu` | Horse/donkey/mule inventory (saddle, armor, and chest slots) |
-| `UIScene_LanguageSelector` | In-game language selection (LCEMP handles this differently) |
+| `UIScene_LanguageSelector` | In-game language selection (LCE handles this differently) |
 | `UIScene_NewUpdateMessage` | Title update notification screen |
 
 ### New UIScene interfaces

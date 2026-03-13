@@ -1,6 +1,6 @@
 ---
 title: Making a Full Ore
-description: End-to-end tutorial for adding a completely new ore to LCEMP, from block to tools to armor.
+description: End-to-end tutorial for adding a completely new ore to LCE, from block to tools to armor.
 ---
 
 This is the big one. We are going to add a brand new ore to the game from absolute scratch. By the end of this guide you will have:
@@ -44,7 +44,7 @@ Check your codebase to make sure these are not already taken. Look through `Tile
 
 ## Step 2: Create the ore block
 
-The ore block is a `Tile` subclass. In LCEMP, the existing ores (coal, iron, gold, diamond, emerald) all use the `OreTile` class. We could add our ruby to that class, but for a mod it is cleaner to make our own.
+The ore block is a `Tile` subclass. In LCE, the existing ores (coal, iron, gold, diamond, emerald) all use the `OreTile` class. We could add our ruby to that class, but for a mod it is cleaner to make our own.
 
 ### RubyOreTile.h
 

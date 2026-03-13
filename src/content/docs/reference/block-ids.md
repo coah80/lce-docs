@@ -1,6 +1,6 @@
 ---
 title: Block ID Registry
-description: Complete table of all block (tile) IDs in LCEMP.
+description: Complete table of all block (tile) IDs in LCE.
 ---
 
 Every block (called a "Tile" internally) is registered in `Tile::staticCtor()` in
