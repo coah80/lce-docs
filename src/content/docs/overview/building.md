@@ -6,16 +6,16 @@ description: How to set up and build the LCEMP project.
 ## Prerequisites
 
 - **CMake** 3.10 or higher
-- **MSVC** (Visual Studio) — the project uses MSVC-specific compiler flags
-- **Windows** — currently the only supported build target (the CMakeLists.txt explicitly checks for WIN32)
+- **MSVC** (Visual Studio), since the project uses MSVC-specific compiler flags
+- **Windows**, which is currently the only supported build target (the CMakeLists.txt explicitly checks for WIN32)
 
 :::note
-While the codebase contains platform code for Xbox 360, Xbox One, PS3, PS4, and PS Vita, the CMake build system currently only targets Windows 64-bit.
+The codebase has platform code for Xbox 360, Xbox One, PS3, PS4, and PS Vita, but the CMake build system only targets Windows 64-bit right now.
 :::
 
 ## Required Asset Directories
 
-You must provide these directories yourself (they are not included in the repository):
+You need to provide these directories yourself. They're not included in the repository.
 
 ### Media & Resources
 - `Minecraft.Client/music/`

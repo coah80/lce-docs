@@ -5,7 +5,7 @@ description: How the LCEMP codebase is organized and how the two main modules co
 
 ## Two-Module Architecture
 
-LCEMP follows a strict two-module separation:
+LCEMP is split into two clearly separated modules:
 
 ```
 LCEMP/
@@ -47,7 +47,7 @@ LCEMP/
 
 ### Minecraft.World (Static Library)
 
-This is the **game logic** layer. It has zero rendering code and no platform dependencies. Everything here is pure C++ game simulation:
+This is the **game logic** layer. There's no rendering code in here and no platform dependencies. It's all pure C++ game simulation:
 
 | System | Key Classes | Purpose |
 |--------|-------------|---------|
@@ -67,7 +67,7 @@ This is the **game logic** layer. It has zero rendering code and no platform dep
 
 ### Minecraft.Client (Executable)
 
-This is the **presentation** layer. It depends on Minecraft.World and adds rendering, input, audio, and platform-specific code:
+This is the **presentation** layer. It depends on Minecraft.World and adds rendering, input, audio, and all the platform-specific code on top:
 
 | System | Key Classes | Purpose |
 |--------|-------------|---------|
@@ -84,7 +84,7 @@ This is the **presentation** layer. It depends on Minecraft.World and adds rende
 
 ### Common (Shared Code)
 
-The `Common` directory sits inside `Minecraft.Client` but is symlinked from the root as well. It contains cross-platform code used by all platform targets:
+The `Common` directory lives inside `Minecraft.Client` but is also symlinked from the root. It has cross-platform code that all platform targets share:
 
 | Directory | Purpose |
 |-----------|---------|
@@ -107,7 +107,7 @@ The `Common` directory sits inside `Minecraft.Client` but is symlinked from the 
 
 ### 4J Studios Libraries
 
-4J Studios (the original LCE developer) created platform abstraction libraries:
+4J Studios (the original LCE developer) built platform abstraction libraries that the project relies on:
 
 | Library | Purpose |
 |---------|---------|
@@ -116,7 +116,7 @@ The `Common` directory sits inside `Minecraft.Client` but is symlinked from the 
 | `4J_Profile` | User profile management |
 | `4J_Render` | Rendering abstraction layer |
 
-These are provided as pre-compiled `.lib` files (debug `_d` and release `_r` variants).
+These come as pre-compiled `.lib` files (debug `_d` and release `_r` variants).
 
 ### Third-Party Middleware
 
@@ -149,6 +149,8 @@ These are provided as pre-compiled `.lib` files (debug `_d` and release `_r` var
 
 ## Data Flow
 
+Here's how data moves through the system at a high level:
+
 ```
 Player Input → Input System → Game Logic (Minecraft.World)
                                     ↓
@@ -165,7 +167,7 @@ Player Input → Input System → Game Logic (Minecraft.World)
 
 ## File Naming Conventions
 
-The codebase follows Minecraft's original Java naming conventions translated to C++:
+The codebase follows Minecraft's original Java naming conventions, translated to C++:
 
 - **Tiles** (blocks): Named after the Java equivalent (e.g., `GrassTile`, `OreTile`)
 - **Entities**: Direct names (e.g., `Zombie.h`, `Skeleton.h`, `Pig.h`)
@@ -178,7 +180,7 @@ The codebase follows Minecraft's original Java naming conventions translated to 
 ## C++ Standard
 
 The project targets **C++11** and uses:
-- `shared_ptr` extensively for entity/item management
+- `shared_ptr` a lot for entity/item management
 - `enable_shared_from_this` for self-referencing
 - `wstring` for text (wide strings throughout)
 - Traditional class inheritance hierarchy (no templates/generics)
