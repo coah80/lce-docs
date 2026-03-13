@@ -8,8 +8,11 @@ LCEMP generates several types of structures during world creation: villages, str
 ## Architecture overview
 
 ```
-LargeFeature (base for cave-like features)
-├── DungeonFeature        – cave/tunnel generation
+LargeFeature (base for chunk-spanning features)
+├── LargeCaveFeature      – Overworld cave carving
+├── LargeHellCaveFeature  – Nether cave carving
+├── CanyonFeature         – ravine/canyon carving
+├── DungeonFeature        – alternate cave/tunnel generation
 └── StructureFeature      – base for all placed structures
     ├── VillageFeature
     ├── StrongholdFeature
@@ -291,7 +294,7 @@ The fortress has two categories of pieces: **bridge** pieces and **castle** piec
 | `StairsRoom` | 7x11x7 | Room with staircase |
 | `MonsterThrone` | 7x8x9 | Blaze spawner room |
 
-**Castle pieces** (7 types):
+**Castle pieces** (8 types):
 
 | Piece Class | Dimensions | Description |
 |-------------|-----------|-------------|
@@ -358,11 +361,11 @@ Both pyramid types inherit from `ScatteredFeaturePiece`, which provides:
 
 ---
 
-## Caves (DungeonFeature)
+## Caves (DungeonFeature / LargeCaveFeature)
 
-**Source**: `DungeonFeature.h`, `DungeonFeature.cpp`
+**Source**: `LargeCaveFeature.h`, `LargeCaveFeature.cpp`, `DungeonFeature.h`, `DungeonFeature.cpp`
 
-`DungeonFeature` extends `LargeFeature` and generates cave systems by carving through the block array during chunk generation (before structures are placed).
+`LargeCaveFeature` extends `LargeFeature` and is the primary Overworld cave carver, used as `caveFeature` in `RandomLevelSource`. `DungeonFeature` is a related `LargeFeature` subclass with a similar room-and-tunnel algorithm. Both carve through the block array during chunk generation (before structures are placed).
 
 ### Cave generation algorithm
 

@@ -116,8 +116,8 @@ Each subclass customizes mob spawns, decorator counts, tree types, and/or decora
 
 ### ExtremeHillsBiome (IDs 3, 20)
 
-- Clears friendly mob spawns
-- Custom `decorate()`: generates emerald ore (3-8 veins per chunk, below `genDepth / 4`)
+- Clears `friendlies` list only (Sheep, Pig, Cow removed; chickens still spawn via `friendlies_chicken`)
+- Custom `decorate()`: generates emerald ore (3-8 veins per chunk, Y range 4 to `genDepth / 4`)
 - `GENERATE_EMERALD_ORE` is a compile-time constant set to `true`
 
 ### ForestBiome (IDs 4, 18)
@@ -141,7 +141,7 @@ Each subclass customizes mob spawns, decorator counts, tree types, and/or decora
 
 ### RiverBiome (IDs 7, 11)
 
-- Clears all friendly mob spawns (no passive mobs on rivers)
+- Clears `friendlies`, `friendlies_chicken`, and `friendlies_wolf` (no passive land mobs on rivers)
 - Inline constructor in header; no additional decoration
 
 ### HellBiome (ID 8)
@@ -159,7 +159,7 @@ Each subclass customizes mob spawns, decorator counts, tree types, and/or decora
 
 ### OceanBiome (IDs 0, 10)
 
-- Clears all friendly mob spawns
+- Clears `friendlies`, `friendlies_chicken`, and `friendlies_wolf` (no passive land mobs)
 - Inline constructor in header
 
 ### IceBiome (IDs 12, 13)
@@ -171,18 +171,18 @@ Each subclass customizes mob spawns, decorator counts, tree types, and/or decora
 - Clears all mob lists (enemies, friendlies, water creatures)
 - Adds Mooshroom to `friendlies_mushroomcow` (weight 8, groups of 4-8)
 - Surface: mycelium
-- Trees/flowers/grass disabled; mushrooms (1), huge mushrooms (1)
+- Trees/flowers/grass all set to `-100` (effectively disabled); mushrooms (1), huge mushrooms (1)
 
 ### BeachBiome (ID 16)
 
-- Clears friendlies (no passive mobs)
+- Clears `friendlies` and `friendlies_chicken` (Sheep, Pig, Cow, Chicken removed; `friendlies_wolf` not cleared but wolves are never added to beaches)
 - Surface: sand/sand
-- Trees, dead bushes, reeds, and cacti all disabled
+- Trees disabled (`treeCount = -999`), dead bushes (0), reeds (0), cacti (0)
 
 ### JungleBiome (IDs 21, 22)
 
 - High tree count (50), grass (25), flowers (4)
-- Adds Ocelot to enemies (weight 2) and extra Chickens to friendlies
+- Adds Ocelot to `enemies` (weight 2, groups of 1) and extra Chickens to `friendlies` (weight 10, groups of 4) -- note: added to the main `friendlies` list, not `friendlies_chicken`
 - Tree selection: 1/10 fancy oak, 1/2 ground bush, 1/3 mega jungle tree, otherwise normal jungle tree with vines
 - Custom `getGrassFeature()`: 1/4 chance fern, otherwise tall grass
 - Custom `decorate()`: places 50 `VinesFeature` per chunk after base decoration

@@ -57,7 +57,7 @@ This is the **game logic** layer. It has zero rendering code and no platform dep
 | **World Gen** | `Biome`, `BiomeSource`, Layer classes | Terrain generation, biome placement |
 | **Structures** | `StructureStart`, `VillagePieces`, etc. | Generated structures (villages, dungeons) |
 | **AI** | `Goal`, `GoalSelector`, attack/move goals | Mob AI behavior trees |
-| **Crafting** | `CraftingManager`, `FurnaceRecipes` | Recipe definitions |
+| **Crafting** | `Recipes`, `FurnaceRecipes` | Recipe definitions |
 | **Enchantments** | `Enchantment`, enchantment subclasses | Enchantment system |
 | **Effects** | `MobEffect`, `MobEffectInstance` | Potion/status effects |
 | **Containers** | `AbstractContainerMenu`, slot system | Inventory management |

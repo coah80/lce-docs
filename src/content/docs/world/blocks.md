@@ -153,23 +153,23 @@ All tiles are statically initialized in `Tile::staticCtor()`:
 | 31 | tallgrass | `TallGrass` | 0.0s | 3 types: shrub/grass/fern |
 | 32 | deadBush | `DeadBushTile` | 0.0s | Drops sticks |
 | 33 | pistonBase | `PistonBaseTile` | — | Normal piston |
-| 34 | pistonExtensionPiece | `PistonExtensionTile` | — | Piston arm |
+| 34 | pistonExtension | `PistonExtensionTile` | — | Piston arm |
 | 35 | cloth | `ClothTile` | 0.8s | Wool, 16 colors |
 | 36 | pistonMovingPiece | `PistonMovingPiece` | — | Dynamic piston head |
 | 37 | flower | `Bush` | 0.0s | Dandelion |
 | 38 | rose | `Bush` | 0.0s | Poppy |
-| 39 | mushroom1 | `Mushroom` | 0.0s | Brown mushroom, light=2 |
+| 39 | mushroom1 | `Mushroom` | 0.0s | Brown mushroom, light=1 |
 | 40 | mushroom2 | `Mushroom` | 0.0s | Red mushroom |
 | 41 | goldBlock | `MetalTile` | 3.0s | Gold block |
 | 42 | ironBlock | `MetalTile` | 5.0s | Iron block |
-| 43 | stoneSlab | `HalfSlabTile` | — | Double stone slab |
-| 44 | stoneSlabHalf | `HalfSlabTile` | — | Stone half slab |
+| 43 | stoneSlab | `StoneSlabTile` | — | Double stone slab |
+| 44 | stoneSlabHalf | `StoneSlabTile` | — | Stone half slab |
 | 45 | redBrick | `Tile` | 2.0s | Bricks |
 | 46 | tnt | `TntTile` | 0.0s | Explodes on redstone |
 | 47 | bookshelf | `BookshelfTile` | 1.5s | Drops books |
 | 48 | mossStone | `Tile` | 2.0s | Mossy cobblestone |
 | 49 | obsidian | `ObsidianTile` | 50.0s | Very hard |
-| 50 | torch | `TorchTile` | — | Light level 15 |
+| 50 | torch | `TorchTile` | — | Light level 14 |
 | 51 | fire | `FireTile` | — | Spreads, animates |
 | 52 | mobSpawner | `MobSpawnerTile` | 5.0s | TileEntity, spawns mobs |
 | 53 | stairs_wood | `StairTile` | — | Oak wood stairs |
@@ -181,7 +181,7 @@ All tiles are statically initialized in `Tile::staticCtor()`:
 | 59 | crops | `CropTile` | 0.0s | Wheat, 8 growth stages |
 | 60 | farmland | `FarmTile` | 0.6s | Tilled dirt |
 | 61 | furnace | `FurnaceTile` | 3.5s | TileEntity, unlit |
-| 62 | furnace_lit | `FurnaceTile` | 3.5s | TileEntity, lit, light=14 |
+| 62 | furnace_lit | `FurnaceTile` | 3.5s | TileEntity, lit, light=13 |
 | 63 | sign | `SignTile` | 1.0s | Standing sign, TileEntity |
 | 64 | door_wood | `DoorTile` | — | Wood door, 2-block |
 | 65 | ladder | `LadderTile` | 0.4s | Climbable |
@@ -193,10 +193,10 @@ All tiles are statically initialized in `Tile::staticCtor()`:
 | 71 | door_iron | `DoorTile` | — | Iron door, needs redstone |
 | 72 | pressurePlate_wood | `PressurePlateTile` | — | All entities |
 | 73 | redStoneOre | `RedStoneOreTile` | 3.0s | Emits particles |
-| 74 | redStoneOre_lit | `RedStoneOreTile` | 3.0s | Glowing, light=10 |
+| 74 | redStoneOre_lit | `RedStoneOreTile` | 3.0s | Glowing, light=9 |
 | 75 | notGate_off | `NotGateTile` | — | Redstone torch off |
-| 76 | notGate_on | `NotGateTile` | — | Redstone torch on, light=8 |
-| 77 | button_stone | `ButtonTile` | — | Stone button |
+| 76 | notGate_on | `NotGateTile` | — | Redstone torch on, light=7 |
+| 77 | button | `ButtonTile` | — | Stone button |
 | 78 | topSnow | `TopSnowTile` | 0.1s | Snow layer |
 | 79 | ice | `IceTile` | 0.5s | Slippery, transparent |
 | 80 | snow | `SnowTile` | 0.2s | Snow block |
@@ -209,7 +209,7 @@ All tiles are statically initialized in `Tile::staticCtor()`:
 | 87 | hellRock | `HellStoneTile` | 0.4s | Netherrack |
 | 88 | hellSand | `HellSandTile` | 0.5s | Soul sand, slows entities |
 | 89 | lightGem | `LightGemTile` | 0.3s | Glowstone, light=15 |
-| 90 | portalTile | `PortalTile` | -1.0 | Nether portal, light=12 |
+| 90 | portalTile | `PortalTile` | -1.0 | Nether portal, light=11 |
 | 91 | litPumpkin | `PumpkinTile` | 1.0s | Jack o'Lantern, light=15 |
 | 92 | cake | `CakeTile` | 0.5s | 6 eating stages |
 | 93 | diode_off | `DiodeTile` | — | Repeater off, 4 delays |
@@ -236,26 +236,26 @@ All tiles are statically initialized in `Tile::staticCtor()`:
 | 114 | stairs_netherBricks | `StairTile` | — | Nether brick stairs |
 | 115 | netherStalk | `NetherStalkTile` | 0.0s | Nether wart, 4 stages |
 | 116 | enchantTable | `EnchantmentTableTile` | 5.0s | TileEntity |
-| 117 | brewingStand | `BrewingStandTile` | 0.5s | TileEntity, light=2 |
+| 117 | brewingStand | `BrewingStandTile` | 0.5s | TileEntity, light=1 |
 | 118 | cauldron | `CauldronTile` | 2.0s | Water storage |
 | 119 | endPortalTile | `TheEndPortal` | -1.0 | End portal |
-| 120 | endPortalFrameTile | `TheEndPortalFrameTile` | -1.0 | End portal frame, light=2 |
+| 120 | endPortalFrameTile | `TheEndPortalFrameTile` | -1.0 | End portal frame, light=1 |
 | 121 | whiteStone | `Tile` | 3.0s | End stone |
-| 122 | dragonEgg | `EggTile` | 3.0s | Teleports when hit, light=2 |
+| 122 | dragonEgg | `EggTile` | 3.0s | Teleports when hit, light=1 |
 | 123 | redstoneLight | `RedlightTile` | 0.3s | Redstone lamp off |
 | 124 | redstoneLight_lit | `RedlightTile` | 0.3s | Redstone lamp on |
-| 125 | woodSlab | `HalfSlabTile` | — | Double wood slab |
-| 126 | woodSlabHalf | `HalfSlabTile` | — | Wood half slab |
+| 125 | woodSlab | `WoodSlabTile` | — | Double wood slab |
+| 126 | woodSlabHalf | `WoodSlabTile` | — | Wood half slab |
 | 127 | cocoa | `CocoaTile` | 0.2s | Cocoa beans, 3 stages |
 | 128 | stairs_sandstone | `StairTile` | — | Sandstone stairs |
 | 129 | emeraldOre | `OreTile` | 3.0s | Emerald ore |
-| 130 | enderChest | `EnderChestTile` | 22.5s | TileEntity, light=8 |
+| 130 | enderChest | `EnderChestTile` | 22.5s | TileEntity, light=7 |
 | 131 | tripWireSource | `TripWireSourceTile` | — | Tripwire hook |
 | 132 | tripWire | `TripWireTile` | — | Tripwire line |
 | 133 | emeraldBlock | `MetalTile` | 5.0s | Emerald block |
-| 134 | stairs_sprucewood | `StairTile` | — | Spruce stairs |
-| 135 | stairs_birchwood | `StairTile` | — | Birch stairs |
-| 136 | stairs_junglewood | `StairTile` | — | Jungle stairs |
+| 134 | woodStairsDark | `StairTile` | — | Spruce stairs |
+| 135 | woodStairsBirch | `StairTile` | — | Birch stairs |
+| 136 | woodStairsJungle | `StairTile` | — | Jungle stairs |
 | 139 | cobbleWall | `WallTile` | — | Stone/cobble wall |
 | 140 | flowerPot | `FlowerPotTile` | 0.0s | Holds plants |
 | 141 | carrots | `CarrotTile` | 0.0s | 8 growth stages |
@@ -313,6 +313,8 @@ Tile (abstract base)
 ├── LeverTile / ButtonTile
 ├── CactusTile / VineTile
 ├── HalfSlabTile
+│   ├── StoneSlabTile
+│   └── WoodSlabTile
 ├── ThinFenceTile (iron bars, glass pane)
 ├── WallTile
 └── ... (many more specialized tiles)

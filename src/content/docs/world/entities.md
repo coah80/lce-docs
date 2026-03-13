@@ -88,7 +88,7 @@ The enum values are organized as a bitfield so that a single bitwise AND can che
 | `0x200` | `eTYPE_ANIMAL` | Land animals |
 | `0x400` | `eTYPE_MONSTER` | Hostile monsters |
 | `0x800` | `eTYPE_ENEMY` | Enemy marker |
-| `0x1000` | `eTYPE_VILLAGERGOLEM` | Golems |
+| `0x1000` | `eTYPE_VILLAGERGOLEM` | Iron Golem (not a shared category bit; `SnowMan` uses animal bits instead) |
 | `0x2000` | `eTYPE_AGABLE_MOB` | Ageable/breedable mobs |
 | `0x8000` | `eTYPE_PLAYER` | Players |
 | `0x40000` | `eTYPE_PROJECTILE` | Projectiles |

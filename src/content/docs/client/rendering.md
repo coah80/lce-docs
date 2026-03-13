@@ -314,7 +314,8 @@ The `render()` method calculates the entity's interpolated position and delegate
 
 | Class | Tile entity |
 |---|---|
-| `ChestRenderer` | Chests (regular and ender) |
+| `ChestRenderer` | Chests |
+| `EnderChestRenderer` | Ender chests |
 | `EnchantTableRenderer` | Enchanting tables (with book model) |
 | `SignRenderer` | Signs |
 | `MobSpawnerRenderer` | Mob spawners |

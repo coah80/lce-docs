@@ -142,7 +142,7 @@ All packet IDs as registered in `Packet::staticCtor()`:
 | 12 | `MovePlayerPacket::Rot` | recv | recv | Player rotation update |
 | 13 | `MovePlayerPacket::PosRot` | recv | recv | Player position + rotation update |
 
-### Player Actions & State (IDs 7-9, 14-19, 200-202)
+### Player Actions & State (IDs 4-9, 14-19, 200-202)
 
 | ID | Packet | Client | Server | Description |
 |----|--------|--------|--------|-------------|
@@ -213,7 +213,7 @@ All packet IDs as registered in `Packet::staticCtor()`:
 | 70 | `GameEventPacket` | recv | -- | Game state changes (rain, credits, etc.) |
 | 155 | `ChunkVisibilityAreaPacket` | recv | -- | Batch chunk visibility for initial join (4J addition) |
 
-### Container / Inventory (IDs 100-108, 107, 130-132)
+### Container / Inventory (IDs 100-108, 130-132)
 
 | ID | Packet | Client | Server | Description |
 |----|--------|--------|--------|-------------|

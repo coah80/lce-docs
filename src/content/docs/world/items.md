@@ -71,7 +71,7 @@ Item *handEquipped();
 | `getDestroySpeed(...)` | Returns `1.0f` | Mining speed multiplier against a tile |
 | `hurtEnemy(...)` | Returns `false` | Called when hitting a mob; returns true if damage was dealt |
 | `mineBlock(...)` | Returns `false` | Called when a block is mined with this item |
-| `getAttackDamage(...)` | Returns `0` | Base attack damage value |
+| `getAttackDamage(...)` | Returns `1` | Base attack damage value |
 | `canDestroySpecial(...)` | Returns `false` | Whether this tool can harvest a specific tile |
 | `getUseAnimation(...)` | Returns `UseAnim_none` | Animation type when using |
 | `getUseDuration(...)` | Returns `0` | How long the use action takes in ticks |
@@ -593,20 +593,39 @@ Used by the crafting menu to group items by material:
 | 9 | `lapis` | Lapis lazuli |
 | 10 | `music` | Music discs |
 | 11 | `dye` | Dye powder |
-| 15 | `bow` | Bow |
-| 16 | `arrow` | Arrows |
-| 17 | `compass` | Compass |
-| 18 | `clock` | Clock |
-| 19 | `map` | Map |
-| 24 | `flintandsteel` | Flint and Steel |
-| 25 | `shears` | Shears |
-| 31 | `ender` | Eye of Ender |
-| 33 | `blaze` | Brewing Stand |
-| 34 | `magic` | Enchanting-related |
-| 40 | `emerald` | Emerald |
-| 41 | `quartz` | Nether Quartz |
-| 42 | `apple` | Golden Apple |
-| 43 | `carrot` | Golden Carrot, Carrot on a Stick |
+| 12 | `sand` | Sand-related |
+| 13 | `brick` | Brick-related |
+| 14 | `clay` | Clay-related |
+| 15 | `snow` | Snow-related |
+| 16 | `bow` | Bow |
+| 17 | `arrow` | Arrows |
+| 18 | `compass` | Compass |
+| 19 | `clock` | Clock |
+| 20 | `map` | Map |
+| 21 | `pumpkin` | Pumpkin seeds |
+| 22 | `glowstone` | Glowstone |
+| 23 | `water` | Bucket (water) |
+| 24 | `trap` | Trapdoor |
+| 25 | `flintandsteel` | Flint and Steel |
+| 26 | `shears` | Shears |
+| 27 | `piston` | Piston |
+| 28 | `stickypiston` | Sticky Piston |
+| 29 | `gate` | Fence Gate |
+| 30 | `stoneSmooth` | Smooth Stone |
+| 31 | `netherbrick` | Nether Brick |
+| 32 | `ender` | Eye of Ender |
+| 33 | `glass` | Glass Bottle |
+| 34 | `blaze` | Brewing Stand |
+| 35 | `magic` | Enchanting-related |
+| 36 | `melon` | Melon seeds, Speckled Melon |
+| 37 | `setfire` | Fire Charge |
+| 38 | `sprucewood` | Spruce wood stairs |
+| 39 | `birchwood` | Birch wood stairs |
+| 40 | `junglewood` | Jungle wood stairs |
+| 41 | `emerald` | Emerald |
+| 42 | `quartz` | Nether Quartz |
+| 43 | `apple` | Golden Apple |
+| 44 | `carrot` | Golden Carrot, Carrot on a Stick |
 
 ### eBaseItemType Enum
 
@@ -632,21 +651,26 @@ Classifies items by functional type:
 | 15 | `stairs` | Stairs |
 | 16 | `cloth` | Wool |
 | 17 | `dyepowder` | Dye powder |
+| 18 | `structwoodstuff` | Wood structure items |
 | 19 | `structblock` | Structure blocks |
-| 21 | `torch` | Torches, fire charges |
-| 22 | `bow` | Bow, arrows |
-| 23 | `pockettool` | Compass, clock, map, eye of ender |
-| 24 | `utensil` | Buckets, bowl, cauldron, glass bottle |
-| 26 | `devicetool` | Flint and steel, shears |
-| 27 | `fence` | Fences |
-| 28 | `device` | Brewing stand |
-| 29 | `treasure` | Diamond, iron/gold ingots, emerald |
-| 30 | `seed` | Seeds |
-| 31 | `HangingItem` | Painting, item frame, sign |
-| 33 | `chest` | Chests |
-| 34 | `rod` | Fishing rod, carrot on a stick |
-| 35 | `giltFruit` | Golden apple, speckled melon |
-| 36 | `carpet` | Carpets |
+| 20 | `slab` | Double slabs |
+| 21 | `halfslab` | Half slabs |
+| 22 | `torch` | Torches, fire charges |
+| 23 | `bow` | Bow, arrows |
+| 24 | `pockettool` | Compass, clock, map, eye of ender |
+| 25 | `utensil` | Buckets, bowl, cauldron, glass bottle |
+| 26 | `piston` | Pistons |
+| 27 | `devicetool` | Flint and steel, shears |
+| 28 | `fence` | Fences |
+| 29 | `device` | Brewing stand |
+| 30 | `treasure` | Diamond, iron/gold ingots, emerald |
+| 31 | `seed` | Seeds |
+| 32 | `HangingItem` | Painting, item frame, sign |
+| 33 | `button` | Buttons |
+| 34 | `chest` | Chests |
+| 35 | `rod` | Fishing rod, carrot on a stick |
+| 36 | `giltFruit` | Golden apple, speckled melon |
+| 37 | `carpet` | Carpets |
 
 ## Complete Item ID Registry
 

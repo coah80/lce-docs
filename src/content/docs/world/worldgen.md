@@ -215,14 +215,14 @@ Several biomes modify decorator counts by declaring their decorator class as a f
 
 | Biome | Notable changes |
 |---|---|
-| `DesertBiome` | `deadBushCount = 2`, `cactusCount = 10`, no liquids, sand/sandstone surface |
+| `DesertBiome` | `deadBushCount = 2`, `cactusCount = 10`, `reedsCount = 50`, `treeCount = -999`, sand/sand surface |
 | `ForestBiome` | `treeCount = 10`, `grassCount = 2` |
-| `PlainsBiome` | `flowerCount = 4`, `grassCount = 10` |
-| `SwampBiome` | `treeCount = 2`, `waterlilyCount = 4`, `mushroomCount = 8`, `reedsCount = 10` |
+| `PlainsBiome` | `treeCount = -999`, `flowerCount = 4`, `grassCount = 10` |
+| `SwampBiome` | `treeCount = 2`, `flowerCount = -999`, `deadBushCount = 1`, `waterlilyCount = 4`, `mushroomCount = 8`, `reedsCount = 10` |
 | `TaigaBiome` | `treeCount = 10`, `grassCount = 1` |
 | `JungleBiome` | `treeCount = 50`, `grassCount = 25`, `flowerCount = 4` |
-| `MushroomIslandBiome` | `hugeMushrooms = 1`, `mushroomCount = 3`, no liquids |
-| `BeachBiome` | No liquids |
+| `MushroomIslandBiome` | `hugeMushrooms = 1`, `mushroomCount = 1`, trees/flowers/grass all set to `-100` |
+| `BeachBiome` | `treeCount = -999`, `deadBushCount = 0`, `reedsCount = 0`, `cactusCount = 0`, sand/sand surface |
 
 ## Biome layer system
 
@@ -326,7 +326,7 @@ Structures extend `StructureFeature`, which extends `LargeFeature`. The system w
 - **Lava sea** at Y=32 (instead of water at sea level).
 - **Surface materials:** Netherrack, soul sand, and gravel are placed using two additional 4-octave noise generators (`perlinNoise2`, `perlinNoise3`) that determine sand and gravel regions.
 - **Nether wart:** 4J added a 1-in-16 chance of placing nether wart on soul sand surfaces outside of fortresses.
-- **Bedrock** on both floor (Y=0-4) and ceiling (Y=124-127).
+- **Bedrock** on both floor (Y=0-4) and ceiling (Y=123-127).
 - **Boundary walls:** 4J builds bedrock walls around the Nether perimeter, with a randomized jagged edge.
 - **Cave carver:** `LargeHellCaveFeature` instead of `LargeCaveFeature`.
 - **World scale:** The Nether is 1/3 to 1/8 the Overworld size (`HELL_LEVEL_MAX_SCALE` is 3 on legacy, 8 on large worlds).

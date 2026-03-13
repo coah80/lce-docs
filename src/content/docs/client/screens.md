@@ -260,6 +260,7 @@ The scene is the equivalent of a `Screen` -- a full menu or overlay. Each scene 
 | `UIScene_AnvilMenu` | Anvil |
 | `UIScene_TradingMenu` | Villager trading |
 | `UIScene_SignEntryMenu` | Sign editing |
+| `UIScene_AbstractContainerMenu` | Base class for container menus |
 | `UIScene_DeathMenu` | Death screen |
 | `UIScene_Credits` | Credits roll |
 | `UIScene_EndPoem` | End poem text |
@@ -268,8 +269,14 @@ The scene is the equivalent of a `Screen` -- a full menu or overlay. Each scene 
 | `UIScene_LeaderboardsMenu` | Leaderboards |
 | `UIScene_HowToPlay` / `UIScene_HowToPlayMenu` | Help screens |
 | `UIScene_HelpAndOptionsMenu` | Help and options hub |
+| `UIScene_InGameHostOptionsMenu` | In-game host options |
+| `UIScene_InGameInfoMenu` | In-game info display |
+| `UIScene_InGamePlayerOptionsMenu` | In-game player options |
+| `UIScene_InGameSaveManagementMenu` | In-game save management |
 | `UIScene_Intro` | Game intro sequence |
 | `UIScene_EULA` | End User License Agreement |
+| `UIScene_ControlsMenu` | Control remapping |
+| `UIScene_LaunchMoreOptionsMenu` | Additional world launch options |
 | `UIScene_Keyboard` | On-screen keyboard |
 | `UIScene_TeleportMenu` | Teleport player list |
 | `UIScene_MessageBox` | Modal message dialogs |
@@ -281,6 +288,9 @@ The scene is the equivalent of a `Screen` -- a full menu or overlay. Each scene 
 | `UIScene_DebugOptions` | Debug settings |
 | `UIScene_DebugCreateSchematic` | Debug schematic creation |
 | `UIScene_DebugSetCamera` | Debug camera placement |
+| `UIScene_ReinstallMenu` | Reinstall prompt |
+| `UIScene_SaveMessage` | Save notification |
+| `UIScene_TrialExitUpsell` | Trial exit upsell prompt |
 
 ### UIControl
 
