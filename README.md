@@ -1,4 +1,4 @@
-# LCEMP Documentation
+# LCE Documentation
 
 i told a local LLM to go through the code of minecraft LCE 40 times, and to make docs on it. This is what was output, if anything is wrong, because ai is always wrong in a sense, then please PR the repo.
 

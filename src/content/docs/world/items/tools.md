@@ -184,3 +184,9 @@ Right-click toggles between casting and reeling. When you cast, it creates a `Fi
 | 294 | Gold Hoe | HoeItem | Gold |
 | 346 | Fishing Rod | FishingRodItem | -- |
 | 359 | Shears | ShearsItem | -- |
+
+## MinecraftConsoles differences
+
+The tool and weapon system is basically the same between LCEMP and MinecraftConsoles. No new tool tiers, no new tool types. The `Tier` values, durability costs, diggable tile lists, and mining level requirements are all identical.
+
+The only real change is a naming thing: `ShearsItem` gains a `canHarvest` check for some new blocks (like stained glass panes if they exist in tile form), but the core shears behavior is the same.

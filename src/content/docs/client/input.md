@@ -224,3 +224,11 @@ These are used for the integrated server console, not player gameplay input.
 4. **`Input::tick()`** converts action state into movement axes (`xa`/`ya`) and action flags (`jumping`, `sneaking`, `sprinting`)
 5. **`LocalPlayer`** reads the `Input` object each tick to update player movement and trigger actions
 6. **`Screen` / `UIScene`** intercepts input when menus are active, grabbing events before they reach gameplay
+
+## MinecraftConsoles differences
+
+MinecraftConsoles has a small addition to the controller input system:
+
+- **`ACTION_MENU_QUICK_MOVE`** is added to the `EControllerActions` enum. This provides a dedicated controller action for quick-moving items between inventories (like shift-clicking on PC). LCEMP doesn't have this as a separate action.
+
+The `4J_Input.h` abstraction layer exists in both codebases as platform-specific headers under each platform's `4JLibs/inc/` directory (Orbis, Xbox, Durango, PS3, PSVita). The input architecture is otherwise the same between the two versions.

@@ -407,3 +407,30 @@ The PS Vita also supports **ad-hoc mode** for direct wireless connections betwee
 | `PlatformNetworkManagerInterface.h` | `Minecraft.Client/Common/Network/` |
 | `NetworkPlayerInterface.h` | `Minecraft.Client/Common/Network/` |
 | `Network Implementation Notes.txt` | `Minecraft.Client/` |
+
+## MinecraftConsoles Differences
+
+MC registers **104 packets** compared to LCEMP's **98**. The core networking architecture (Socket, Connection, PacketListener, client/server split) is the same. Here are the new packets:
+
+### New packets in MC
+
+| ID | Packet | Direction | Purpose |
+|----|--------|-----------|---------|
+| 39 | `SetEntityLinkPacket` | S->C | Leash connections between entities (leads attached to fence posts) |
+| 44 | `UpdateAttributesPacket` | S->C | Syncs entity attribute values (health, speed, etc.) to the client |
+| 63 | `LevelParticlesPacket` | S->C | Spawns particle effects at a position with configurable parameters |
+| 133 | `TileEditorOpenPacket` | S->C | Opens the command block editing UI on the client |
+| 206 | `SetObjectivePacket` | S->C | Creates/updates/removes a scoreboard objective |
+| 207 | `SetScorePacket` | S->C | Updates a score value on the scoreboard |
+| 208 | `SetDisplayObjectivePacket` | S->C | Sets which objective appears in a display slot |
+| 209 | `SetPlayerTeamPacket` | S->C | Creates/updates/removes a player team |
+
+### Changes to existing packets
+
+- **`AddMobPacket` (ID 24)**: In MC, this packet can also carry initial attribute data for the spawned mob, since the attribute system needs to sync on spawn.
+- **`SetEntityDataPacket` (ID 40)**: Same structure, but MC mobs can have more synched data fields (like horse type, wither invulnerability timer, etc.)
+- **Packet IDs 39 and 44**: In LCEMP these IDs are unused. MC assigns them to `SetEntityLinkPacket` and `UpdateAttributesPacket`.
+
+### Platform backends
+
+The platform networking layer is the same in both codebases. Both support Xbox 360/One, PS3/PS4/Vita, and the stub backend. The `sendToAnyClient` optimization, local socket system, and splitscreen handling are identical.

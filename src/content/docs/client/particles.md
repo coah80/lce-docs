@@ -180,3 +180,23 @@ The camera offset fields (`Particle::xOff`, `yOff`, `zOff`) shift particle posit
 2. **Tick.** `ParticleEngine::tick()` calls `Particle::tick()` on each particle. The base implementation applies gravity, moves the particle, increments `age`, and removes the particle when `age >= lifetime`
 3. **Render.** `ParticleEngine::render()` batches particles by texture layer, binds the right atlas, and calls `Particle::render()` for each one
 4. **Remove.** Particles get removed from the deque when `tick()` marks them dead, or when the particle count goes over `MAX_PARTICLES_PER_LAYER` (oldest particles get evicted first)
+
+## MinecraftConsoles differences
+
+MinecraftConsoles adds a full fireworks particle system and a few new particle types:
+
+### FireworksParticles
+
+`FireworksParticles.h` contains three nested particle classes:
+
+- **`FireworksStarter`** is the initial rocket particle. It reads explosion data from a `CompoundTag` (the fireworks NBT) and spawns the actual explosion effects. Methods include `createParticleBall()` for spherical bursts, `createParticleShape()` for shaped patterns (stars, creeper faces), and `createParticleBurst()` for burst patterns. It has a `twinkleDelay` flag for delayed twinkle effects.
+- **`FireworksSparkParticle`** is the individual spark. Supports trail effects, flicker, fade colors, and custom RGB coloring. Overrides `getLightColor` and `getBrightness` so sparks glow.
+- **`FireworksOverlayParticle`** is a translucent flash overlay rendered during the explosion.
+
+### New particle type enum values
+
+The `ePARTICLE_TYPE` enum gains three new entries:
+
+- `eParticleType_witchMagic` for witch potion effects
+- `eParticleType_mobSpellAmbient` for ambient mob spell particles (beacon effects, etc.)
+- `eParticleType_fireworksspark` for firework sparks

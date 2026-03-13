@@ -195,3 +195,33 @@ float getRecipeValue(int itemId);
 ```
 
 The `FurnaceTileEntity` handles the actual smelting process, checking `FurnaceRecipes::getInstance()->getResult()` to see if an item can be smelted.
+
+## MinecraftConsoles Differences
+
+MC has more recipes than LCEMP. The crafting system registers about **114 shaped/shapeless recipes** compared to LCEMP's **100**. The extra recipes cover the new blocks and items that MC adds:
+
+- Beacon, hopper, dropper, comparator, daylight detector, and activator rail crafting recipes
+- Hay bale and hardened clay recipes
+- Stained glass and stained glass pane dyeing recipes
+- Horse armor and lead/leash recipes
+- Fireworks and fireworks star recipes (MC adds `FireworksRecipe` as a special recipe class)
+- Name tag related recipes
+- Map cloning (`MapCloningRecipe`) and map extending (`MapExtendingRecipe`) as separate recipe classes
+
+### New smelting recipe
+
+MC adds one new smelting recipe that LCEMP doesn't have:
+
+| Input | Output | XP |
+|---|---|---|
+| Clay Block | Hardened Clay | 0.35 |
+
+Everything else in the smelting table is the same.
+
+### Recipe architecture
+
+MC also adds `MapCloningRecipe` and `MapExtendingRecipe` as dedicated recipe classes (separate from `ShapedRecipy`/`ShapelessRecipy`). These handle the special logic for duplicating and expanding maps. In LCEMP, map functionality is more limited so these don't exist.
+
+The `FireworksRecipe` class is another MC addition. It handles the complex fireworks star crafting where you combine dyes, gunpowder, and effect ingredients in any order with special combination rules.
+
+The core recipe system (shaped/shapeless matching, variadic argument registration, recipe groups, tool repair) is the same in both codebases.

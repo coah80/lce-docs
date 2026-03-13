@@ -393,3 +393,13 @@ The End's biome decorator (`TheEndBiomeDecorator`) places:
 | `MineShaftFeature.h` | Mine shaft placement |
 | `NetherBridgeFeature.h` | Nether fortress placement |
 | `RandomScatteredLargeFeature.h` | Desert/jungle temples and witch huts |
+
+## MinecraftConsoles Differences
+
+The world generation system is mostly the same between LCEMP and MC, since both target the same Minecraft version's terrain. The main differences are:
+
+- **Flat world configuration**: MC adds `FlatGeneratorInfo` and `FlatLayerInfo` classes for configurable superflat world presets. LCEMP just has a basic `FlatLayer` system with hardcoded layers.
+- **Structure persistence**: MC adds `StructureFeatureIO` and `StructureFeatureSavedData` for saving structure bounding boxes to NBT and loading them back on world reload. In LCEMP, structure data only lives in memory during generation.
+- **Witch huts**: MC adds a `SwamplandHut` piece type to `ScatteredFeaturePieces` with its own enemy spawn list (just Witch). In LCEMP, the `RandomScatteredLargeFeature` only generates desert pyramids and jungle temples. MC adds Swampland to the allowed biomes list for scattered features.
+- **Nether wart tile**: MC has a separate `NetherWartTile` class. LCEMP uses `NetherStalkTile` for the same block.
+- **Glowstone tile**: MC has a dedicated `GlowstoneTile` class. LCEMP just uses a basic `Tile` with `LightGemTile` for the same purpose.

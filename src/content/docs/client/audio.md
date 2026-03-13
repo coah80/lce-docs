@@ -242,3 +242,47 @@ Audio resources are stored in:
 - **PS4 (Orbis)**: Uses `int32_t m_hBGMAudio` for the background music audio handle
 - **PS Vita**: Miles integration through a Vita-specific MSS build with `updateMiles()` called during the mixer callback
 - **Xbox 360**: Uses native XAudio instead of Miles (no `mss.h` include)
+
+## MinecraftConsoles differences
+
+MinecraftConsoles adds a large batch of new sound types to `SoundTypes.h`. These cover mobs and features that don't exist in LCEMP:
+
+### Firework sounds
+
+- `eSoundType_FIREWORKS_LAUNCH`
+- `eSoundType_FIREWORKS_BLAST` / `_FAR`
+- `eSoundType_FIREWORKS_LARGE_BLAST` / `_FAR`
+- `eSoundType_FIREWORKS_TWINKLE` / `_FAR`
+
+### Bat sounds
+
+- `eSoundType_MOB_BAT_IDLE`, `_HURT`, `_DEATH`, `_TAKEOFF`
+
+### Wither sounds
+
+- `eSoundType_MOB_WITHER_SPAWN`, `_IDLE`, `_HURT`, `_DEATH`, `_SHOOT`
+
+### Horse sounds (the longest batch)
+
+- `eSoundType_MOB_HORSE_LAND`, `_ARMOR`, `_LEATHER`
+- Variant death sounds: `_ZOMBIE_DEATH`, `_SKELETON_DEATH`, `_DONKEY_DEATH`, `_DEATH`
+- Variant hurt sounds: `_ZOMBIE_HIT`, `_SKELETON_HIT`, `_DONKEY_HIT`, `_HIT`
+- Variant idle sounds: `_ZOMBIE_IDLE`, `_SKELETON_IDLE`, `_DONKEY_IDLE`, `_IDLE`
+- `_DONKEY_ANGRY`, `_ANGRY`, `_GALLOP`, `_BREATHE`, `_WOOD`
+
+### Mob step/ambient sounds
+
+A bunch of mob step sounds are added that LCEMP was missing:
+
+- `eSoundType_MOB_COW_STEP`, `_CHICKEN_STEP`, `_PIG_STEP`
+- `eSoundType_MOB_ENDERMAN_STARE`, `_SCREAM`
+- `eSoundType_MOB_SHEEP_SHEAR`, `_SHEEP_STEP`
+- `eSoundType_MOB_SKELETON_DEATH`, `_SKELETON_STEP`
+- `eSoundType_MOB_SPIDER_STEP`
+- `eSoundType_MOB_WOLF_STEP`
+- `eSoundType_MOB_ZOMBIE_STEP`
+- `eSoundType_LIQUID_SWIM`
+
+### Bug fix
+
+`eSoundType_MOB_CAT_HITT` (typo with double T) is fixed to `eSoundType_MOB_CAT_HIT`.

@@ -719,3 +719,59 @@ Entity state gets communicated through several packet types:
 | `AnimatePacket` | Animation trigger |
 | `InteractPacket` | Player interaction with entity |
 | `MovePlayerPacket` | Player position update |
+
+## MinecraftConsoles Differences
+
+MC adds a bunch of new entity types that LCEMP doesn't have:
+
+### New mobs
+
+| Entity | Type | Numeric ID | Notes |
+|--------|------|-----------|-------|
+| `Witch` | Monster | 66 | Ranged potion attacks, uses `RangedAttackGoal` |
+| `WitherBoss` | Boss | 64 | Second boss mob, multi-part entity like the Ender Dragon |
+| `Bat` | Ambient | 65 | First ambient creature type, uses new `AmbientCreature` base class |
+| `EntityHorse` | Animal | 100 | Covers horses, donkeys, mules, skeleton horses, and zombie horses (TYPE_DONKEY, TYPE_MULE, TYPE_SKELETON, TYPE_UNDEAD variants) |
+
+### New non-mob entities
+
+| Entity | Numeric ID | Notes |
+|--------|-----------|-------|
+| `LeashFenceKnotEntity` | 8 | Invisible entity on a fence post that holds a lead |
+| `FireworksRocketEntity` | 22 | Fireworks rocket projectile |
+| `MinecartChest` | 43 | Chest minecart |
+| `MinecartFurnace` | 44 | Powered minecart |
+| `MinecartTNT` | 45 | TNT minecart |
+| `MinecartHopper` | 46 | Hopper minecart |
+| `MinecartSpawner` | 47 | Spawner minecart |
+
+In LCEMP, there's a single `Minecart` class (ID 40) and `Boat` class (ID 41). MC splits minecarts into typed subclasses with a shared `MinecartContainer` base for the ones that hold items.
+
+### New base classes
+
+MC adds several base classes that don't exist in LCEMP:
+
+- **`AmbientCreature`**: Base class for ambient mobs like bats. Sits between `PathfinderMob` and specific ambient entities.
+- **`MultiEntityMob`** / **`MultiEntityMobPart`**: For multi-part entities. LCEMP handled the Ender Dragon's parts differently.
+- **`LivingEntity`**: MC seems to be starting to split `Mob` responsibilities. This file exists in MC but not LCEMP.
+- **`Projectile`**: A shared interface/base for projectile entities.
+- **`OwnableEntity`**: Interface for entities that can be owned (used by horses and tameable animals).
+
+### Attribute system
+
+MC adds a full attribute system for mobs. Instead of hardcoded health/speed/damage values, mobs register attributes with modifiers:
+
+- `SharedMonsterAttributes` defines standard attributes like `MAX_HEALTH`, `FOLLOW_RANGE`, `KNOCKBACK_RESISTANCE`, `MOVEMENT_SPEED`, `ATTACK_DAMAGE`
+- `AttributeModifier` can add, multiply, or scale attribute values
+- `BaseAttributeMap` / `ServersideAttributeMap` manage per-entity attribute instances
+- `UpdateAttributesPacket` syncs attribute values to clients
+
+LCEMP doesn't have any of this. Health and speed are just direct member variables on the `Mob` class.
+
+### Combat tracking
+
+MC adds `CombatEntry` and `CombatTracker` classes for tracking combat events (who hit whom, when, with what). This feeds into death messages and the scoreboard system. LCEMP just has the basic `DamageSource` system.
+
+### Entity selector
+
+MC adds `EntitySelector` / `PlayerSelector` for command-style entity targeting (`@a`, `@e`, `@p`, `@r`). This works with the command block system that MC adds.

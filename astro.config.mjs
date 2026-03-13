@@ -7,7 +7,7 @@ export default defineConfig({
 	base: '/lcemp-docs',
 	integrations: [
 		starlight({
-			title: 'LCEMP Docs',
+			title: 'LCE Docs',
 			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/coah80/lcemp-docs' }],
 			sidebar: [
 				{
@@ -82,15 +82,70 @@ export default defineConfig({
 					label: 'Modding Guide',
 					items: [
 						{ label: 'Getting Started', slug: 'modding/getting-started' },
-						{ label: 'Adding Blocks', slug: 'modding/adding-blocks' },
-						{ label: 'Adding Items', slug: 'modding/adding-items' },
-						{ label: 'Adding Entities', slug: 'modding/adding-entities' },
-						{ label: 'Adding Biomes', slug: 'modding/adding-biomes' },
-						{ label: 'Adding Enchantments', slug: 'modding/adding-enchantments' },
-						{ label: 'Adding Recipes', slug: 'modding/adding-recipes' },
-						{ label: 'Custom World Generation', slug: 'modding/custom-worldgen' },
-						{ label: 'Custom GUI Screens', slug: 'modding/custom-screens' },
-						{ label: 'Multiplayer & Packets', slug: 'modding/multiplayer' },
+						{
+							label: 'Blocks & World',
+							items: [
+								{ label: 'Adding Blocks', slug: 'modding/adding-blocks' },
+								{ label: 'Custom Materials', slug: 'modding/custom-materials' },
+								{ label: 'Adding Biomes', slug: 'modding/adding-biomes' },
+								{ label: 'Custom World Generation', slug: 'modding/custom-worldgen' },
+								{ label: 'Custom Structures', slug: 'modding/custom-structures' },
+								{ label: 'Custom Dimensions', slug: 'modding/custom-dimensions' },
+								{ label: 'Fog & Sky Effects', slug: 'modding/fog-sky' },
+							],
+						},
+						{
+							label: 'Items & Crafting',
+							items: [
+								{ label: 'Adding Items', slug: 'modding/adding-items' },
+								{ label: 'Adding Recipes', slug: 'modding/adding-recipes' },
+								{ label: 'Custom Potions & Brewing', slug: 'modding/custom-potions' },
+								{ label: 'Custom Enchantments', slug: 'modding/custom-enchantments' },
+								{ label: 'Custom Loot Tables', slug: 'modding/custom-loot' },
+								{ label: 'Making a Full Ore', slug: 'modding/full-ore' },
+							],
+						},
+						{
+							label: 'Entities & Mobs',
+							items: [
+								{ label: 'Adding Entities', slug: 'modding/adding-entities' },
+								{ label: 'Custom AI Behaviors', slug: 'modding/custom-ai' },
+								{ label: 'Custom Death Messages', slug: 'modding/custom-death-messages' },
+								{ label: 'Custom Villager Trades', slug: 'modding/custom-trades' },
+							],
+						},
+						{
+							label: 'UI & Visuals',
+							items: [
+								{ label: 'Custom GUI Screens', slug: 'modding/custom-screens' },
+								{ label: 'Custom Container Menus', slug: 'modding/custom-containers' },
+								{ label: 'Creative Mode Tabs', slug: 'modding/creative-tabs' },
+								{ label: 'Custom Paintings', slug: 'modding/custom-paintings' },
+								{ label: 'Custom Achievements', slug: 'modding/custom-achievements' },
+							],
+						},
+						{
+							label: 'Assets & Resources',
+							items: [
+								{ label: 'Block Textures', slug: 'modding/block-textures' },
+								{ label: 'Entity Models', slug: 'modding/entity-models' },
+								{ label: 'Custom Animations', slug: 'modding/custom-animations' },
+								{ label: 'Custom Particles', slug: 'modding/custom-particles' },
+								{ label: 'Custom Sounds & Music', slug: 'modding/custom-sounds' },
+								{ label: 'Texture Packs', slug: 'modding/texture-packs' },
+							],
+						},
+						{
+							label: 'Gameplay & Systems',
+							items: [
+								{ label: 'Custom Game Rules', slug: 'modding/custom-gamerules' },
+								{ label: 'Adding Commands', slug: 'modding/adding-commands' },
+								{ label: 'World Size Limits', slug: 'modding/world-size' },
+								{ label: 'Splitscreen Modding', slug: 'modding/splitscreen' },
+								{ label: 'Increasing Player Limit', slug: 'modding/player-limit' },
+								{ label: 'Multiplayer & Packets', slug: 'modding/multiplayer' },
+							],
+						},
 					],
 				},
 				{

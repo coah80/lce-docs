@@ -159,3 +159,11 @@ Slot 2: selected
 6. Loop: while `random(50) <= bonusChance`, pick another compatible enchantment. `bonusChance` halves each iteration.
 
 Enchantments are stored on items as NBT data using `"ench"` tags with `TAG_ENCH_ID` and `TAG_ENCH_LEVEL` short values. Books use a separate path through `EnchantedBookItem`.
+
+## MinecraftConsoles Differences
+
+The enchantment system is the same between LCEMP and MC. Both register the exact same 22 enchantments (IDs 0-7, 16-21, 32-35, 48-51) with the same frequencies, categories, max levels, and formulas.
+
+No new enchantments are added in MC. The enchanting table mechanics, compatibility rules, damage/protection formulas, and cost calculations are all identical.
+
+The only indirect difference is that MC's attribute system (`SharedMonsterAttributes`, `AttributeModifier`) could theoretically interact with enchantment effects differently, but the actual enchantment code itself is unchanged.

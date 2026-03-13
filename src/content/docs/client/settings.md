@@ -318,3 +318,31 @@ unsigned char GetMinecraftLanguage(int iPad);
 ```
 
 The `eMCLang` enum defines all supported languages (30+ locales including English, Japanese, German, French, Spanish, Italian, Korean, Portuguese, Russian, Dutch, Finnish, Swedish, Danish, Norwegian, Polish, Turkish, Greek, Chinese variants, Czech, and Slovak).
+
+## MinecraftConsoles differences
+
+MinecraftConsoles tweaks the settings system in a few places:
+
+### New game settings
+
+- **`eGameSetting_RenderDistance`** is added for per-player render distance control. LCEMP handles render distance only through the `Options` class.
+- **`eGameSetting_FOV`** is added for per-player field of view. Same deal, LCEMP only has this in `Options`.
+- **`eGameSetting_Fullscreen`** is removed (it was a Windows 64-bit only setting in LCEMP).
+
+### New host options
+
+The `eGameHostOption` enum gets significantly expanded with game rule options that map to vanilla Minecraft's gamerule system:
+
+| Option | Purpose |
+|---|---|
+| `eGameHostOption_WorldSize` | World size selection |
+| `eGameHostOption_WasntSaveOwner` | PS3 save transfer tracking |
+| `eGameHostOption_MobGriefing` | Whether mobs can destroy blocks |
+| `eGameHostOption_KeepInventory` | Keep items on death |
+| `eGameHostOption_DoMobSpawning` | Natural mob spawning |
+| `eGameHostOption_DoMobLoot` | Mob drops |
+| `eGameHostOption_DoTileDrops` | Block drops |
+| `eGameHostOption_NaturalRegeneration` | Health regeneration from hunger |
+| `eGameHostOption_DoDaylightCycle` | Day/night cycle |
+
+These are the gamerule equivalents from PC Minecraft 1.6.1+, exposed as host options in the console UI instead of chat commands.

@@ -167,3 +167,31 @@ Rule progress updates are sent through `UpdateGameRuleProgressPacket` (packet ID
 | `m_auxValue` | `int` | Item aux value for icon |
 | `m_dataTag` | `int` | Extra data tag |
 | `m_data` | `byteArray` | Additional binary data |
+
+## MinecraftConsoles Differences
+
+This is one of the bigger differences between LCEMP and MC. MC adds a **vanilla-style `GameRules` class** alongside the existing console game rules system.
+
+### Vanilla GameRules class
+
+MC has `GameRules.h` / `GameRules.cpp` with a proper key-value rule system. Each rule is a `GameRule` inner class that stores a string value and can parse it as boolean, int, or double. The supported rules are:
+
+| Rule Constant | Purpose |
+|---|---|
+| `RULE_DOFIRETICK` | Whether fire spreads |
+| `RULE_MOBGRIEFING` | Whether mobs can modify blocks |
+| `RULE_KEEPINVENTORY` | Whether players keep items on death |
+| `RULE_DOMOBSPAWNING` | Whether mobs spawn naturally |
+| `RULE_DOMOBLOOT` | Whether mobs drop loot |
+| `RULE_DOTILEDROPS` | Whether blocks drop items when broken |
+| `RULE_COMMANDBLOCKOUTPUT` | Whether command blocks show output |
+| `RULE_NATURAL_REGENERATION` | Whether players regenerate health naturally |
+| `RULE_DAYLIGHT` | Whether the day/night cycle progresses |
+
+MC also adds a `GameRuleCommand` for toggling these rules in-game via the `/gamerule` command.
+
+LCEMP doesn't have any of this. The console game rules system documented above (the `GameRuleManager` / `GameRuleDefinition` / `EGameRuleType` stuff) still exists in MC too. So MC has *both* systems running at the same time: the vanilla `GameRules` for simple boolean toggles, and the console `GameRuleManager` for the complex data-driven DLC/minigame rules.
+
+### How they coexist
+
+The vanilla `GameRules` class is stored on the `Level` and its boolean values are checked directly by gameplay code (like fire spread checking `getBoolean(RULE_DOFIRETICK)`). The console game rules system is separate and runs through the `GameRuleManager` for DLC content packs and custom game modes. They don't interfere with each other.

@@ -379,3 +379,33 @@ Two font instances exist: `font` (default) and `altFont` (alternate character se
 ## ScreenSizeCalculator
 
 Computes screen dimensions accounting for console safe zones and split-screen layouts. Used by both the legacy screen system and the console UI.
+
+## MinecraftConsoles differences
+
+MinecraftConsoles adds a bunch of new screens and UI scenes for features that don't exist in LCEMP:
+
+### New UIScene classes
+
+| Scene class | Purpose |
+|---|---|
+| `UIScene_BeaconMenu` | Beacon block configuration (power selection, payment slot) |
+| `UIScene_FireworksMenu` | Firework rocket crafting UI |
+| `UIScene_HopperMenu` | Hopper inventory (5-slot single-row container) |
+| `UIScene_HorseInventoryMenu` | Horse/donkey/mule inventory (saddle, armor, and chest slots) |
+| `UIScene_LanguageSelector` | In-game language selection (LCEMP handles this differently) |
+| `UIScene_NewUpdateMessage` | Title update notification screen |
+
+### New UIScene interfaces
+
+| Interface | Purpose |
+|---|---|
+| `IUIScene_BeaconMenu` | Interface for beacon menu scene |
+| `IUIScene_CommandBlockMenu` | Interface for command block editing scene |
+| `IUIScene_FireworksMenu` | Interface for fireworks crafting scene |
+| `IUIScene_HopperMenu` | Interface for hopper menu scene |
+| `IUIScene_HorseInventoryMenu` | Interface for horse inventory scene |
+| `IUIScene_HUD` | Dedicated interface for the HUD (split from the generic scene system) |
+
+### XUI scene additions
+
+The Xbox XUI scene layout files expand significantly with `_480` (SD resolution) and `_small` (split-screen) variants for the new menus: `xuiscene_beacon`, `xuiscene_fireworks`, `xuiscene_hopper`, `xuiscene_horse`, plus `xuiscene_debug_item_editor` for a debug item editing screen.

@@ -155,3 +155,22 @@ Uses `auxValue` 0-4 to represent five skull types. Each one has its own icon (`I
 | Sugar Cane | 338 | `TilePlanterItem` | Places reed tile on sand/dirt near water |
 
 `TilePlanterItem` is a general-purpose class that places a given tile when used on a block face. Each instance is created with the target tile ID.
+
+## MinecraftConsoles differences
+
+MinecraftConsoles adds a few new decorative/placement items:
+
+### New items
+
+- **`NameTagItem`** (name tags) lets you name mobs by right-clicking them. Uses `interactEnemy` to apply the item stack's custom name to the target `LivingEntity`. The stack is consumed on use.
+- **`LeashItem`** (leads) attaches leashed mobs to fence posts. The `useOn` method calls `bindPlayerMobs` to tie all of the player's currently leashed mobs to the clicked fence position. There's also a `bindPlayerMobsTest` method that the UI uses to check if the interaction would work (for tooltip display).
+- **`EmptyMapItem`** is split out from `MapItem` as a separate class. It extends `ComplexItem` and creates a fresh map when you right-click. In LCEMP, the empty map and filled map are both handled by `MapItem`. MinecraftConsoles also adds `MapCloningRecipe` and `MapExtendingRecipe` as dedicated recipe classes.
+- **`WrittenBookItem`** adds signed/written book support with title (max 16 chars), author, and pages (max 50 pages, 256 chars each). Though in the source it's only present as commented-out Java pseudocode, it shows the intended structure.
+
+### Horse equipment placement
+
+The new horse armor items (`horseArmorMetal`, `horseArmorGold`, `horseArmorDiamond`) and saddle work with the `EntityHorse` entity through the `HorseInventoryMenu`. The horse inventory has slots for saddle (slot 0), armor (slot 1), and optionally 15 chest slots for donkeys/mules with chests.
+
+### Leash fence knot entity
+
+`LeashFenceKnotEntity` is added as a new hanging entity type for the visual knot that appears when you tie a leash to a fence. It has its own `LeashKnotModel` and `LeashKnotRenderer`.

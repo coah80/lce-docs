@@ -203,3 +203,23 @@ Tracks a block being moved by a piston.
 3. **Remove** (`e_RenderRemoveStageRemove`): safe to remove from renderer
 
 `upgradeRenderRemoveStage()` transitions from FlaggedAtChunk to Remove. `shouldRemoveForRender()` returns true only at the Remove stage.
+
+## MinecraftConsoles Differences
+
+MC goes from 13 registered tile entity types to 18. Here are the new ones:
+
+| String ID | Class | Type Enum | Notes |
+|---|---|---|---|
+| `"Control"` | `CommandBlockEntity` | `eTYPE_COMMANDBLOCKTILEENTITY` | Stores and executes commands |
+| `"Beacon"` | `BeaconTileEntity` | `eTYPE_BEACONTILEENTITY` | Beacon block with effect area |
+| `"DLDetector"` | `DaylightDetectorTileEntity` | `eTYPE_DAYLIGHTDETECTORTILEENTITY` | Outputs redstone based on sunlight |
+| `"Hopper"` | `HopperTileEntity` | `eTYPE_HOPPERTILEENTITY` | Item transfer between containers |
+| `"Comparator"` | `ComparatorTileEntity` | `eTYPE_COMPARATORTILEENTITY` | Stores redstone comparator state |
+
+MC also changes a few existing ones:
+
+- The **Dispenser** tile entity gets a sibling: `DropperTileEntity` (string ID `"Dropper"`, type `eTYPE_DROPPERTILEENTITY`). The dropper works like a dispenser but just drops items instead of shooting them.
+- The **RecordPlayer** tile entity class gets renamed from `RecordPlayerTile::Entity` to `JukeboxTile::Entity` in MC. Same tile entity, different outer class name.
+- MC adds `BaseMobSpawner` as a shared base class. In LCEMP the spawner logic lives entirely in `MobSpawnerTileEntity`, but MC extracts it so it can be reused for spawner minecarts.
+
+So the total goes from 13 in LCEMP to 19 in MC (13 original + Dropper + Command Block + Beacon + Daylight Detector + Hopper + Comparator).

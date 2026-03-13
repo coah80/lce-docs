@@ -203,3 +203,22 @@ The `BrewingStandTileEntity` handles the brewing process:
 ### Potion color
 
 Potion colors are computed by blending the colors of all active effects, weighted by amplifier level. The result is cached per brew value for performance.
+
+## MinecraftConsoles Differences
+
+MC adds 4 new status effects on top of LCEMP's 19, filling in IDs 20-23:
+
+| ID | Static name | Class | Harmful | Notes |
+|---|---|---|---|---|
+| 20 | `wither` | `MobEffect` | Yes | Deals 1 damage per tick interval (like poison but can kill). Duration modifier 0.25. |
+| 21 | `healthBoost` | `HealthBoostMobEffect` | No | Increases max health through the attribute system. Uses `SharedMonsterAttributes::MAX_HEALTH` with an `AttributeModifier` that adds 4 HP per level. |
+| 22 | `absorption` | `AbsoptionMobEffect` | No | Adds temporary extra hearts that don't regenerate. Has its own subclass. |
+| 23 | `saturation` | `InstantenousMobEffect` | No | Instant effect that restores hunger and saturation. Only works on players. |
+
+In LCEMP, IDs 20-31 are all reserved null slots. MC fills in 20-23 and leaves 24-31 as null.
+
+The Wither effect is used by the Wither Boss mob (also new in MC). The other three effects (Health Boost, Absorption, Saturation) come from golden apples and beacon effects.
+
+MC also adds `AttackDamageMobEffect` as a new subclass, likely used for the Strength effect to interact with the attribute system instead of just adding flat damage.
+
+The big structural change is that Health Boost uses the new attribute modifier system instead of directly changing health. In LCEMP, there's no attribute system at all, so effects like this couldn't exist.

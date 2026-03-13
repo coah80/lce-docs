@@ -546,3 +546,36 @@ Most tiles store 4 bits of metadata (0-15). Here are the common uses:
 | Facing direction | Dispensers, furnaces, chests |
 | Damage state | Anvils (0-2) |
 | Water level | Cauldrons (0-3) |
+
+## MinecraftConsoles Differences
+
+MC fills in many of the unassigned tile IDs that are empty in LCEMP. Here's what gets added:
+
+| ID | Name | Class | Notes |
+|----|------|-------|-------|
+| 95 | stained_glass | `StainedGlassBlock` | Replaces the locked chest (April Fools joke). 16 colors. |
+| 137 | command_block | `CommandBlock` | Indestructible, 6M explosion resistance |
+| 138 | beacon | `BeaconTile` | Full light emission, tile entity |
+| 146 | trapped_chest | -- | Trapped chest (emits redstone) |
+| 147 | weightedPlate_light | `WeightedPressurePlateTile` | Gold pressure plate, analog signal |
+| 148 | weightedPlate_heavy | `WeightedPressurePlateTile` | Iron pressure plate, analog signal |
+| 149 | comparator_off | `ComparatorTile` | Redstone comparator (off state) |
+| 150 | comparator_on | `ComparatorTile` | Redstone comparator (on state), light=10 |
+| 151 | daylightDetector | `DaylightDetectorTile` | Outputs signal based on sunlight |
+| 152 | redstoneBlock | -- | Block of redstone |
+| 154 | hopper | `HopperTile` | Item transport, tile entity |
+| 155 | quartzBlock | `QuartzBlockTile` | Already in LCEMP at this ID |
+| 157 | activatorRail | `PoweredRailTile` | Activator rail |
+| 158 | dropper | `DropperTile` | Like a dispenser but just drops items |
+| 159 | stained_clay | `ColoredTile` | Stained hardened clay, 16 colors |
+| 160 | stained_glass_pane | `StainedGlassPaneBlock` | Stained glass pane, 16 colors |
+| 170 | hayBlock | `HayBlockTile` | Hay bale, rotatable pillar |
+| 172 | hardened_clay | `Tile` | Plain hardened clay block |
+
+MC also adds a `ColoredTile` base class that handles blocks with 16 color variants (wool, stained clay, stained glass). In LCEMP, wool uses `ClothTile` instead.
+
+The `BasePressurePlateTile` and `BaseRailTile` classes are new in MC, providing shared base functionality that LCEMP handles directly in `PressurePlateTile` and `RailTile`.
+
+The `BaseEntityTile` class is another MC addition that provides a shared base for tile entity blocks. LCEMP uses `EntityTile` in its hierarchy instead.
+
+MC also adds `RepeaterTile` and `ComparatorTile` as separate source files. In LCEMP, the repeater logic lives entirely in `DiodeTile`.

@@ -262,3 +262,23 @@ The `g` parameter is a "growth" or "inflation" factor that expands boxes outward
 2. `Model::setupAnim()` calculates limb rotations based on walk cycle, head rotation, and attack time
 3. `Model::render()` goes through all parts and calls `ModelPart::render()` recursively
 4. Each `ModelPart::render()` pushes a matrix, applies its transform, renders its `Cube` list via `Tesselator`, then renders children
+
+## MinecraftConsoles differences
+
+MinecraftConsoles adds several new model classes that don't exist in LCEMP:
+
+### New mob models
+
+| Class | Entity | Notes |
+|---|---|---|
+| `BatModel` | Bats | Head, body, left/right wings with wing tips. Uses a `modelVersion()` method. |
+| `ModelHorse` | Horses | One of the most complex models in the game. Has head, upper/lower mouth, two ears, mule ears, neck, mane, body, three-segment tail, four multi-joint legs (each with 3 parts: A/B/C), saddle bags, and a full saddle assembly with stirrups and mouth lines. |
+| `WitchModel` | Witches | Extends `VillagerModel` with a mole and hat. Has a `holdingItem` flag for the potion-drinking animation. |
+| `WitherBossModel` | Wither boss | Body parts array and heads array. Has `prepareMobModel` for invulnerability animation. |
+| `OcelotModel` | Ocelots/cats | Dedicated model with 4 animation states: sneak, walk, sprint, and sitting. Much more detailed than the generic version in LCEMP. |
+| `SkiModel` | Player ski attachment | A 4J-added cosmetic model for DLC skins. Has left/right ski variants. |
+| `LeashKnotModel` | Leash fence knots | Simple model for the leash attachment point on fences. |
+
+### Model rendering changes
+
+The `render()` method signature across models gains a `bool usecompiled` parameter in MinecraftConsoles. LCEMP already has this, but the entity parameter type changes from raw `Entity` references to `shared_ptr<Entity>` in some models, and `LivingEntity` is used more consistently for mob-specific methods like `prepareMobModel`.

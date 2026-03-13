@@ -248,3 +248,31 @@ DLC packs are managed through `DLCManager` and `DLCPack` in `Common/DLC/`, with 
 ## Texture format
 
 The static member `Textures::TEXTURE_FORMAT` controls the GPU texture format. Mipmapping is controlled by `Textures::MIPMAP`. Format selection via `setTextureFormat()` adapts to whatever the platform supports.
+
+## MinecraftConsoles differences
+
+MinecraftConsoles expands the texture system in a few ways:
+
+### New mob textures
+
+The `TEXTURE_NAME` enum gains a lot of new entries for mobs that don't exist in LCEMP:
+
+- **Bat:** `TN_MOB_BAT`
+- **Horse variants:** `TN_MOB_HORSE_BLACK`, `TN_MOB_HORSE_BROWN`, `TN_MOB_HORSE_CHESTNUT`, `TN_MOB_HORSE_CREAMY`, `TN_MOB_HORSE_DARKBROWN`, `TN_MOB_HORSE_GRAY`, `TN_MOB_HORSE_WHITE`, `TN_MOB_HORSE_SKELETON`, `TN_MOB_HORSE_ZOMBIE`
+- **Horse markings:** `TN_MOB_HORSE_MARKINGS_BLACKDOTS`, `TN_MOB_HORSE_MARKINGS_WHITE`, `TN_MOB_HORSE_MARKINGS_WHITEDOTS`, `TN_MOB_HORSE_MARKINGS_WHITEFIELD`
+- **Horse armor:** `TN_MOB_HORSE_ARMOR_DIAMOND`, `TN_MOB_HORSE_ARMOR_GOLD`, `TN_MOB_HORSE_ARMOR_IRON`
+- **Donkey/Mule:** `TN_MOB_DONKEY`, `TN_MOB_MULE`
+- **Witch:** `TN_MOB_WITCH`
+- **Wither:** `TN_MOB_WITHER`, `TN_MOB_WITHER_ARMOR`, `TN_MOB_WITHER_INVULNERABLE`
+
+### Naming fix
+
+`TN_MOB_OZELOT` is renamed to `TN_MOB_OCELOT` (fixing the typo from the original Java source).
+
+### ResourceLocation and TextureAtlas
+
+MinecraftConsoles introduces `ResourceLocation` as a typed wrapper for texture resource paths. `TextureAtlas` provides `LOCATION_BLOCKS` and `LOCATION_ITEMS` as static resource locations for the terrain and item atlases. Many renderers switch from string-based `bindTexture()` to `ResourceLocation`-based lookups.
+
+### DLC additions
+
+`DLCCapeFile` is added as a new DLC file type for distributing cape textures through content packs.

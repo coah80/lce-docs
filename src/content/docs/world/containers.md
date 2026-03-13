@@ -156,3 +156,29 @@ Simple 9-slot grid wrapping a `DispenserTileEntity`. No special slot logic beyon
 ### ContainerMenu (Generic chest)
 
 Used for single and double chests. Calculates `containerRows` from the container size and creates the right slot grid. Calls `startOpen()` / `stopOpen()` for chest animations.
+
+## MinecraftConsoles Differences
+
+MC adds several new container menus that LCEMP doesn't have:
+
+### New menu types
+
+| Menu | Purpose | Notes |
+|---|---|---|
+| `BeaconMenu` | Beacon block UI | Lets players pick which effect the beacon gives. Interacts with `BeaconTileEntity`. |
+| `HopperMenu` | Hopper inventory | 5-slot container for the hopper block. Wraps `HopperTileEntity`. |
+| `HorseInventoryMenu` | Horse/donkey inventory | Manages saddle slot, armor slot, and chest inventory for horses. Uses `AnimalChest` as the backing container. |
+| `FireworksMenu` | Fireworks crafting | Special UI for crafting fireworks stars and rockets. |
+| `AnvilMenu` | Anvil (separate file) | In LCEMP, the anvil logic lives inside `RepairMenu`. MC extracts it into its own `AnvilMenu` class file. |
+
+### New container types
+
+- **`AnimalChest`**: A new container type used by horses and donkeys. It extends `SimpleContainer` and supports different sizes depending on whether the horse has chests equipped.
+- **`WorldlyContainer`**: An interface for containers that expose different slots on different block faces (used by hoppers and droppers for sided inventory access). LCEMP doesn't have this concept.
+- **`Hopper`** (interface): Defines the hopper transfer behavior. `HopperTileEntity` and `MinecartHopper` both implement this.
+
+### Existing menu changes
+
+The `TrapMenu` in LCEMP only handles dispensers. In MC, it also covers droppers through the new `DropperTileEntity`. The menu logic is the same since droppers use the same 9-slot layout.
+
+The core `AbstractContainerMenu`, `Container`, `Slot`, and synchronization systems are the same across both codebases.

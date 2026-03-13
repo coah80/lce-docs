@@ -89,3 +89,11 @@ Leather armor (`ArmorMaterial::CLOTH`) supports custom colors through NBT. The c
 Leather armor uses two sprite layers (base + overlay) for dyeing. The base layer gets tinted with the custom color, while the overlay renders untinted for detail.
 
 Dyeing happens through the `ArmorDyeRecipe` crafting recipe, which combines leather armor with one or more `DyePowderItem` instances. Check out [Crafting & Recipes](/lcemp-docs/world/crafting/) for more on that.
+
+## MinecraftConsoles differences
+
+The armor system is mostly unchanged. Same five materials, same defense values, same durability multipliers.
+
+The main difference is naming: the `CLOTH` material's item fields are renamed from `_cloth` to `_leather` (e.g., `boots_cloth` becomes `boots_leather`, `helmet_cloth` becomes `helmet_leather`, etc.). This is just a naming cleanup to match vanilla Minecraft's conventions. The `ArmorMaterial` enum value itself is still `CLOTH` internally.
+
+MinecraftConsoles also adds **horse armor** items (`horseArmorMetal`, `horseArmorGold`, `horseArmorDiamond`), but those aren't wearable by players. They're equipment for the new horse entity. Horse armor protection values are defined in `EntityHorse` as `ARMOR_PROTECTION[4]` for none/iron/gold/diamond.

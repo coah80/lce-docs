@@ -146,3 +146,12 @@ Several items are tagged with potion brewing formulas through `setPotionBrewingF
 | 373 | Potion | PotionItem |
 | 384 | Bottle o' Enchanting | ExperienceItem |
 | 385 | Fire Charge | FireChargeItem |
+
+## MinecraftConsoles differences
+
+The combat item system is mostly the same, but MinecraftConsoles adds firework rockets as a placeable/launchable item:
+
+- **`FireworksItem`** (ID for the rocket) uses `useOn` to place a `FireworksRocketEntity` on a block face. It reads explosion data from NBT tags (`TAG_FIREWORKS`, `TAG_EXPLOSIONS`, `TAG_FLIGHT`, etc.) and supports five explosion shape types: small ball (0), large ball (1), star (2), creeper face (3), and burst (4). Each explosion entry can have trail and flicker flags plus custom colors and fade colors.
+- **`FireworksChargeItem`** (the star component) is a multi-layer sprite item that reads its tooltip text from the explosion compound tag.
+
+The `BowItem`, `PotionItem`, `SnowballItem`, `EnderpearlItem`, `EggItem`, `ExperienceItem`, and `FireChargeItem` classes are all the same between the two codebases.

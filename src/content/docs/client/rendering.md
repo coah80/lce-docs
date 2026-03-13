@@ -369,3 +369,49 @@ The `Lighting` class provides static methods for fixed-function lighting:
 | `Minimap` | In-game map rendering using `MapItemSavedData` |
 | `OffsettedRenderList` | Manages display list collections offset to a world position |
 | `DirtyChunkSorter` / `DistanceChunkSorter` | Sort chunks by rebuild priority or distance |
+
+## MinecraftConsoles differences
+
+MinecraftConsoles has a bunch of additions to the rendering pipeline compared to LCEMP:
+
+### New entity renderers
+
+| Class | Entity | Notes |
+|---|---|---|
+| `BatRenderer` | Bats | New mob added in 1.4 |
+| `CaveSpiderRenderer` | Cave spiders | Gets its own renderer (extends `SpiderRenderer`) with a separate texture and a smaller scale. In LCEMP, `SpiderRenderer` handles both. |
+| `HorseRenderer` | Horses | Full horse renderer with layered texture caching for markings, armor overlays, and variant types (horse, donkey, mule, zombie, skeleton) |
+| `OcelotRenderer` | Ocelots/cats | Gets a dedicated renderer class. In LCEMP this was handled by the generic `OzelotRenderer` (note the spelling change too, `Ozelot` to `Ocelot`). |
+| `SkeletonRenderer` | Skeletons | Separated into its own class (extends `HumanoidMobRenderer`) with texture switching between normal and wither skeleton. In LCEMP, `HumanoidMobRenderer` handles both directly. |
+| `WitchRenderer` / `WitchModel` | Witches | Completely new mob. |
+| `WitherBossRenderer` | Wither boss | New boss mob with invulnerability texture, armor overlay, and scaling. |
+| `WitherSkullRenderer` | Wither skulls | Projectile renderer for wither skull attacks. |
+| `LeashKnotRenderer` / `LeashKnotModel` | Leash knots | Renders the leash fence knot entity. |
+| `TntMinecartRenderer` | TNT minecarts | Custom renderer that shows the TNT priming animation inside the minecart. |
+| `MinecartSpawnerRenderer` | Spawner minecarts | Renders the spinning mob inside the spawner minecart. |
+| `BeaconRenderer` | Beacon beam | Tile entity renderer for the beacon's light beam effect. |
+
+### New tile renderer methods
+
+`TileRenderer` gains several new `tesselate` methods:
+
+- `tesselateBeaconInWorld()` for beacon blocks
+- `tesselateComparatorInWorld()` for redstone comparators
+- `tesselateHopperInWorld()` for hoppers (two overloads)
+- `tesselateRepeaterInWorld()` for repeaters (separate from the diode method)
+- `tesselateThinPaneInWorld()` for stained glass panes
+
+A bunch of `_SPU` tile files are also added for PS3 SPU offloading of tile geometry building (e.g., `CactusTile_SPU.h`, `DoorTile_SPU.h`, `FenceTile_SPU.h`, etc.).
+
+### LevelRenderer changes
+
+`LevelRenderer` gets several helper files broken out:
+
+- `LevelRenderChunks.h` for chunk management
+- `LevelRenderer_cull.h` for culling logic
+- `LevelRenderer_FindNearestChunk.h` for nearest chunk search
+- `LevelRenderer_zSort.h` for z-sorting
+
+### Renderer base class
+
+`LivingEntityRenderer` is inserted as a new base class between `EntityRenderer` and `MobRenderer`. It handles the common mob rendering pipeline: model rendering, positioning, rotations, attack animations, armor layers, name tags, and arrow-stuck-in-entity rendering. This is stuff that was previously jammed directly into `MobRenderer` in LCEMP.

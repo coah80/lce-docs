@@ -205,3 +205,23 @@ Player save/load goes through the `PlayerIO` interface:
 | `clearOldPlayerFiles()` | Removes stale player data files (4J addition) |
 
 `DirectoryLevelStorage` implements `PlayerIO` and stores player data in a dedicated subdirectory within the world folder.
+
+## MinecraftConsoles Differences
+
+The storage system is mostly the same between LCEMP and MC. Both use the same `LevelStorageSource` -> `LevelStorage` -> `ChunkStorage` hierarchy, the same McRegion format, and the same NBT tag types.
+
+### Structure saved data
+
+The biggest addition is `StructureFeatureSavedData`, which persists structure bounding boxes (villages, strongholds, witch huts, etc.) to the world save. In LCEMP, structure positions are only tracked in memory and get regenerated from the seed on load. MC actually writes them to NBT so the game can look them up later (important for things like witch hut spawning rules).
+
+### Scoreboard saved data
+
+MC adds `ScoreboardSaveData` for persisting scoreboard objectives, scores, and teams. LCEMP doesn't have a scoreboard system so this doesn't exist.
+
+### ConsoleSaveFileSplit
+
+One interesting difference going the other direction: LCEMP has `ConsoleSaveFileSplit.h/.cpp` which MC does not. This appears to be a save file splitting mechanism that was removed or refactored in the later MC version.
+
+### Everything else
+
+The `LevelData` tags, NBT system, player data IO, chunk storage with threaded saving, region file cache, and map data mappings are all the same across both codebases.

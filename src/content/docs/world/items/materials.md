@@ -107,3 +107,17 @@ Several material items are tagged with potion brewing formulas through `setPotio
 | Golden Carrot | 396 | `MOD_GOLDENCARROT` |
 
 See [Effects (Potions)](/lcemp-docs/world/effects/) for the full potion system.
+
+## MinecraftConsoles differences
+
+MinecraftConsoles adds one new material item and renames another:
+
+### New items
+
+- **Nether Star** (`netherStar`) is added as a drop from the Wither boss. It's a `SimpleFoiledItem`, meaning it always shows the enchantment glint effect. Used as a crafting ingredient for beacons.
+
+### Renamed items
+
+- `sulphur` is renamed to `gunpowder` to match vanilla Minecraft naming.
+
+The rest of the raw materials (ingots, gems, redstone, glowstone dust, sticks, brewing ingredients, etc.) are the same between the two codebases. Same IDs, same brewing formulas, same properties.

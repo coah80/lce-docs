@@ -157,3 +157,46 @@ Clears all mob effects when you drink it. The crafting remaining item is set to 
 | Minecart | 328 | `MinecartItem` | Places minecart on rails |
 | Chest Minecart | 342 | `MinecartItem` | Minecart with chest |
 | Furnace Minecart | 343 | `MinecartItem` | Minecart with furnace |
+
+## MinecraftConsoles differences
+
+MinecraftConsoles has some changes to the special items:
+
+### Spawn eggs
+
+`MonsterPlacerItem` is renamed to `SpawnEggItem`. The spawn limit system is the same but adds `eSpawnResult_FailTooManyBats` for the new bat mob. The `use()` method gains a water-placement path (right-clicking water spawns the mob at the water surface) in addition to the existing block-face placement.
+
+### New minecart variants
+
+Three new minecart types are added:
+
+| Item | Class | Description |
+|---|---|---|
+| `minecart_tnt` | `MinecartTNT` | TNT minecart that explodes when activated by a powered rail or damaged. Has a fuse timer and custom explosion logic with `primeFuse()` and `getFuse()`. |
+| `minecart_hopper` | `MinecartHopper` | Hopper minecart that sucks in items while moving. Extends `MinecartContainer` and `Hopper`. Has an enabled/disabled state and a cooldown timer. |
+| Spawner minecart | `MinecartSpawner` | Minecart with a mob spawner inside. Has a `MinecartMobSpawner` inner class that extends `BaseMobSpawner`. |
+
+`MinecartChest` and `MinecartFurnace` also get split into their own classes (they were handled generically in LCEMP's `Minecart`/`MinecartItem`).
+
+### New entities
+
+Several new entity types support the items above:
+
+- **`EntityHorse`** is a big one. Supports 5 types (horse, donkey, mule, undead, skeleton), 7 color variants, horse armor (none/iron/gold/diamond), saddles, chest storage for donkeys/mules, breeding, and taming. Has its own inventory (`AnimalChest`) and data sync for flags like tame, saddled, chested, bred, eating, standing, and open-mouth.
+- **`WitherBoss`** is the Wither boss mob, a `Monster` that also implements `RangedAttackMob` and `BossMob`. Has three target tracking data IDs, head rotation tracking, and a destroy-blocks-tick timer.
+- **`Witch`** is a ranged-attack hostile mob that uses potions. Has a drinking speed modifier and death loot table.
+- **`Bat`** is an ambient creature with resting/flying states and ceiling-hanging behavior.
+- **`FireworksRocketEntity`** is the firework rocket projectile.
+- **`WitherSkull`** is the Wither's projectile attack.
+- **`LargeFireball`** is a separate class from the small fireball.
+- **`LeashFenceKnotEntity`** is the leash attachment point on fences.
+
+### Scoreboard system
+
+MinecraftConsoles adds a full `Scoreboard` system with `Objective`, `ObjectiveCriteria`, `Score`, `PlayerTeam`, `ScoreHolder`, and `ScoreboardSaveData` classes. This supports the `/scoreboard` command and in-game score display in three slots (list, sidebar, below name).
+
+### Other additions
+
+- **`CarrotOnAStickItem`** works with the new horse entity in addition to pigs.
+- **Saddle** now also works on horses through the horse inventory menu.
+- **`SaddleItem::interactEnemy`** likely gains horse support (in addition to pig).

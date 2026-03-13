@@ -191,3 +191,26 @@ targetSelector.addGoal(2, NearestAttackableTargetGoal)
 ```
 
 Lower priority numbers take precedence. Goals at the same priority level can coexist if their control flags don't conflict.
+
+## MinecraftConsoles Differences
+
+MC adds two new AI goal types that LCEMP doesn't have:
+
+### RunAroundLikeCrazyGoal
+
+Used by horses when they're being tamed. Makes the horse run around wildly to try to throw off the player. Once the horse is tamed, this goal stops firing.
+
+### RangedAttackGoal
+
+A new ranged attack goal that's separate from the existing `ArrowAttackGoal`. In LCEMP, `ArrowAttackGoal` handles both arrow-type and snowball-type ranged attacks. MC splits this out so `RangedAttackGoal` can be used by the Witch (for potion throwing) and the Skeleton (using the `RangedAttackMob` interface).
+
+MC also adds `OcelotAttackGoal` as a separate file pair. In LCEMP, this goal exists but its source may be structured slightly differently.
+
+### New mob AI setups
+
+Since MC adds new mobs (Witch, Wither Boss, Bat, Horse), those mobs each bring their own goal configurations. For example:
+
+- **Witch** uses `RangedAttackGoal` for potion attacks and standard movement/targeting goals
+- **Horse** uses `RunAroundLikeCrazyGoal` during taming, plus the usual `PanicGoal`, `BreedGoal`, `FollowParentGoal`, and `RandomStrollGoal`
+- **Wither Boss** has its own attack patterns (not simple goal-based AI)
+- **Bat** has minimal AI since it just flies around randomly
