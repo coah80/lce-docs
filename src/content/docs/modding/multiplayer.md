@@ -3,7 +3,7 @@ title: Multiplayer & Packets
 description: How to create custom packets for multiplayer mod sync in LCEMP.
 ---
 
-LCEMP uses a packet-based networking system derived from Minecraft's legacy console networking. The server and each client communicate over TCP sockets by sending `Packet` objects that are serialized with `DataOutputStream` and deserialized with `DataInputStream`. This guide covers how the system works and how to add custom packets.
+LCEMP uses a packet-based networking system from Minecraft's legacy console networking. The server and each client talk over TCP sockets by sending `Packet` objects that get serialized with `DataOutputStream` and deserialized with `DataInputStream`. This guide covers how the system works and how to add your own custom packets.
 
 ## Architecture overview
 
@@ -30,7 +30,7 @@ Client                          Server
 
 ## The Packet base class
 
-`Packet` (`Minecraft.World/Packet.h`) defines the interface every packet must implement:
+`Packet` (`Minecraft.World/Packet.h`) defines the interface every packet needs to implement:
 
 ```cpp
 class Packet {
@@ -67,19 +67,19 @@ protected:
 | Method | Purpose |
 |---|---|
 | `getId()` | Returns the packet's unique numeric ID |
-| `read()` | Deserializes the packet from a data stream |
-| `write()` | Serializes the packet to a data stream |
-| `handle()` | Dispatches to the appropriate `PacketListener` method |
+| `read()` | Reads the packet from a data stream |
+| `write()` | Writes the packet to a data stream |
+| `handle()` | Sends it to the right `PacketListener` method |
 | `getEstimatedSize()` | Returns approximate byte size for buffer management |
 
 ### Static helpers
 
 The `Packet` class provides serialization helpers for common types:
 
-- `writeUtf()` / `readUtf()` -- wide strings with length prefix
-- `writeItem()` / `readItem()` -- `ItemInstance` serialization (ID, count, damage, NBT)
-- `writeNbt()` / `readNbt()` -- `CompoundTag` (NBT) serialization
-- `writeBytes()` / `readBytes()` -- raw byte arrays
+- `writeUtf()` / `readUtf()` for wide strings with length prefix
+- `writeItem()` / `readItem()` for `ItemInstance` serialization (ID, count, damage, NBT)
+- `writeNbt()` / `readNbt()` for `CompoundTag` (NBT) serialization
+- `writeBytes()` / `readBytes()` for raw byte arrays
 
 ## Packet registration
 
@@ -97,7 +97,7 @@ static void map(
 );
 ```
 
-Every packet class must provide a static `create()` factory function:
+Every packet class needs a static `create()` factory function:
 
 ```cpp
 static shared_ptr<Packet> create() { return shared_ptr<Packet>(new MyPacket()); }
@@ -118,11 +118,11 @@ static shared_ptr<Packet> create() { return shared_ptr<Packet>(new MyPacket()); 
 | 130-132 | Signs/maps | SignUpdate, ComplexItemData, TileEntityData |
 | 150-165 | 4J custom | CraftItem, TradeItem, DebugOptions, Textures, Progress, GameRules |
 
-IDs 150+ are custom additions by 4J Studios for the console edition. Use IDs in an unused range (e.g. 200+) for your mod packets.
+IDs 150+ are custom additions by 4J Studios for the console edition. Use IDs in an unused range (like 200+) for your mod packets.
 
 ## Concrete example: ChatPacket
 
-`ChatPacket` is a good reference for implementing a custom packet. Here is its complete structure:
+`ChatPacket` is a good reference for building a custom packet. Here's its complete structure:
 
 ### Header (`ChatPacket.h`)
 
@@ -198,7 +198,7 @@ void ChatPacket::handle(PacketListener *listener) {
 }
 ```
 
-The `handle()` method calls the corresponding virtual method on `PacketListener`. `ClientConnection` and `PlayerConnection` each override `handleChat()` to process the message on their respective side.
+The `handle()` method calls the matching virtual method on `PacketListener`. `ClientConnection` and `PlayerConnection` each override `handleChat()` to process the message on their side.
 
 ## PacketListener
 
@@ -216,10 +216,10 @@ public:
 };
 ```
 
-Two implementations exist:
+There are two implementations:
 
-- **`ClientConnection`** (`Minecraft.Client/ClientConnection.h`) -- client-side, returns `false` from `isServerPacketListener()`
-- **`PlayerConnection`** (`Minecraft.Client/PlayerConnection.h`) -- server-side, returns `true` from `isServerPacketListener()`
+- **`ClientConnection`** (`Minecraft.Client/ClientConnection.h`) is the client side, returns `false` from `isServerPacketListener()`
+- **`PlayerConnection`** (`Minecraft.Client/PlayerConnection.h`) is the server side, returns `true` from `isServerPacketListener()`
 
 ## Connection (transport layer)
 
@@ -250,20 +250,20 @@ public:
 
 Key design points:
 
-- **Separate read/write threads** -- `Connection` spawns dedicated threads for reading and writing packets, using critical sections for thread safety
-- **Two outgoing queues** -- `outgoing` for normal priority and `outgoing_slow` for bulk data
-- **Timeout** -- connections time out after `MAX_TICKS_WITHOUT_INPUT` (1200 ticks / 60 seconds)
-- **Packet statistics** -- optional per-packet-type tracking for debugging
+- **Separate read/write threads**: `Connection` spawns dedicated threads for reading and writing packets, using critical sections for thread safety
+- **Two outgoing queues**: `outgoing` for normal priority, `outgoing_slow` for bulk data
+- **Timeout**: connections time out after `MAX_TICKS_WITHOUT_INPUT` (1200 ticks / 60 seconds)
+- **Packet statistics**: optional per-packet-type tracking for debugging
 
 ### LAN architecture
 
-LCEMP uses a **listen server** model for multiplayer. One console acts as both server and client:
+LCEMP uses a **listen server** model for multiplayer. One console is both the server and a client:
 
 1. The host runs `MinecraftServer` which listens on a socket
-2. Remote players connect via `ClientConnection` over the LAN
-3. Local players on the host share the same process -- their packets skip the network
+2. Remote players connect through `ClientConnection` over the LAN
+3. Local players on the host share the same process, so their packets skip the network
 4. Each remote player gets a `PlayerConnection` on the server side
-5. The `sendToAnyClient` flag on packet registration controls whether a packet goes to all connected clients or only the originating player
+5. The `sendToAnyClient` flag on packet registration controls whether a packet goes to all connected clients or just the one who sent it
 
 ## Creating a custom packet
 
@@ -335,7 +335,7 @@ Add to `Packet::staticCtor()` in `Packet.cpp`:
 map(200, true, true, true, false, typeid(MyModPacket), MyModPacket::create);
 ```
 
-The registration flags explained:
+Here's what the registration flags mean:
 
 | Flag | `true` | `false` |
 |---|---|---|
@@ -417,17 +417,17 @@ The `read()` and `write()` methods must serialize fields in exactly the same ord
 
 Networking in LCEMP runs on separate threads. Keep these rules in mind:
 
-- Packet `read()` and `write()` execute on the Connection's read/write threads
-- Packet `handle()` executes on the main game thread during `Connection::tick()`
-- Use the `incoming` queue (protected by `incoming_cs` critical section) for thread-safe packet delivery
-- Never access game state directly in `read()` or `write()` -- only in `handle()`
+- Packet `read()` and `write()` run on the Connection's read/write threads
+- Packet `handle()` runs on the main game thread during `Connection::tick()`
+- The `incoming` queue (protected by the `incoming_cs` critical section) handles thread-safe packet delivery
+- Never touch game state directly in `read()` or `write()`. Only do that in `handle()`
 
 ## Key source files
 
-- `Minecraft.World/Packet.h` / `Packet.cpp` -- base class and packet registration
-- `Minecraft.World/PacketListener.h` -- handler interface with all virtual methods
-- `Minecraft.World/Connection.h` -- TCP transport with read/write threads
-- `Minecraft.World/ChatPacket.h` / `ChatPacket.cpp` -- complete example packet
-- `Minecraft.Client/ClientConnection.h` -- client-side packet handler
-- `Minecraft.Client/PlayerConnection.h` -- server-side packet handler
-- `Minecraft.World/DataInputStream.h` / `DataOutputStream.h` -- serialization streams
+- `Minecraft.World/Packet.h` / `Packet.cpp` for the base class and packet registration
+- `Minecraft.World/PacketListener.h` for the handler interface with all virtual methods
+- `Minecraft.World/Connection.h` for TCP transport with read/write threads
+- `Minecraft.World/ChatPacket.h` / `ChatPacket.cpp` for a complete example packet
+- `Minecraft.Client/ClientConnection.h` for the client-side packet handler
+- `Minecraft.Client/PlayerConnection.h` for the server-side packet handler
+- `Minecraft.World/DataInputStream.h` / `DataOutputStream.h` for serialization streams

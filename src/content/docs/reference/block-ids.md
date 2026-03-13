@@ -167,7 +167,7 @@ with no collectible item form.
 
 ## Data Values
 
-Several blocks use auxiliary data bits to encode sub-types:
+Several blocks use auxiliary data bits to store sub-types:
 
 | Block | Data Meaning |
 |-------|-------------|

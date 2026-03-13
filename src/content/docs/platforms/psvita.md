@@ -3,13 +3,13 @@ title: PS Vita
 description: PS Vita platform implementation.
 ---
 
-The PS Vita port lives in `Minecraft.Client/PSVita/`. It is the only handheld platform in the codebase and features two separate network managers -- one for PSN online play and one for local ad-hoc wireless multiplayer. The Vita version includes significant memory optimization work due to the handheld's constrained resources.
+The PS Vita port lives in `Minecraft.Client/PSVita/`. It's the only handheld platform in the codebase and has two separate network managers: one for PSN online play and one for local ad-hoc wireless multiplayer. The Vita version also has a lot of memory optimization work because of the handheld's limited resources.
 
 ## Key Files
 
 | File | Purpose |
 |------|---------|
-| `PSVita_App.h/.cpp` | `CConsoleMinecraftApp` -- application class |
+| `PSVita_App.h/.cpp` | `CConsoleMinecraftApp` application class |
 | `PSVita_Minecraft.cpp` | Vita entry point and main loop |
 | `PSVita_UIController.h/.cpp` | `ConsoleUIController` using Iggy + GXM |
 | `PSVita_PlayerUID.h/.cpp` | Vita player identity |
@@ -40,12 +40,12 @@ The PS Vita port lives in `Minecraft.Client/PSVita/`. It is the only handheld pl
 
 ## Application Class
 
-`CConsoleMinecraftApp` follows the standard Sony pattern with the same commerce state machine and SKU management as PS3/PS4. Key specifics:
+`CConsoleMinecraftApp` follows the standard Sony pattern with the same commerce state machine and SKU management as PS3/PS4. Some Vita-specific details:
 
 - Same `PRODUCTCODES` and `EProductSKU` system as PS4 (no disc product code)
 - `SonyCommerce` integration for PlayStation Store
 - `SonyRemoteStorage` for cloud saves
-- `AppEventTick` -- Vita-specific system event processing
+- `AppEventTick` for Vita-specific system event processing
 - `SaveDataTick` with Vita save data dialog management
 
 ### Save Data Management
@@ -79,13 +79,13 @@ The `gdraw_psp2_dynamic_buffer` type is from the GDraw library (RAD Game Tools) 
 ## UI Controller
 
 `ConsoleUIController` inherits from `UIController` (Iggy-based):
-- `init(S32 w, S32 h)` -- Sets up GXM-backed dynamic buffers
+- `init(S32 w, S32 h)` sets up GXM-backed dynamic buffers
 - Standard Iggy custom draw callbacks
 - `handleUnlockFullVersionCallback` for trial upgrade
 
 ## Networking
 
-The Vita is unique in having two separate network managers.
+The Vita is unique in having two completely separate network managers.
 
 ### PSN Online: `SQRNetworkManager_Vita`
 
@@ -96,13 +96,13 @@ Extends `SQRNetworkManager` with the same NP Matching2 architecture as PS4:
 - **NP Toolkit**: `PSVita_NPToolkit` wrapper for PSN services
 - **Voice chat**: `SonyVoiceChat_Vita` with `SQRVoiceConnection` per network address
 - **Friend search**: `FriendSearchResult` class (same pattern as PS4)
-- **Initialisation guard**: `IsInitialised` / `UnInitialise` methods for clean lifecycle management
+- **Initialization guard**: `IsInitialised` / `UnInitialise` methods for clean lifecycle management
 
 Unique to Vita's PSN manager:
-- `PSNSignInReturnedPresenceInvite` -- Callback for sign-in-triggered presence invites
-- `m_bJoinablePresenceWaitingForOnline` -- Flag for deferred joinable presence processing
-- `m_bSendingInviteMessage` -- Invite message send tracking
-- `GetHostUID` -- Direct host UID access from presence info
+- `PSNSignInReturnedPresenceInvite` callback for sign-in-triggered presence invites
+- `m_bJoinablePresenceWaitingForOnline` flag for deferred joinable presence processing
+- `m_bSendingInviteMessage` for invite message send tracking
+- `GetHostUID` for direct host UID access from presence info
 - Shutdown state tracking: `m_bIsInitialised`, `m_bShuttingDown`
 
 ### Ad-Hoc Local: `SQRNetworkManager_AdHoc_Vita`
@@ -132,10 +132,10 @@ class AdhocDataPacket {
 Uses `HelloSyncInfo` instead of `PresenceSyncInfo` for ad-hoc peer discovery and session information exchange.
 
 #### Matching Context
-- `CreateMatchingContext(bool bServer)` -- Creates either server or client matching context
-- `StopMatchingContext` -- Tears down matching
-- `MatchingEventHandler` -- Static handler for ad-hoc matching events (peer discovery, connection, disconnection)
-- `startMatching` -- Begins ad-hoc matching process
+- `CreateMatchingContext(bool bServer)` creates either server or client matching context
+- `StopMatchingContext` tears down matching
+- `MatchingEventHandler` is the static handler for ad-hoc matching events (peer discovery, connection, disconnection)
+- `startMatching` begins the ad-hoc matching process
 
 #### Friend Search (Ad-Hoc)
 Modified `FriendSearchResult` for ad-hoc:
@@ -154,24 +154,24 @@ class FriendSearchResult {
 
 ## Memory Optimizations
 
-The Vita's limited RAM (512 MB total, shared with OS) required extensive optimization:
+The Vita's limited RAM (512 MB total, shared with OS) meant a lot of optimization work was needed:
 
 ### Custom Containers
-- `CustomMap.h/.cpp` -- Memory-optimized map implementation
-- `CustomSet.h/.cpp` -- Memory-optimized set implementation
+- `CustomMap.h/.cpp` is a memory-optimized map implementation
+- `CustomSet.h/.cpp` is a memory-optimized set implementation
 
 ### Custom Allocators
 Three separate allocator implementations:
-- `user_malloc.c` -- Main heap allocator
-- `user_new.cpp` -- C++ new/delete operators
-- `user_malloc_for_tls.c` -- Thread-local storage allocator
+- `user_malloc.c` for the main heap allocator
+- `user_new.cpp` for C++ new/delete operators
+- `user_malloc_for_tls.c` for thread-local storage allocator
 
 ### libdivide
-`libdivide.h` -- A header-only library that replaces expensive integer division operations with multiplication and bit-shift sequences. Important for the Vita's ARM Cortex-A9 processor where hardware division is slow.
+`libdivide.h` is a header-only library that replaces expensive integer division operations with multiplication and bit-shift sequences. This matters on the Vita's ARM Cortex-A9 processor where hardware division is slow.
 
 ### Dual TLS System
-- `TLSStorage.h/.cpp` -- Standard TLS (shared with other Sony platforms)
-- `PSVitaTLSStorage.h/.cpp` -- Additional Vita-specific TLS with tighter memory management
+- `TLSStorage.h/.cpp` provides standard TLS (shared with other Sony platforms)
+- `PSVitaTLSStorage.h/.cpp` adds Vita-specific TLS with tighter memory management
 
 ### Local zlib
 Bundled `zlib.h` and `zconf.h` headers rather than using system zlib, allowing for Vita-optimized build configuration.
@@ -180,7 +180,7 @@ Bundled `zlib.h` and `zconf.h` headers rather than using system zlib, allowing f
 
 - **Dual networking**: Both PSN online and local ad-hoc wireless multiplayer
 - **Ad-hoc protocol**: Custom packet-based protocol for direct Vita-to-Vita communication
-- **Memory-optimized containers**: Custom map and set implementations for reduced memory footprint
+- **Memory-optimized containers**: Custom map and set implementations for a smaller memory footprint
 - **libdivide**: Integer division optimization for ARM
 - **Joinable presence**: Presence-based game joining (players join via PSN status rather than invites)
 - **GXM rendering**: Vita-specific dynamic buffer management for GDraw/Iggy

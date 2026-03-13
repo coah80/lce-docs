@@ -3,13 +3,13 @@ title: PS3
 description: PlayStation 3 platform implementation.
 ---
 
-The PlayStation 3 port lives in `Minecraft.Client/PS3/`. It was the first Sony platform and established the patterns reused by PS4 and PS Vita. The PS3 version features Cell SPU job offloading and uses the Sony NP Matching2 system for online play.
+The PlayStation 3 port lives in `Minecraft.Client/PS3/`. It was the first Sony platform and set up the patterns that PS4 and PS Vita reuse. The PS3 version features Cell SPU job offloading and uses the Sony NP Matching2 system for online play.
 
 ## Key Files
 
 | File | Purpose |
 |------|---------|
-| `PS3_App.h/.cpp` | `CConsoleMinecraftApp` -- application class with PSN commerce |
+| `PS3_App.h/.cpp` | `CConsoleMinecraftApp` application class with PSN commerce |
 | `PS3_Minecraft.cpp` | PS3 entry point and main loop |
 | `Xbox_Minecraft.cpp` | Shared game initialization (Xbox-style naming, used on PS3) |
 | `PS3_UIController.h/.cpp` | `ConsoleUIController` using Iggy |
@@ -35,7 +35,7 @@ The PlayStation 3 port lives in `Minecraft.Client/PS3/`. It was the first Sony p
 
 ## Application Class
 
-`CConsoleMinecraftApp` is the largest Sony app class, containing the full PlayStation Store commerce system:
+`CConsoleMinecraftApp` is the largest Sony app class, since it has the full PlayStation Store commerce system:
 
 ### SKU Management
 Regional product codes identified by `EProductSKU`:
@@ -52,28 +52,28 @@ The `PRODUCTCODES` struct stores per-region:
 - Upgrade key (59 chars)
 
 ### Commerce State Machine
-A comprehensive `eUI_DLC_State` enum drives the storefront:
+A full `eUI_DLC_State` enum drives the storefront:
 
-1. `eCommerce_State_Init` -- Initialize commerce library
-2. `eCommerce_State_GetCategories` -- Fetch store categories
-3. `eCommerce_State_GetProductList` -- Retrieve product listings
-4. `eCommerce_State_AddProductInfoDetailed` -- Get detailed product info
-5. `eCommerce_State_Checkout` -- Purchase flow with session management
-6. `eCommerce_State_DownloadAlreadyPurchased` -- Re-download owned content
-7. `eCommerce_State_UpgradeTrial` -- Trial-to-full upgrade
+1. `eCommerce_State_Init` initializes the commerce library
+2. `eCommerce_State_GetCategories` fetches store categories
+3. `eCommerce_State_GetProductList` retrieves product listings
+4. `eCommerce_State_AddProductInfoDetailed` gets detailed product info
+5. `eCommerce_State_Checkout` handles the purchase flow with session management
+6. `eCommerce_State_DownloadAlreadyPurchased` re-downloads owned content
+7. `eCommerce_State_UpgradeTrial` handles trial-to-full upgrade
 
 All commerce operations use async callbacks (`CommerceInitCallback`, `CommerceGetCategoriesCallback`, etc.).
 
 ### DLC System
 - `SONYDLC` struct maps DLC keynames to types (skin pack, texture pack, mash-up pack)
-- `m_SONYDLCMap` -- Hash map from name to DLC info
+- `m_SONYDLCMap` is a hash map from name to DLC info
 - Disc patch support: `SetDiscPatchUsrDir`, `IsFileInPatchList`, `GetBDUsrDirPath`
 
 ### Save Thumbnails
 Dual-buffer thumbnail system:
-- `m_ThumbnailBuffer` -- Save thumbnail
-- `m_SaveImageBuffer` -- Save image
-- `m_ScreenshotBuffer` -- Screenshot for sharing
+- `m_ThumbnailBuffer` for save thumbnail
+- `m_SaveImageBuffer` for save image
+- `m_ScreenshotBuffer` for screenshot sharing
 - `GetSaveThumbnail` has two overloads (one for combined thumbnail + data image)
 
 ## Rendering
@@ -83,7 +83,7 @@ Uses GCM (Graphics Command Manager) for PS3's RSX GPU, wrapped by the 4J render 
 ## UI Controller
 
 `ConsoleUIController` inherits from `UIController` (Iggy-based):
-- Simple `init(S32 w, S32 h)` -- no device pointers needed (GCM context is global)
+- Simple `init(S32 w, S32 h)`, no device pointers needed (GCM context is global)
 - `handleUnlockFullVersionCallback` static method for trial upgrade UI flow
 
 ## Networking
@@ -113,11 +113,11 @@ Uses GCM (Graphics Command Manager) for PS3's RSX GPU, wrapped by the 4J render 
 
 ### Callbacks
 Six callback categories:
-1. **Matching context**: `ContextCallback` -- Context state changes
-2. **Request**: `DefaultRequestCallback` -- Async request completions
-3. **Room events**: `RoomEventCallback` -- Room member changes
-4. **Signalling**: `SignallingCallback` -- Peer connection events
-5. **RUDP**: `RudpContextCallback` / `RudpEventCallback` -- Data transport
+1. **Matching context**: `ContextCallback` for context state changes
+2. **Request**: `DefaultRequestCallback` for async request completions
+3. **Room events**: `RoomEventCallback` for room member changes
+4. **Signalling**: `SignallingCallback` for peer connection events
+5. **RUDP**: `RudpContextCallback` / `RudpEventCallback` for data transport
 6. **System**: `NetCtlCallback`, `SysUtilCallback`, `ManagerCallback`, `BasicEventCallback`
 
 ### Rich Presence
@@ -128,17 +128,17 @@ Six callback categories:
 
 ## Cell SPU Job System
 
-The `C4JSpursJob` system offloads compute-intensive work to the PS3's SPU cores:
+The `C4JSpursJob` system offloads heavy work to the PS3's SPU cores:
 
 ### Job Types
-- `C4JSpursJob_CompressedTile` -- Tile data compression
-- `C4JSpursJob_ChunkUpdate` -- Chunk mesh rebuilding
-- `C4JSpursJob_LevelRenderer_cull` -- Frustum culling
-- `C4JSpursJob_LevelRenderer_zSort` -- Depth sorting
-- `C4JSpursJob_LevelRenderer_FindNearestChunk` -- Nearest chunk lookup
-- `C4JSpursJob_Texture_blit` -- Texture blitting
-- `C4JSpursJob_CompressedTileStorage_compress` / `_getData` -- Compressed storage
-- `C4JSpursJob_PerlinNoise` -- Noise generation
+- `C4JSpursJob_CompressedTile` for tile data compression
+- `C4JSpursJob_ChunkUpdate` for chunk mesh rebuilding
+- `C4JSpursJob_LevelRenderer_cull` for frustum culling
+- `C4JSpursJob_LevelRenderer_zSort` for depth sorting
+- `C4JSpursJob_LevelRenderer_FindNearestChunk` for nearest chunk lookup
+- `C4JSpursJob_Texture_blit` for texture blitting
+- `C4JSpursJob_CompressedTileStorage_compress` / `_getData` for compressed storage
+- `C4JSpursJob_PerlinNoise` for noise generation
 
 ### Job Queue
 `C4JSpursJobQueue` manages a 256-depth queue with:
@@ -149,23 +149,23 @@ The `C4JSpursJob` system offloads compute-intensive work to the PS3's SPU cores:
 ## Platform Extras
 
 ### Thread-Local Storage
-`TLSStorage` provides manual TLS since PS3's Cell architecture requires explicit management for PPU/SPU contexts.
+`TLSStorage` provides manual TLS since PS3's Cell architecture needs explicit management for PPU/SPU contexts.
 
 ### Edge ZLib
 `EdgeZLib` wraps Sony's Edge library compression for efficient tile data handling on SPU.
 
 ### Shutdown Manager
-`ShutdownManager` handles graceful game exit, ensuring saves complete before process termination.
+`ShutdownManager` handles graceful game exit, making sure saves complete before the process terminates.
 
 ### Compatibility Layer
-- `Ps3Stubs.h/.cpp` -- Implements Win32 API functions (critical sections, thread primitives, etc.)
-- `Ps3Types.h` -- Defines Windows types (`DWORD`, `BYTE`, `HRESULT`, etc.)
-- `winerror.h` -- Windows error code constants
-- `PS3Strings.h/.cpp` -- String conversion utilities (wide char, UTF-8)
+- `Ps3Stubs.h/.cpp` implements Win32 API functions (critical sections, thread primitives, etc.)
+- `Ps3Types.h` defines Windows types (`DWORD`, `BYTE`, `HRESULT`, etc.)
+- `winerror.h` has Windows error code constants
+- `PS3Strings.h/.cpp` provides string conversion utilities (wide char, UTF-8)
 
 ## Unique Platform Features
 
-- **SPU offloading**: Heavy computation pushed to Cell SPU cores via SPURS job queue
+- **SPU offloading**: Heavy computation gets pushed to Cell SPU cores via the SPURS job queue
 - **Regional SKU handling**: Full product code management for SCEE/SCEA/SCEJ regions
 - **Disc patch support**: Detection and file routing for disc-based patches
 - **Voice chat**: `SonyVoiceChat` for in-game voice communication

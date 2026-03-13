@@ -3,13 +3,13 @@ title: PS4 (Orbis)
 description: PlayStation 4 platform implementation.
 ---
 
-The PlayStation 4 port (codenamed "Orbis") lives in `Minecraft.Client/Orbis/`. It builds on the PS3 Sony networking patterns but uses the modern NP Toolkit and GNM renderer. The PS4 version adds remote play support, party voice chat, and an improved save data dialog system.
+The PlayStation 4 port (codenamed "Orbis") lives in `Minecraft.Client/Orbis/`. It builds on the PS3 Sony networking patterns but uses the modern NP Toolkit and GNM renderer. The PS4 version adds remote play support, party voice chat, and a better save data dialog system.
 
 ## Key Files
 
 | File | Purpose |
 |------|---------|
-| `Orbis_App.h/.cpp` | `CConsoleMinecraftApp` -- application class |
+| `Orbis_App.h/.cpp` | `CConsoleMinecraftApp` application class |
 | `Orbis_Minecraft.cpp` | PS4 entry point and main loop |
 | `Orbis_UIController.h/.cpp` | `ConsoleUIController` using Iggy |
 | `Orbis_PlayerUID.h/.cpp` | PS4 player identity |
@@ -33,21 +33,21 @@ The PlayStation 4 port (codenamed "Orbis") lives in `Minecraft.Client/Orbis/`. I
 
 ## Application Class
 
-`CConsoleMinecraftApp` follows the same Sony pattern as PS3, with key differences:
+`CConsoleMinecraftApp` follows the same Sony pattern as PS3, with some key differences:
 
 ### NP Toolkit Integration
 Uses `<np_toolkit.h>` for PSN services. Commerce category IDs use `SCE_TOOLKIT_NP_COMMERCE_CATEGORY_ID_LEN` instead of PS3's `SCE_NP_COMMERCE2_CATEGORY_ID_LEN`.
 
 ### Commerce System
-Same `eUI_DLC_State` state machine as PS3 with all commerce states. The PS4 version includes:
-- `SystemServiceTick` -- System service event polling
-- `SaveDataDialogTick` -- PS4 save data dialog management
-- `PatchAvailableDialogTick` / `ShowPatchAvailableError` -- Game update notifications
+Same `eUI_DLC_State` state machine as PS3 with all the commerce states. The PS4 version also includes:
+- `SystemServiceTick` for system service event polling
+- `SaveDataDialogTick` for PS4 save data dialog management
+- `PatchAvailableDialogTick` / `ShowPatchAvailableError` for game update notifications
 
 ### Save Data Dialogs
 PS4 uses system-level save data dialogs (`SceSaveDataDialogParam`) with:
-- `m_bSaveDataDialogRunning` -- Dialog active flag
-- `m_bOptionsSaveDataDialogRunning` -- Options-triggered save dialog
+- `m_bSaveDataDialogRunning` as the dialog active flag
+- `m_bOptionsSaveDataDialogRunning` for options-triggered save dialog
 - Save incomplete callbacks with message box flow
 
 ### Product Codes
@@ -64,13 +64,13 @@ void *staging_buf[2];
 int currentStagingBuf;
 ```
 
-This addresses PS4's GPU memory model where UI texture uploads must go through a staging buffer.
+This is needed because PS4's GPU memory model requires UI texture uploads to go through a staging buffer.
 
 ## UI Controller
 
 `ConsoleUIController` inherits from `UIController` (Iggy-based):
-- `init(S32 w, S32 h)` -- Initializes staging buffers for texture uploads
-- `handleUnlockFullVersionCallback` -- Trial upgrade UI flow
+- `init(S32 w, S32 h)` initializes staging buffers for texture uploads
+- `handleUnlockFullVersionCallback` for trial upgrade UI flow
 - Standard Iggy custom draw callbacks for in-game item rendering
 
 ## Networking
@@ -78,17 +78,17 @@ This addresses PS4's GPU memory model where UI texture uploads must go through a
 `SQRNetworkManager_Orbis` extends `SQRNetworkManager` with PS4-specific features:
 
 ### Session Management
-Same room-based architecture as PS3 using NP Matching2, with notable additions:
+Same room-based architecture as PS3 using NP Matching2, with some notable additions:
 - **Invite handling**: `RecvInviteGUI` (static) and `TickInviteGUI` for PS4 system-level invite processing via NP Toolkit message attachments
 - **Remote play support**: `UpdateRemotePlay` method for PS Vita remote play sessions
 - **Host member tracking**: `m_hostMemberId` field (PS3 relied on room owner only)
 
 ### Voice Chat
 Two voice chat implementations:
-- `SonyVoiceChat_Orbis` -- Standard in-game voice
-- `SonyVoiceChatParty_Orbis` -- PS4 party voice chat integration
+- `SonyVoiceChat_Orbis` for standard in-game voice
+- `SonyVoiceChatParty_Orbis` for PS4 party voice chat integration
 
-Voice connections tracked via `m_NetAddrToVoiceConnectionMap` mapping network addresses to `SQRVoiceConnection` instances.
+Voice connections are tracked via `m_NetAddrToVoiceConnectionMap`, which maps network addresses to `SQRVoiceConnection` instances.
 
 ### Signalling Events
 PS4 uses a queued signalling model (unlike PS3's direct callbacks):
@@ -103,7 +103,7 @@ class SignallingEvent {
 std::vector<SignallingEvent> m_signallingEventList;
 ```
 
-Events are queued from the signalling callback and processed on the server thread via `SignallingEventsTick`, preventing crashes from Iggy UI calls during callbacks.
+Events get queued from the signalling callback and processed on the server thread via `SignallingEventsTick`. This prevents crashes from Iggy UI calls during callbacks.
 
 ### Friend Search
 Uses `FriendSearchResult` class (cleaner than PS3's parallel arrays):
@@ -118,7 +118,7 @@ class FriendSearchResult {
 ```
 
 ### PSN Sign-In
-Enhanced sign-in flow with additional state tracking:
+Improved sign-in flow with extra state tracking:
 - `s_SignInCompleteCallbackPending` / `s_SignInCompleteCallbackPad` for deferred callbacks
 - `s_errorDialogClosed` / `s_systemDialogClosed` timestamps
 - `SYSTEM_UI_WAIT_TIME` (1000ms) delay before checking system UI results
@@ -130,25 +130,25 @@ Enhanced sign-in flow with additional state tracking:
 - `s_errorDialogRunning` flag to prevent overlapping error dialogs
 
 ### Notifications
-- `TickNotify` -- Processes NP notifications
-- `NotifyRealtimePlusFeature` -- PS Plus upsell prompts per quadrant
+- `TickNotify` processes NP notifications
+- `NotifyRealtimePlusFeature` shows PS Plus upsell prompts per quadrant
 
 ## Custom Memory Management
 
 Three custom allocator files:
-- `user_malloc.cpp` -- Custom `malloc`/`free` implementation
-- `user_new.cpp` -- Custom `new`/`delete` operators
-- `user_malloc_for_tls.cpp` -- TLS-specific memory allocation
+- `user_malloc.cpp` with a custom `malloc`/`free` implementation
+- `user_new.cpp` with custom `new`/`delete` operators
+- `user_malloc_for_tls.cpp` for TLS-specific memory allocation
 
 ## Pronunciation Support
 
 `MinecraftPronunciation/` contains XML files for PS4 voice recognition:
-- `pronunciation.xml` -- Minecraft-specific word pronunciations
-- `MinecraftPronunciation.xml` -- Extended pronunciation data
+- `pronunciation.xml` with Minecraft-specific word pronunciations
+- `MinecraftPronunciation.xml` with extended pronunciation data
 
 ## PS Plus Integration
 
-`PsPlusUpsellWrapper_Orbis` handles PS Plus subscription upsell dialogs when players attempt to access online features without an active subscription.
+`PsPlusUpsellWrapper_Orbis` handles PS Plus subscription upsell dialogs when players try to access online features without an active subscription.
 
 ## Unique Platform Features
 
