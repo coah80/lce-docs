@@ -3,7 +3,7 @@ title: "Attribute System"
 description: "The attribute and combat tracking system in MinecraftConsoles."
 ---
 
-The attribute system gives entities configurable, modifiable numeric properties such as max health and movement speed. It is a C++ port of the Java Edition 1.6 attribute system, adapted by 4J Studios with enum-based IDs instead of string names, and further maintained in MinecraftConsoles.
+The attribute system gives entities configurable, modifiable numeric properties like max health and movement speed. It's a C++ port of the Java Edition 1.6 attribute system, adapted by 4J Studios to use enum-based IDs instead of string names, and further maintained in MinecraftConsoles.
 
 **Key source files:** `Attribute.h`, `BaseAttribute.h`, `RangedAttribute.h`, `AttributeModifier.h`, `AttributeInstance.h`, `ModifiableAttributeInstance.h`, `BaseAttributeMap.h`, `SharedMonsterAttributes.h`, `CombatTracker.h`, `CombatEntry.h` (all in `Minecraft.World/`).
 
@@ -11,17 +11,17 @@ The attribute system gives entities configurable, modifiable numeric properties 
 
 ### Attribute (abstract base)
 
-`Attribute` is a pure virtual class defining the interface for all attributes:
+`Attribute` is a pure virtual class that defines the interface for all attributes:
 
-- `getId()` -- returns an `eATTRIBUTE_ID` enum value (used for serialization instead of string names)
-- `sanitizeValue(double)` -- clamps a value to a valid range
-- `getDefaultValue()` -- returns the initial value
-- `isClientSyncable()` -- whether this attribute is sent to the client
-- `getName(eATTRIBUTE_ID)` -- static helper returning a localized string resource ID
+- `getId()` returns an `eATTRIBUTE_ID` enum value (used for serialization instead of string names)
+- `sanitizeValue(double)` clamps a value to a valid range
+- `getDefaultValue()` returns the initial value
+- `isClientSyncable()` whether this attribute is sent to the client
+- `getName(eATTRIBUTE_ID)` static helper that returns a localized string resource ID
 
 ### BaseAttribute
 
-Concrete implementation storing the attribute's ID, default value, and syncable flag. Provides `setSyncable(bool)` to mark an attribute for client synchronization.
+The concrete implementation that stores the attribute's ID, default value, and syncable flag. Has `setSyncable(bool)` to mark an attribute for client synchronization.
 
 ### RangedAttribute
 
@@ -29,7 +29,7 @@ Extends `BaseAttribute` with `minValue` and `maxValue` bounds. The `sanitizeValu
 
 ## Attribute IDs
 
-The `eATTRIBUTE_ID` enum is serialized into save data, so values must never be reordered. New attributes are appended after the existing entries.
+The `eATTRIBUTE_ID` enum gets serialized into save data, so the values must never be reordered. New attributes are always appended after the existing entries.
 
 | Enum constant | Purpose |
 |---|---|
@@ -45,10 +45,10 @@ The `eATTRIBUTE_ID` enum is serialized into save data, so values must never be r
 
 `AttributeModifier` represents a named adjustment applied to an attribute instance. Each modifier has:
 
-- **`eMODIFIER_ID id`** -- enum-based identity (replaces Java Edition UUIDs)
-- **`double amount`** -- the modification amount
-- **`int operation`** -- how the amount is applied (see below)
-- **`bool serialize`** -- whether the modifier is written to save data
+- **`eMODIFIER_ID id`**, an enum-based identity (replaces Java Edition UUIDs)
+- **`double amount`**, the modification amount
+- **`int operation`**, how the amount is applied (see below)
+- **`bool serialize`**, whether the modifier is written to save data
 
 ### Operations
 
@@ -62,7 +62,7 @@ Operations are applied in order: all additions first, then base multiplications,
 
 ### Modifier IDs
 
-The `eMODIFIER_ID` enum is also serialized, so ordering is stable:
+The `eMODIFIER_ID` enum is also serialized, so the ordering is stable:
 
 | ID | Source |
 |---|---|
@@ -80,11 +80,11 @@ The `eMODIFIER_ID` enum is also serialized, so ordering is stable:
 | `eModifierId_POTION_MOVESLOWDOWN` | Slowness potion effect |
 | `eModifierId_POTION_WEAKNESS` | Weakness potion effect |
 
-Anonymous modifiers are special: multiple modifiers with `eModifierId_ANONYMOUS` can coexist on a single attribute instance, and they cannot be removed by ID.
+Anonymous modifiers are special: you can have multiple modifiers with `eModifierId_ANONYMOUS` on a single attribute instance, and they can't be removed by ID.
 
 ### Hover text
 
-`AttributeModifier::getHoverText(eATTRIBUTE_ID)` generates colored HTML text for item tooltips. Positive modifiers display in color `9` (blue), negative in color `c` (red). Multiply operations show percentages; addition shows flat values.
+`AttributeModifier::getHoverText(eATTRIBUTE_ID)` generates colored HTML text for item tooltips. Positive modifiers show up in color `9` (blue), negative ones in color `c` (red). Multiply operations show percentages, while addition shows flat values.
 
 ## Attribute instances
 
@@ -94,14 +94,14 @@ The interface for a live attribute value on an entity. Provides `getBaseValue`, 
 
 ### ModifiableAttributeInstance
 
-The concrete implementation. Stores:
+The concrete implementation. It stores:
 
 - A pointer to the owning `BaseAttributeMap`
 - The `Attribute` definition
 - Three modifier sets (one per operation type) plus an ID-to-modifier lookup map
 - A cached computed value with a dirty flag
 
-When modifiers change, the instance is marked dirty and the next `getValue()` call triggers `calculateValue()`, which applies all three operation types in sequence.
+When modifiers change, the instance gets marked dirty and the next `getValue()` call triggers `calculateValue()`, which applies all three operation types in sequence.
 
 ## BaseAttributeMap
 
@@ -109,10 +109,10 @@ Manages an entity's full set of attribute instances. Stores instances in an `uno
 
 Key methods:
 
-- `getInstance(eATTRIBUTE_ID)` -- look up an attribute instance by ID
-- `registerAttribute(Attribute*)` -- create and store a new instance (pure virtual, implemented by subclasses)
-- `getAttributes(vector<AttributeInstance*>&)` -- retrieve all instances
-- `removeItemModifiers(shared_ptr<ItemInstance>)` / `addItemModifiers(shared_ptr<ItemInstance>)` -- batch add/remove modifiers from an equipped item
+- `getInstance(eATTRIBUTE_ID)` looks up an attribute instance by ID
+- `registerAttribute(Attribute*)` creates and stores a new instance (pure virtual, implemented by subclasses)
+- `getAttributes(vector<AttributeInstance*>&)` retrieves all instances
+- `removeItemModifiers(shared_ptr<ItemInstance>)` / `addItemModifiers(shared_ptr<ItemInstance>)` batch add/remove modifiers from an equipped item
 
 ## SharedMonsterAttributes
 
@@ -126,9 +126,9 @@ A static utility class that defines the five standard monster attributes:
 
 It also provides NBT serialization:
 
-- `saveAttributes(BaseAttributeMap*)` -- writes all attribute instances to a `ListTag<CompoundTag>`
-- `loadAttributes(BaseAttributeMap*, ListTag<CompoundTag>*)` -- reads attribute data back
-- `loadAttributeModifier(CompoundTag*)` -- deserializes a single modifier
+- `saveAttributes(BaseAttributeMap*)` writes all attribute instances to a `ListTag<CompoundTag>`
+- `loadAttributes(BaseAttributeMap*, ListTag<CompoundTag>*)` reads attribute data back
+- `loadAttributeModifier(CompoundTag*)` deserializes a single modifier
 
 ## Combat tracking
 
@@ -136,9 +136,9 @@ It also provides NBT serialization:
 
 Tracks damage taken by a `LivingEntity` over time. Key state:
 
-- `entries` -- a list of `CombatEntry` records
-- `inCombat` / `takingDamage` -- status flags
-- `nextLocation` -- enum for fall context (`GENERIC`, `LADDER`, `VINES`, `WATER`)
+- `entries`, a list of `CombatEntry` records
+- `inCombat` / `takingDamage`, status flags
+- `nextLocation`, an enum for fall context (`GENERIC`, `LADDER`, `VINES`, `WATER`)
 
 Timing constants (in ticks):
 
@@ -147,20 +147,20 @@ Timing constants (in ticks):
 
 Key methods:
 
-- `prepareForDamage()` -- captures the current location context before damage is applied
-- `recordDamage(DamageSource*, float health, float damage)` -- logs a new combat entry
-- `getDeathMessagePacket()` -- builds a `ChatPacket` describing the cause of death (4J changed this from returning a plain string)
-- `getKiller()` -- returns the entity responsible for the kill
-- `getMostSignificantFall()` -- finds the fall entry that contributed most to death
+- `prepareForDamage()` captures the current location context before damage is applied
+- `recordDamage(DamageSource*, float health, float damage)` logs a new combat entry
+- `getDeathMessagePacket()` builds a `ChatPacket` describing the cause of death (4J changed this from returning a plain string)
+- `getKiller()` returns the entity responsible for the kill
+- `getMostSignificantFall()` finds the fall entry that contributed the most to death
 
 ### CombatEntry
 
 A single record of damage taken:
 
-- `source` -- the `DamageSource`
-- `time` -- tick when damage occurred
-- `health` / `damage` -- health before and amount of damage
-- `location` -- fall context enum
-- `fallDistance` -- distance fallen
+- `source`, the `DamageSource`
+- `time`, the tick when damage occurred
+- `health` / `damage`, health before hit and amount of damage
+- `location`, fall context enum
+- `fallDistance`, distance fallen
 
-Provides `isCombatRelated()` to filter for actual combat hits and `getAttackerName()` for death messages.
+Has `isCombatRelated()` to filter for actual combat hits, and `getAttackerName()` for death messages.

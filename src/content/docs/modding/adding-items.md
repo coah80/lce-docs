@@ -3,16 +3,16 @@ title: Adding Items
 description: Step-by-step guide to adding new items to LCEMP.
 ---
 
-Items in LCEMP are managed by the `Item` class defined in `Minecraft.World/Item.h`. Every holdable object -- tools, food, materials, armor -- is an `Item` subclass registered in `Item::staticCtor()`. This guide covers creating and registering new items based on the actual source code.
+Items in LCEMP are managed by the `Item` class defined in `Minecraft.World/Item.h`. Every holdable object (tools, food, materials, armor) is an `Item` subclass registered in `Item::staticCtor()`. This guide covers how to create and register new items based on the actual source code.
 
 ## Overview of the Item System
 
-The `Item` base class provides:
+The `Item` base class gives you:
 
-- A **numeric ID** -- the constructor parameter is offset by 256 (so `new Item(4)` creates ID 260)
-- **Properties** like max stack size, max damage (durability), texture, description
-- **Virtual methods** for behavior: `use()`, `useOn()`, `hurtEnemy()`, `mineBlock()`, etc.
-- **Classification** via `eBaseItemType` and `eMaterial` enums for creative inventory sorting
+- A **numeric ID** where the constructor parameter is offset by 256 (so `new Item(4)` creates ID 260)
+- **Properties** like max stack size, max damage (durability), texture, and description
+- **Virtual methods** for behavior: `use()`, `useOn()`, `hurtEnemy()`, `mineBlock()`, and more
+- **Classification** through `eBaseItemType` and `eMaterial` enums for creative inventory sorting
 
 All items are stored in `Item::items`, an `ItemArray` of size 32000:
 
@@ -105,7 +105,7 @@ bool MyCustomItem::hurtEnemy(shared_ptr<ItemInstance> itemInstance,
 
 ## Step 2: Register in Item::staticCtor()
 
-Add your item to `Item::staticCtor()` in `Item.cpp`. You also need a static pointer and ID constant in `Item.h`.
+Add your item to `Item::staticCtor()` in `Item.cpp`. You'll also need a static pointer and ID constant in `Item.h`.
 
 **In `Item.h`**, add:
 
@@ -221,7 +221,7 @@ Common `eMaterial` values:
 
 ## Creating Tool Items
 
-Tools use the `Item::Tier` system for durability, speed, and damage. Each tool type has a dedicated subclass.
+Tools use the `Item::Tier` system for durability, speed, and damage. Each tool type has its own subclass.
 
 ### Weapon (Sword)
 
@@ -317,7 +317,7 @@ Item::helmet_iron = (ArmorItem *)( ( new ArmorItem(50,
     ->setUseDescriptionId(IDS_DESC_HELMET_IRON) );
 ```
 
-Note the cast to `ArmorItem *` -- this is needed because the chained setters return `Item*`.
+Note the cast to `ArmorItem *`. This is needed because the chained setters return `Item*`.
 
 ## Creating Food Items
 
@@ -338,7 +338,7 @@ Saturation modifier constants from `FoodConstants`:
 | `FOOD_SATURATION_MAX` | 1.0 |
 | `FOOD_SATURATION_SUPERNATURAL` | 1.2 |
 
-The `isMeat` flag categorizes the food for wolves (they only eat meat).
+The `isMeat` flag tells the game this food counts as meat for wolves (they only eat meat).
 
 Additional food methods:
 
@@ -391,7 +391,7 @@ The eating duration is a constant `EAT_DURATION = (int)(20 * 1.6)` (about 32 tic
 
 ## Creating Simple Material Items
 
-Many items have no special behavior -- they are just `new Item(id)` with properties set:
+A lot of items have no special behavior. They're just `new Item(id)` with properties set:
 
 ```cpp
 // Simple crafting material
@@ -433,7 +433,7 @@ Item::bucket_empty = ( new BucketItem(69, 0) )
 | `getUseDuration(itemInstance)` | How long in ticks the use action takes |
 | `releaseUsing(itemInstance, level, player, durationLeft)` | Use action interrupted (e.g., bow release) |
 | `inventoryTick(itemInstance, level, owner, slot, selected)` | Called each tick while in inventory |
-| `getEnchantmentValue()` | Enchantability for enchanting table |
+| `getEnchantmentValue()` | Enchantability for the enchanting table |
 | `isValidRepairItem(source, repairItem)` | Whether repairItem can repair this item on an anvil |
 
 ## Complete Example: Adding a Ruby Item
@@ -462,5 +462,5 @@ This creates a simple gem item, similar to how emeralds and diamonds are registe
 
 ## Related Guides
 
-- [Getting Started](/lcemp-docs/modding/getting-started/) -- environment setup and the staticCtor pattern
-- [Adding Blocks](/lcemp-docs/modding/adding-blocks/) -- create blocks that drop your custom items
+- [Getting Started](/lcemp-docs/modding/getting-started/) for environment setup and the staticCtor pattern
+- [Adding Blocks](/lcemp-docs/modding/adding-blocks/) to create blocks that drop your custom items

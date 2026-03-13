@@ -1,9 +1,9 @@
 ---
 title: Decorative & Placement Items
-description: Paintings, item frames, signs, beds, buckets, dyes, maps, and books — items that place entities or blocks in the world.
+description: Paintings, item frames, signs, beds, buckets, dyes, maps, and books. Items that place entities or blocks in the world.
 ---
 
-Decorative and placement items create entities or blocks when used on surfaces. They span several distinct classes.
+These items create entities or blocks when you use them on surfaces. They span a bunch of different classes.
 
 ## HangingEntityItem (Paintings & Item Frames)
 
@@ -14,13 +14,13 @@ Decorative and placement items create entities or blocks when used on surfaces. 
 | Painting | 321 | `eTYPE_PAINTING` |
 | Item Frame | 389 | `eTYPE_ITEM_FRAME` |
 
-`HangingEntityItem` places a `HangingEntity` on a wall when used on a block face. It only works on side faces (not top or bottom -- `Facing::DOWN` and `Facing::UP` are rejected).
+`HangingEntityItem` places a `HangingEntity` on a wall when used on a block face. It only works on side faces (top and bottom are rejected, meaning `Facing::DOWN` and `Facing::UP` won't work).
 
-The `createEntity` method dispatches by entity type:
-- `eTYPE_PAINTING` creates a `Painting` and calls `PaintingPostConstructor` to select a valid art size for the available wall space
+The `createEntity` method picks what to create based on entity type:
+- `eTYPE_PAINTING` creates a `Painting` and calls `PaintingPostConstructor` to find a valid art size for the available wall space
 - `eTYPE_ITEM_FRAME` creates an `ItemFrame`
 
-The entity is only added on the server side. If the server cannot add the entity (limit reached), the player sees an `IDS_MAX_HANGINGENTITIES` message. Successful placement awards a `blocksPlaced` statistic and decrements the item count.
+The entity only gets added on the server side. If the server can't add the entity (limit reached), the player sees an `IDS_MAX_HANGINGENTITIES` message. When placement works, it awards a `blocksPlaced` statistic and decreases the item count.
 
 ## SignItem
 
@@ -31,7 +31,7 @@ The entity is only added on the server side. If the server cannot add the entity
 | ID | 323 |
 | Stack Size | 16 |
 
-Places a sign tile on a block face. Wall signs are placed on side faces; standing signs on the top face with rotation based on the player's facing direction. Creates a `SignTileEntity` for text storage.
+Places a sign tile on a block face. Wall signs go on side faces; standing signs go on the top face with rotation based on which way the player is facing. Creates a `SignTileEntity` to store the text.
 
 ## BedItem
 
@@ -42,7 +42,7 @@ Places a sign tile on a block face. Wall signs are placed on side faces; standin
 | ID | 355 |
 | Stack Size | 1 |
 
-Places a two-block bed tile oriented based on the player's facing direction. The bed occupies the target position (foot) and an adjacent block (head). Requires both positions to be empty and on solid ground.
+Places a two-block bed oriented based on the player's facing direction. The bed takes up the target position (foot) and the block next to it (head). Both spots need to be empty and sitting on solid ground.
 
 ## BucketItem
 
@@ -54,7 +54,7 @@ Places a two-block bed tile oriented based on the player's facing direction. The
 | Water Bucket | 326 | Water tile ID |
 | Lava Bucket | 327 | Lava tile ID |
 
-Each `BucketItem` is constructed with a `content` tile ID. Empty buckets stack to 16; filled buckets stack to 1. Right-click with an empty bucket on a water or lava source picks it up. Right-click with a filled bucket places the liquid at the target position via `emptyBucket()`.
+Each `BucketItem` is created with a `content` tile ID. Empty buckets stack to 16; filled buckets stack to 1. Right-click with an empty bucket on a water or lava source to pick it up. Right-click with a filled bucket to place the liquid at the target position through `emptyBucket()`.
 
 ## MilkBucketItem
 
@@ -66,7 +66,7 @@ Each `BucketItem` is constructed with a `content` tile ID. Empty buckets stack t
 | Stack Size | 1 |
 | Crafting Remainder | Empty Bucket |
 
-Clears all mob effects when consumed. The crafting remaining item is set to the empty bucket.
+Clears all mob effects when you drink it. The crafting remaining item is set to the empty bucket.
 
 ## DyePowderItem (Dyes)
 
@@ -78,7 +78,7 @@ Clears all mob effects when consumed. The crafting remaining item is set to the 
 | Variants | 16 (via aux value) |
 | Stacked By Data | Yes |
 
-Uses `auxValue` 0-15 to represent 16 dye colors. Each color has its own texture (`COLOR_TEXTURES`), description ID (`COLOR_DESCS`), and RGB value (`COLOR_RGB`). The 16 named color constants are:
+Uses `auxValue` 0-15 to represent 16 dye colors. Each color has its own texture (`COLOR_TEXTURES`), description ID (`COLOR_DESCS`), and RGB value (`COLOR_RGB`). Here are all 16 color constants:
 
 | Aux | Color | Aux | Color |
 |-----|-------|-----|-------|
@@ -91,7 +91,7 @@ Uses `auxValue` 0-15 to represent 16 dye colors. Each color has its own texture 
 | 6 | Cyan | 14 | Orange |
 | 7 | Silver (Light Gray) | 15 | White (Bone Meal) |
 
-Aux value 15 (bone meal / white dye) has special `useOn` behavior that applies bone meal growth to crops and saplings. Aux value 4 (lapis lazuli) is used for enchanting. The `interactEnemy` method allows dyeing sheep by right-clicking them.
+Aux value 15 (bone meal / white dye) has special `useOn` behavior that applies bone meal growth to crops and saplings. Aux value 4 (lapis lazuli) is used for enchanting. The `interactEnemy` method lets you dye sheep by right-clicking them.
 
 ## MapItem
 
@@ -103,9 +103,9 @@ Aux value 15 (bone meal / white dye) has special `useOn` behavior that applies b
 | Image Size | 128 x 128 pixels |
 | Base Class | `ComplexItem` |
 
-Extends `ComplexItem` (which sets `isComplex() = true` for special network handling). Map data is stored in `MapItemSavedData` and synced to clients via `getUpdatePacket()`. The `inventoryTick` method updates map data each tick when the map is in a player's inventory.
+Extends `ComplexItem` (which sets `isComplex() = true` for special network handling). Map data is stored in `MapItemSavedData` and synced to clients through `getUpdatePacket()`. The `inventoryTick` method updates map data each tick while the map is in a player's inventory.
 
-Maps are created through `onCraftedBy` which initializes the saved data with the player's current position and dimension.
+Maps get created through `onCraftedBy`, which sets up the saved data with the player's current position and dimension.
 
 ## BookItem
 
@@ -117,7 +117,7 @@ Maps are created through `onCraftedBy` which initializes the saved data with the
 | Enchantability | 1 |
 | Enchantable | Yes (when stack count is 1) |
 
-A plain book used as a crafting ingredient for bookshelves and the enchanting table recipe. Can be enchanted at an enchanting table (converts to an enchanted book). The `isEnchantable` method returns `true` only when `itemInstance->count == 1`.
+A plain book used as a crafting ingredient for bookshelves and the enchanting table recipe. You can enchant it at an enchanting table (which converts it to an enchanted book). The `isEnchantable` method returns `true` only when `itemInstance->count == 1`.
 
 ## DoorItem
 
@@ -128,7 +128,7 @@ A plain book used as a crafting ingredient for bookshelves and the enchanting ta
 | Wood Door | 324 |
 | Iron Door | 330 |
 
-Places a two-block-tall door tile. Wood doors can be opened by hand; iron doors require redstone.
+Places a two-block-tall door tile. Wood doors can be opened by hand; iron doors need redstone.
 
 ## SkullItem
 
@@ -140,7 +140,7 @@ Places a two-block-tall door tile. Wood doors can be opened by hand; iron doors 
 | Variants | 5 (via aux value) |
 | Stacked By Data | Yes |
 
-Uses `auxValue` 0-4 to represent five skull types. Each has its own icon (`ICON_NAMES`) and description string (`NAMES`). Places a `SkullTile` and `SkullTileEntity` on the target block.
+Uses `auxValue` 0-4 to represent five skull types. Each one has its own icon (`ICON_NAMES`) and description string (`NAMES`). Places a `SkullTile` and `SkullTileEntity` on the target block.
 
 ## Other Placement Items
 
@@ -154,4 +154,4 @@ Uses `auxValue` 0-4 to represent five skull types. Each has its own icon (`ICON_
 | String | 287 | `TilePlanterItem` | Places tripwire when used on a block |
 | Sugar Cane | 338 | `TilePlanterItem` | Places reed tile on sand/dirt near water |
 
-`TilePlanterItem` is a general-purpose class that places a specified tile when used on a block face. Each instance is constructed with the target tile ID.
+`TilePlanterItem` is a general-purpose class that places a given tile when used on a block face. Each instance is created with the target tile ID.

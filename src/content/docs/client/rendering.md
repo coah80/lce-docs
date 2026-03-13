@@ -3,18 +3,18 @@ title: "Rendering Pipeline"
 description: "How LCEMP renders the game world."
 ---
 
-The LCEMP rendering pipeline transforms the game world into pixels through several cooperating systems: `GameRenderer` orchestrates each frame, `LevelRenderer` manages chunk geometry, `EntityRenderDispatcher` routes entity drawing, `TileRenderer` tessellates block faces, and `Tesselator` is the low-level vertex buffer that everything feeds into.
+The LCEMP rendering pipeline turns the game world into pixels through several systems working together. `GameRenderer` runs each frame, `LevelRenderer` manages chunk geometry, `EntityRenderDispatcher` routes entity drawing, `TileRenderer` builds block face geometry, and `Tesselator` is the low-level vertex buffer that everything feeds into.
 
 ## Frame rendering flow
 
 `GameRenderer::render(float a, bool bFirst)` is the per-frame entry point, called once per split-screen viewport. The `a` parameter is the interpolation alpha between ticks, and `bFirst` is true for the first viewport rendered that frame.
 
-Within a single frame, the pipeline executes roughly these steps:
+Within a single frame, the pipeline roughly goes through these steps:
 
-1. **Camera setup** -- `setupCamera()` configures the projection matrix, applies FOV, and positions the camera via `moveCameraToPlayer()`
-2. **Frustum culling** -- `Frustum::getFrustum()` extracts clip planes from the current model-view-projection matrices
-3. **World rendering** -- `renderLevel()` draws the world in multiple passes
-4. **GUI rendering** -- `setupGuiScreen()` switches to orthographic projection for HUD and menu overlays
+1. **Camera setup** with `setupCamera()`, which configures the projection matrix, applies FOV, and positions the camera via `moveCameraToPlayer()`
+2. **Frustum culling** with `Frustum::getFrustum()`, which pulls clip planes from the current model-view-projection matrices
+3. **World rendering** with `renderLevel()`, which draws the world in multiple passes
+4. **GUI rendering** with `setupGuiScreen()`, which switches to orthographic projection for HUD and menu overlays
 
 ## GameRenderer
 
@@ -32,18 +32,18 @@ Within a single frame, the pipeline executes roughly these steps:
 
 Key methods:
 
-- **`tick(bool bFirst)`** -- updates FOV, rain sounds, light textures each game tick
-- **`pick(float a)`** -- performs raycasting to determine what the player is looking at
-- **`bobHurt(float a)`** -- applies screen shake when damaged
-- **`bobView(float a)`** -- applies view bobbing while walking
-- **`renderItemInHand(float a, int eye)`** -- draws the held item
-- **`renderSnowAndRain(float a)`** -- renders weather particle sheets
-- **`tickLightTexture()` / `updateLightTexture(float a)`** -- updates the light-map texture based on time of day and dimension
-- **`setupFog(int i, float alpha)`** -- configures distance fog per render pass
+- **`tick(bool bFirst)`** updates FOV, rain sounds, light textures each game tick
+- **`pick(float a)`** does raycasting to figure out what the player is looking at
+- **`bobHurt(float a)`** applies screen shake when damaged
+- **`bobView(float a)`** applies view bobbing while walking
+- **`renderItemInHand(float a, int eye)`** draws the held item
+- **`renderSnowAndRain(float a)`** renders weather particle sheets
+- **`tickLightTexture()` / `updateLightTexture(float a)`** updates the light-map texture based on time of day and dimension
+- **`setupFog(int i, float alpha)`** configures distance fog per render pass
 
 ### Anaglyph 3D
 
-`GameRenderer` supports stereoscopic 3D rendering through the static fields `anaglyph3d` and `anaglyphPass`. When enabled, the scene is rendered twice with color channel separation.
+`GameRenderer` supports stereoscopic 3D rendering through the static fields `anaglyph3d` and `anaglyphPass`. When enabled, the scene gets rendered twice with color channel separation.
 
 ### Multithreaded chunk updates
 
@@ -54,11 +54,11 @@ static C4JThread* m_updateThread;
 static C4JThread::EventArray* m_updateEvents;
 ```
 
-The `EnableUpdateThread()` and `DisableUpdateThread()` methods control this thread, and deferred memory cleanup is handled through lock-free delete stacks for `SparseLightStorage`, `CompressedTileStorage`, and `SparseDataStorage`.
+The `EnableUpdateThread()` and `DisableUpdateThread()` methods control this thread. Deferred memory cleanup is handled through lock-free delete stacks for `SparseLightStorage`, `CompressedTileStorage`, and `SparseDataStorage`.
 
 ## LevelRenderer
 
-`LevelRenderer` implements `LevelListener` and is responsible for managing the render chunk grid and drawing the world. It maintains one set of chunks per split-screen player.
+`LevelRenderer` implements `LevelListener` and takes care of managing the render chunk grid and drawing the world. It keeps one set of chunks per split-screen player.
 
 ### Chunk grid
 
@@ -82,7 +82,7 @@ Chunks are 16x16x16 blocks. The render grid is allocated based on `PLAYER_RENDER
 
 ### Chunk flags
 
-Each chunk in the global grid carries a flag byte with these bits:
+Each chunk in the global grid has a flag byte with these bits:
 
 | Flag | Value | Meaning |
 |---|---|---|
@@ -98,7 +98,7 @@ Reference counting uses the upper bits (3-bit or 2-bit depending on platform) to
 
 ### Render passes
 
-`LevelRenderer::render()` takes a layer parameter. Layer 0 renders opaque geometry, layer 1 renders translucent geometry (water, glass, ice). The `renderChunks()` method iterates the visible chunk list and dispatches their display lists.
+`LevelRenderer::render()` takes a layer parameter. Layer 0 renders opaque geometry, layer 1 renders translucent geometry (water, glass, ice). The `renderChunks()` method goes through the visible chunk list and dispatches their display lists.
 
 ### Key rendering methods
 
@@ -141,10 +141,10 @@ static C4JThread *rebuildThreads[MAX_CHUNK_REBUILD_THREADS];
 
 The `Chunk` class (not to be confused with `LevelChunk` in `Minecraft.World`) represents a 16x16x16 renderable section of the world. Key operations:
 
-- **`rebuild()`** -- tessellates all tiles in the chunk into display lists using `TileRenderer`
-- **`cull(Culler*)`** -- tests visibility against the current frustum
-- **`distanceToSqr(Entity)`** -- used for sorting/prioritizing which chunks to rebuild first
-- **`setDirty()`** / **`clearDirty()`** -- flag a chunk for rebuild
+- **`rebuild()`** builds all tiles in the chunk into display lists using `TileRenderer`
+- **`cull(Culler*)`** tests visibility against the current frustum
+- **`distanceToSqr(Entity)`** is used for sorting and prioritizing which chunks to rebuild first
+- **`setDirty()`** / **`clearDirty()`** flag a chunk for rebuild
 
 On PS3, `rebuild_SPU()` offloads chunk building to SPU cores.
 
@@ -194,14 +194,14 @@ class Bounds {
 ### PS Vita optimizations
 
 On Vita, `Tesselator` includes:
-- `setAlphaCutOut(bool)` -- defers alpha-tested primitives to a second array
-- `tileQuad(...)` -- fast path for compressed tile quads
-- `tileRainQuad(...)` -- fast path for rain particle quads
-- `tileParticleQuad(...)` -- fast path for particle quads
+- `setAlphaCutOut(bool)` defers alpha-tested primitives to a second array
+- `tileQuad(...)` is a fast path for compressed tile quads
+- `tileRainQuad(...)` is a fast path for rain particle quads
+- `tileParticleQuad(...)` is a fast path for particle quads
 
 ## TileRenderer
 
-`TileRenderer` handles the conversion of block state to geometry. It contains specialized tessellation methods for every block shape:
+`TileRenderer` handles converting block state to geometry. It has specialized methods for every block shape:
 
 | Method | Block type |
 |---|---|
@@ -243,7 +243,7 @@ On Vita, `Tesselator` includes:
 
 ### Ambient occlusion
 
-`tesselateBlockInWorldWithAmbienceOcclusionTexLighting()` implements smooth lighting by sampling light values from neighboring blocks and interpolating across faces. The `blend()` helper method combines light values with weighted averaging.
+`tesselateBlockInWorldWithAmbienceOcclusionTexLighting()` handles smooth lighting by sampling light values from neighboring blocks and blending them across faces. The `blend()` helper method combines light values with weighted averaging.
 
 ### Face rendering
 
@@ -252,17 +252,17 @@ Individual face methods handle oriented quads:
 
 ### Data caching
 
-`TileRenderer` maintains a per-chunk cache for `getLightColor()`, `getShadeBrightness()`, and `isTranslucentAt()` results, using bit-packed validity flags to avoid redundant lookups.
+`TileRenderer` keeps a per-chunk cache for `getLightColor()`, `getShadeBrightness()`, and `isTranslucentAt()` results, using bit-packed validity flags to skip redundant lookups.
 
 ## EntityRenderDispatcher
 
-This singleton routes entity rendering to the correct `EntityRenderer` subclass based on entity type (`eINSTANCEOF`). It maintains a map from entity type to renderer:
+This singleton routes entity rendering to the right `EntityRenderer` subclass based on entity type (`eINSTANCEOF`). It keeps a map from entity type to renderer:
 
 ```cpp
 typedef unordered_map<eINSTANCEOF, EntityRenderer*, ...> classToRendererMap;
 ```
 
-The `render()` method calculates the entity's interpolated position and delegates to the appropriate renderer. `prepare()` must be called each frame to set up the camera, textures, font, and options context.
+The `render()` method calculates the entity's interpolated position and hands off to the right renderer. `prepare()` needs to be called each frame to set up the camera, textures, font, and options context.
 
 ## EntityRenderer hierarchy
 
@@ -314,7 +314,7 @@ The `render()` method calculates the entity's interpolated position and delegate
 
 ## Tile entity renderers
 
-`TileEntityRenderDispatcher` routes tile entity rendering similarly to `EntityRenderDispatcher`. Specialized renderers:
+`TileEntityRenderDispatcher` routes tile entity rendering in a similar way to `EntityRenderDispatcher`. Specialized renderers:
 
 | Class | Tile entity |
 |---|---|
@@ -331,10 +331,10 @@ The `render()` method calculates the entity's interpolated position and delegate
 
 The `Camera` class provides static helpers for camera positioning:
 
-- `Camera::prepare()` -- sets up camera orientation matrices
-- `Camera::getCameraPos()` -- interpolated camera world position
-- `Camera::getCameraTilePos()` -- block position of the camera
-- `Camera::getBlockAt()` -- what block type the camera is inside (for underwater/lava effects)
+- `Camera::prepare()` sets up camera orientation matrices
+- `Camera::getCameraPos()` returns the interpolated camera world position
+- `Camera::getCameraTilePos()` returns the block position of the camera
+- `Camera::getBlockAt()` checks what block type the camera is inside (for underwater/lava effects)
 
 Camera offset fields (`xa`, `ya`, `za`, `xa2`, `za2`) are used by the particle system and entity rendering to offset positions relative to the camera.
 
@@ -354,9 +354,9 @@ Three `Culler` implementations control visibility:
 
 The `Lighting` class provides static methods for fixed-function lighting:
 
-- `Lighting::turnOn()` -- enable standard 3D lighting
-- `Lighting::turnOff()` -- disable lighting
-- `Lighting::turnOnGui()` -- enable lighting tuned for GUI model rendering
+- `Lighting::turnOn()` enables standard 3D lighting
+- `Lighting::turnOff()` disables lighting
+- `Lighting::turnOnGui()` enables lighting tuned for GUI model rendering
 
 ## Other rendering components
 

@@ -3,7 +3,7 @@ title: "Particles"
 description: "Particle system in LCEMP."
 ---
 
-The LCEMP particle system renders visual effects like smoke, flames, block breaking debris, and spell effects. It is managed by `ParticleEngine` and built on the `Particle` base class, which extends `Entity` from `Minecraft.World`.
+The LCEMP particle system renders visual effects like smoke, flames, block breaking debris, and spell effects. `ParticleEngine` manages it all, and it's built on the `Particle` base class, which extends `Entity` from `Minecraft.World`.
 
 ## ParticleEngine
 
@@ -16,7 +16,7 @@ static const int MAX_PARTICLES_PER_LAYER = 200;        // reduced from Java's 40
 static const int MAX_DRAGON_BREATH_PARTICLES = 1000;
 ```
 
-The console port significantly reduces the particle cap compared to Java Edition (200 vs 4000 per layer) to maintain frame rate.
+The console port drops the particle cap way down compared to Java Edition (200 vs 4000 per layer) to keep the frame rate stable.
 
 ### Texture layers
 
@@ -38,7 +38,7 @@ Particles are stored in a 3D array of deques:
 deque<shared_ptr<Particle>> particles[3][TEXTURE_COUNT];
 ```
 
-The first dimension (3) supports simultaneous rendering across multiple dimensions (for split-screen players in different dimensions).
+The first dimension (3) supports rendering across multiple dimensions at the same time (for split-screen players in different dimensions).
 
 ### Key methods
 
@@ -55,14 +55,14 @@ The first dimension (3) supports simultaneous rendering across multiple dimensio
 
 ### Spawning from LevelRenderer
 
-`LevelRenderer::addParticle()` is the primary entry point for spawning particles from game logic. It accepts an `ePARTICLE_TYPE` enum and world coordinates:
+`LevelRenderer::addParticle()` is the main entry point for spawning particles from game logic. It takes an `ePARTICLE_TYPE` enum and world coordinates:
 
 ```cpp
 void addParticle(ePARTICLE_TYPE eParticleType, double x, double y, double z,
                  double xa, double ya, double za);
 ```
 
-`addParticleInternal()` returns the created `Particle` shared_ptr for further customization.
+`addParticleInternal()` returns the created `Particle` shared_ptr so you can customize it further.
 
 ## Particle base class
 
@@ -170,13 +170,13 @@ Each particle renders as a camera-facing quad (billboard). The base `Particle::r
 2. Computes the four quad corners using camera orientation vectors (`Camera::xa`, `Camera::ya`, `Camera::za`, etc.)
 3. Applies the `size` scale factor
 4. Sets color with `rCol`, `gCol`, `bCol`, and `alpha`
-5. Submits four vertices to the `Tesselator` with appropriate UV coordinates from the particle sprite sheet
+5. Submits four vertices to the `Tesselator` with the right UV coordinates from the particle sprite sheet
 
-The camera offset fields (`Particle::xOff`, `yOff`, `zOff`) translate particle positions relative to the camera to avoid floating-point precision issues at large world coordinates.
+The camera offset fields (`Particle::xOff`, `yOff`, `zOff`) shift particle positions relative to the camera. This avoids floating-point precision issues at large world coordinates.
 
 ## Particle lifecycle
 
-1. **Spawn** -- Game code calls `LevelRenderer::addParticle()` or `ParticleEngine::add()`
-2. **Tick** -- `ParticleEngine::tick()` calls `Particle::tick()` on each particle. The base implementation applies gravity, moves the particle, increments `age`, and removes the particle when `age >= lifetime`
-3. **Render** -- `ParticleEngine::render()` batches particles by texture layer, binds the appropriate atlas, and calls `Particle::render()` for each
-4. **Remove** -- Particles are removed from the deque when `tick()` marks them dead, or when the particle count exceeds `MAX_PARTICLES_PER_LAYER` (oldest particles are evicted first)
+1. **Spawn.** Game code calls `LevelRenderer::addParticle()` or `ParticleEngine::add()`
+2. **Tick.** `ParticleEngine::tick()` calls `Particle::tick()` on each particle. The base implementation applies gravity, moves the particle, increments `age`, and removes the particle when `age >= lifetime`
+3. **Render.** `ParticleEngine::render()` batches particles by texture layer, binds the right atlas, and calls `Particle::render()` for each one
+4. **Remove.** Particles get removed from the deque when `tick()` marks them dead, or when the particle count goes over `MAX_PARTICLES_PER_LAYER` (oldest particles get evicted first)

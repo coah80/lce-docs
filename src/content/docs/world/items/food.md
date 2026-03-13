@@ -1,20 +1,20 @@
 ---
 title: Food
-description: FoodItem and its subclasses — nutrition, saturation, food constants, exhaustion, and all food items with their stats and effects.
+description: FoodItem and its subclasses, covering nutrition, saturation, food constants, exhaustion, and all food items with their stats and effects.
 ---
 
-Food items restore hunger and saturation when eaten. The food system is built around `FoodItem` and its subclasses `BowlFoodItem`, `SeedFoodItem`, and `GoldenAppleItem`.
+Food items restore hunger and saturation when you eat them. The system is built around `FoodItem` and its subclasses: `BowlFoodItem`, `SeedFoodItem`, and `GoldenAppleItem`.
 
 ## FoodItem
 
 **Files:** `Minecraft.World/FoodItem.h`, `Minecraft.World/FoodItem.cpp`
 
-The eat duration is **32 ticks** (`20 * 1.6`). Uses `UseAnim_eat` animation. Food can only be consumed when the player's hunger bar is not full, unless `canAlwaysEat` is set (golden apples).
+Eating takes **32 ticks** (`20 * 1.6`) and plays the `UseAnim_eat` animation. You can only eat food when your hunger bar isn't full, unless `canAlwaysEat` is set (like with golden apples).
 
-Each food item is constructed with:
-- **nutrition** -- hunger points restored
-- **saturationModifier** -- multiplied by `nutrition * 2` to compute saturation restored
-- **isMeat** -- whether wolves can eat it
+Each food item is created with:
+- **nutrition** - hunger points restored
+- **saturationModifier** - multiplied by `nutrition * 2` to get the saturation restored
+- **isMeat** - whether wolves can eat it
 
 ## FoodConstants
 
@@ -35,7 +35,7 @@ Each food item is constructed with:
 | `FOOD_SATURATION_LOW` | 0.3 | Apples, raw meats, melon |
 | `FOOD_SATURATION_NORMAL` | 0.6 | Bread, cooked fish, cooked chicken |
 | `FOOD_SATURATION_GOOD` | 0.8 | Cooked pork, cooked beef |
-| `FOOD_SATURATION_MAX` | 1.0 | (Not used by any food in current code) |
+| `FOOD_SATURATION_MAX` | 1.0 | (Not used by any food in the current code) |
 | `FOOD_SATURATION_SUPERNATURAL` | 1.2 | Golden apple, golden carrot |
 
 ### Exhaustion Values
@@ -82,26 +82,26 @@ Each food item is constructed with:
 
 **File:** `Minecraft.World/BowlFoodItem.h`
 
-Extends `FoodItem`. Overrides `useTimeDepleted` to return an empty bowl (ID 281) after eating. Used for mushroom stew (ID 282).
+This extends `FoodItem` and overrides `useTimeDepleted` to give you back an empty bowl (ID 281) after eating. Used for mushroom stew (ID 282).
 
 ## GoldenAppleItem
 
 **Files:** `Minecraft.World/GoldenAppleItem.h`, `Minecraft.World/GoldenAppleItem.cpp`
 
-Uses `auxValue` to differentiate regular (0) and enchanted (>0) golden apples:
+The `auxValue` tells apart regular and enchanted golden apples:
 
 | Variant | Aux Value | Rarity | Effects |
 |---------|-----------|--------|---------|
 | Regular | 0 | `rare` | Regeneration I for 5 seconds |
 | Enchanted | >0 | `epic` | Regeneration IV 30s, Damage Resistance 300s, Fire Resistance 300s |
 
-The enchanted variant renders with a foil (glint) effect. The `canAlwaysEat` flag is set on both variants, allowing consumption even with a full hunger bar.
+The enchanted version renders with a foil (glint) effect. Both variants have `canAlwaysEat` set, so you can eat them even when your hunger bar is full.
 
 ## SeedFoodItem
 
 **Files:** `Minecraft.World/SeedFoodItem.h`, `Minecraft.World/SeedFoodItem.cpp`
 
-Extends `FoodItem`. Can be both eaten and planted on farmland (overrides `useOn`). Used for:
+This extends `FoodItem` and can be both eaten and planted on farmland (it overrides `useOn`). Used for:
 
 | Item | ID | Nutrition | Plants |
 |------|----|-----------|--------|

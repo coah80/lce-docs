@@ -3,7 +3,7 @@ title: "Screens & GUI"
 description: "GUI screen system in LCEMP."
 ---
 
-LCEMP has two GUI layers: the legacy Java-style `Screen` system (used for basic menus) and the console-native `UIScene` system (in `Common/UI/`) used for the actual in-game console UI. Both systems coexist, with the console UI handling most player-facing menus.
+LCEMP has two GUI layers: the legacy Java-style `Screen` system (used for basic menus) and the console-native `UIScene` system (in `Common/UI/`) for the actual in-game console UI. Both systems exist side by side, with the console UI handling most player-facing menus.
 
 ## Legacy Screen system
 
@@ -43,11 +43,11 @@ protected:
 };
 ```
 
-The active screen is set via `Minecraft::setScreen(Screen*)`. When a screen is active, it receives input events and renders on top of the game world. Setting the screen to `NULL` returns to gameplay.
+The active screen is set via `Minecraft::setScreen(Screen*)`. When a screen is active, it gets input events and renders on top of the game world. Setting the screen to `NULL` returns to gameplay.
 
 ### GuiComponent
 
-The base class for all GUI elements, providing primitive drawing operations:
+The base class for all GUI elements, with primitive drawing operations:
 
 | Method | Purpose |
 |---|---|
@@ -145,7 +145,7 @@ protected:
 };
 ```
 
-Default button size is inferred from the constructor (standard width buttons use a centered two-part texture blit). The `id` field identifies which button was clicked in `Screen::buttonClicked()`.
+Default button size is figured out from the constructor (standard width buttons use a centered two-part texture blit). The `id` field identifies which button was clicked in `Screen::buttonClicked()`.
 
 ### Button subclasses
 
@@ -229,11 +229,11 @@ A separate component that renders achievement toast notifications above the HUD.
 
 ## Console UI system (Common/UI/)
 
-The console-native UI is a complete GUI framework separate from the legacy `Screen` system. It is built around three core abstractions:
+The console-native UI is a complete GUI framework that's separate from the legacy `Screen` system. It's built around three core abstractions:
 
 ### UIScene
 
-The scene is the equivalent of a `Screen` -- a full menu or overlay. Each scene contains UI controls and handles input:
+The scene is the equivalent of a `Screen`, basically a full menu or overlay. Each scene has UI controls and handles input:
 
 | Scene class | Purpose |
 |---|---|
@@ -294,7 +294,7 @@ The scene is the equivalent of a `Screen` -- a full menu or overlay. Each scene 
 
 ### UIControl
 
-Controls are the individual widgets within scenes:
+Controls are the individual widgets inside scenes:
 
 | Control class | Purpose |
 |---|---|
@@ -324,7 +324,7 @@ Controls are the individual widgets within scenes:
 
 ### UIComponent
 
-Reusable visual components that scenes embed:
+Reusable visual components that scenes can embed:
 
 | Component class | Purpose |
 |---|---|

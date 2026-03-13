@@ -3,7 +3,7 @@ title: Blocks (Tiles)
 description: Complete documentation of the tile/block system in Minecraft.World.
 ---
 
-The block system in LCE is built around the `Tile` base class. All blocks are called "tiles" internally. There are approximately **176 tile types** registered in a static array of 4,096 slots.
+The block system in LCE is built around the `Tile` base class. Internally, all blocks are called "tiles." There are about **176 tile types** registered in a static array of 4,096 slots.
 
 ## Core Architecture
 
@@ -50,7 +50,7 @@ static bool propagate[4096];                   // Propagate updates?
 
 ## Sound Types
 
-Pre-defined sound types used by tiles:
+Pre-defined sound types that tiles can use:
 
 | Sound Type | Usage |
 |-----------|-------|
@@ -71,7 +71,7 @@ Each `SoundType` contains: `eMaterialSound`, break/step/place sound IDs, `volume
 
 ## Render Shapes
 
-Every tile has a render shape that determines how it's drawn:
+Every tile has a render shape that controls how it gets drawn:
 
 | Constant | Value | Example |
 |----------|-------|---------|
@@ -116,7 +116,7 @@ Every tile has a render shape that determines how it's drawn:
 
 ## Complete Tile ID Registry
 
-All tiles are statically initialized in `Tile::staticCtor()`:
+All tiles are set up in `Tile::staticCtor()`:
 
 | ID | Internal Name | Class | Destroy Time | Notes |
 |----|--------------|-------|-------------|-------|
@@ -269,7 +269,7 @@ All tiles are statically initialized in `Tile::staticCtor()`:
 | 171 | woolCarpet | `WoolCarpetTile` | 0.1s | 16 colors |
 
 :::note[Gaps in IDs]
-IDs 137-138, 146-152, 154, 157-170 are unassigned in this version. These may correspond to blocks added in later LCE updates.
+IDs 137-138, 146-152, 154, 157-170 are unassigned in this version. These likely correspond to blocks added in later LCE updates.
 :::
 
 ## Class Hierarchy
@@ -450,22 +450,22 @@ virtual void handleEntityInside(Level*, ..., shared_ptr<Entity>, Vec3 *velocity)
 
 ### Fire Spread System
 
-`FireTile` maintains two arrays indexed by tile ID:
+`FireTile` keeps two arrays indexed by tile ID:
 
 | Array | Purpose |
 |-------|---------|
 | `flameOdds[]` | How easily each block catches fire |
 | `burnOdds[]` | How fast each block burns away |
 
-Fire difficulty affects spread rate with constants like `FLAME_INSTANT`, `FLAME_EASY`, `FLAME_MEDIUM`, `FLAME_HARD` and corresponding `BURN_*` values.
+Difficulty affects the spread rate through constants like `FLAME_INSTANT`, `FLAME_EASY`, `FLAME_MEDIUM`, `FLAME_HARD` and their matching `BURN_*` values.
 
 ### Leaf Decay
 
-`LeafTile` uses bit flags in metadata:
-- **Bit 3** (`UPDATE_LEAF_BIT = 8`): Needs decay check
+`LeafTile` uses bit flags in the metadata:
+- **Bit 3** (`UPDATE_LEAF_BIT = 8`): Needs a decay check
 - **Bit 2** (`PERSISTENT_LEAF_BIT = 4`): Player-placed, won't decay
 
-Leaves decay if farther than 4 blocks (`REQUIRED_WOOD_RANGE`) from any log block.
+Leaves decay if they're more than 4 blocks (`REQUIRED_WOOD_RANGE`) away from any log block.
 
 ### Crop Growth
 
@@ -494,15 +494,15 @@ static bool canPush(Level*, int sx, int sy, int sz, int facing);
 static bool isPushable(int block, Level*, int cx, int cy, int cz, bool allowDestroyable);
 ```
 
-Cannot push: obsidian, bedrock, tile entities (chests, furnaces, etc.)
+It can't push obsidian, bedrock, or tile entities (chests, furnaces, etc.)
 
 ### Tripwire System
 
-Max tripwire length: **42 blocks** (`WIRE_DIST_MAX`). `TripWireSourceTile` scans for the paired hook and activates when an entity crosses the wire.
+Max tripwire length is **42 blocks** (`WIRE_DIST_MAX`). `TripWireSourceTile` scans for the paired hook and activates when an entity crosses the wire.
 
 ### Redstone Wire
 
-`RedStoneDustTile` stores power level (0-15) in the data value. Power decreases by 1 per block traveled. Signal propagation uses:
+`RedStoneDustTile` stores the power level (0-15) in the data value. Power drops by 1 for each block it travels. Signal propagation uses:
 ```cpp
 void updatePowerStrength(Level*, int x, int y, int z);
 int checkTarget(Level*, int x, int y, int z, int target);
@@ -534,7 +534,7 @@ Specialized TileItem variants:
 
 ## Block Data (Metadata)
 
-Most tiles store 4 bits of metadata (0-15). Common uses:
+Most tiles store 4 bits of metadata (0-15). Here are the common uses:
 
 | Usage | Example Tiles |
 |-------|--------------|

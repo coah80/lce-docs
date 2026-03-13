@@ -3,13 +3,13 @@ title: Armor
 description: ArmorItem class, armor materials, defense values, durability multipliers, slot system, and leather dyeing via NBT.
 ---
 
-The armor system uses `ArmorItem` to define wearable protective equipment across five material tiers and four equipment slots.
+The armor system uses `ArmorItem` to handle wearable protection. There are five material tiers and four equipment slots.
 
 ## ArmorItem
 
 **Files:** `Minecraft.World/ArmorItem.h`, `Minecraft.World/ArmorItem.cpp`
 
-Each `ArmorItem` is constructed with an `ArmorMaterial`, a slot index, and a render index. The item's durability is computed as `healthPerSlot[slot] * material.durabilityMultiplier`. Defense and enchantability are read from the material.
+Each `ArmorItem` is built with an `ArmorMaterial`, a slot index, and a render index. Durability is calculated as `healthPerSlot[slot] * material.durabilityMultiplier`. Defense and enchantability come from the material.
 
 ## ArmorMaterial
 
@@ -33,7 +33,7 @@ const ArmorMaterial *DIAMOND = new ArmorMaterial(33, {3,8,6,3}, 10);
 | Gold | 7 | 2 / 5 / 3 / 1 | 25 | Gold Ingot (266) |
 | Diamond | 33 | 3 / 8 / 6 / 3 | 10 | Diamond (264) |
 
-**Total defense by full set:** Leather 7, Chain 12, Iron 15, Gold 11, Diamond 20.
+**Total defense for a full set:** Leather 7, Chain 12, Iron 15, Gold 11, Diamond 20.
 
 ## Armor Slots
 
@@ -84,8 +84,8 @@ Durability is calculated as `healthPerSlot[slot] * durabilityMultiplier`.
 
 ## Leather Armor Dyeing
 
-Leather armor (`ArmorMaterial::CLOTH`) supports custom colors via NBT. Color data is stored at `tag.display.color` as an integer. The `DEFAULT_LEATHER_COLOR` falls back to `eMinecraftColour_Armour_Default_Leather_Colour`.
+Leather armor (`ArmorMaterial::CLOTH`) supports custom colors through NBT. The color data lives at `tag.display.color` as an integer. The `DEFAULT_LEATHER_COLOR` falls back to `eMinecraftColour_Armour_Default_Leather_Colour`.
 
-Leather armor uses two sprite layers (base + overlay) to support dyeing. The base layer is tinted with the custom color, while the overlay renders untinted detail.
+Leather armor uses two sprite layers (base + overlay) for dyeing. The base layer gets tinted with the custom color, while the overlay renders untinted for detail.
 
-Dyeing is performed through the `ArmorDyeRecipe` crafting recipe, which combines leather armor with one or more `DyePowderItem` instances. See [Crafting & Recipes](/lcemp-docs/world/crafting/) for details.
+Dyeing happens through the `ArmorDyeRecipe` crafting recipe, which combines leather armor with one or more `DyePowderItem` instances. Check out [Crafting & Recipes](/lcemp-docs/world/crafting/) for more on that.

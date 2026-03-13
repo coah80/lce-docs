@@ -3,9 +3,9 @@ title: Overview
 description: Overview of the Minecraft.World module — the game logic layer.
 ---
 
-`Minecraft.World` is the game logic layer of the LCEMP codebase. It contains all gameplay systems: blocks, items, entities, world generation, networking, AI, crafting, enchantments, effects, containers, and storage. The module is a flat directory of **1,560 source files** (845 headers, 715 implementations) representing roughly **780 compilation units** — with no subdirectories aside from `x64headers/`.
+`Minecraft.World` is the game logic layer of the LCEMP codebase. It holds all the gameplay systems: blocks, items, entities, world generation, networking, AI, crafting, enchantments, effects, containers, and storage. The module is a flat directory of **1,560 source files** (845 headers, 715 implementations) making up roughly **780 compilation units**, with no subdirectories besides `x64headers/`.
 
-The code maps closely to Mojang's original Java package structure. Namespace aggregate headers (e.g. `net.minecraft.world.level.tile.h`) mirror the original Java packages and serve as convenient include bundles.
+The code follows Mojang's original Java package structure pretty closely. Namespace aggregate headers (e.g. `net.minecraft.world.level.tile.h`) mirror those Java packages and act as handy include bundles.
 
 ## Module Entry Point
 
@@ -15,7 +15,7 @@ The code maps closely to Mojang's original Java package structure. Namespace agg
 void MinecraftWorld_RunStaticCtors();
 ```
 
-This bootstraps all static registries — tiles, items, biomes, enchantments, recipes, mob effects, and stats — before the game loop starts.
+This kicks off all the static registries (tiles, items, biomes, enchantments, recipes, mob effects, and stats) before the game loop starts.
 
 ## Subsystem Summary
 
@@ -58,22 +58,22 @@ This bootstraps all static registries — tiles, items, biomes, enchantments, re
 
 **Total: ~1,560 files across ~780 compilation units.**
 
-## Level Core — The Central Hub
+## Level Core, The Central Hub
 
-The `Level` class (`Level.h`, `Level.cpp`) is the center of the module. Nearly every other subsystem holds a pointer back to `Level`. It owns:
+The `Level` class (`Level.h`, `Level.cpp`) is the heart of the module. Almost every other subsystem holds a pointer back to `Level`. It owns:
 
-- **Entity lists** — `entities`, `players`, `globalEntities`, `tileEntityList` with critical sections for thread safety.
-- **Chunk management** — delegates to a `ChunkSource` for chunk loading and generation.
-- **Tick loop** — `tick()` drives weather, entity updates, tile ticks, and pending tile entity additions.
-- **Lighting engine** — per-block sky and block light with a TLS-based cache for multi-threaded chunk rebuilds.
-- **Dimensions** — `Dimension` pointer selects overworld (`NormalDimension`), nether (`HellDimension`), or end (`TheEndDimension`).
-- **Village tracking** — `Villages` and `VillageSiege` for village mechanics.
+- **Entity lists** like `entities`, `players`, `globalEntities`, and `tileEntityList`, with critical sections for thread safety.
+- **Chunk management**, which delegates to a `ChunkSource` for loading and generating chunks.
+- **Tick loop** where `tick()` drives weather, entity updates, tile ticks, and pending tile entity additions.
+- **Lighting engine** with per-block sky and block light, using a TLS-based cache for multi-threaded chunk rebuilds.
+- **Dimensions** via a `Dimension` pointer that selects overworld (`NormalDimension`), nether (`HellDimension`), or end (`TheEndDimension`).
+- **Village tracking** through `Villages` and `VillageSiege` for village mechanics.
 
 ### 4J Studios Additions
 
-The codebase contains extensive `// 4J` comments marking console-edition-specific changes:
+The codebase is full of `// 4J` comments marking console-edition-specific changes:
 
-- Thread-local storage for lighting cache and tile shapes (multi-threaded chunk rebuilds).
+- Thread-local storage for the lighting cache and tile shapes (needed for multi-threaded chunk rebuilds).
 - Critical sections (`CRITICAL_SECTION`) around entity and tile entity lists.
 - Console entity limits: max 40 boats, 40 minecarts, 200 fireballs, 300 projectiles.
 - Platform guards: `__PSVITA__`, `_LARGE_WORLDS`, `_XBOX`, and Durango-specific stats.
@@ -100,23 +100,23 @@ The codebase contains extensive `// 4J` comments marking console-edition-specifi
 
 ### Key Relationships
 
-- **Level <-> Tile**: `Level` stores tile IDs in chunks. `Tile::tick()` is called by the level's random tick system. Tiles query their neighbors through `Level`.
+- **Level <-> Tile**: `Level` stores tile IDs in chunks. `Tile::tick()` gets called by the level's random tick system. Tiles query their neighbors through `Level`.
 - **Level <-> Entity**: `Level` owns entity lists and calls `Entity::tick()` each game tick. Entities read and modify tiles through their `level` pointer.
-- **Entity -> AI Goals**: Mobs use a `GoalSelector` containing prioritized `Goal` instances. Goals access the mob's `PathNavigation` and `LookControl` to move and target.
-- **Entity -> Pathfinding**: `PathNavigation` uses `PathFinder` (A* over `Node` graph) with `BinaryHeap`. The pathfinder reads tile solidity from `Level`.
+- **Entity -> AI Goals**: Mobs use a `GoalSelector` with prioritized `Goal` instances. Goals access the mob's `PathNavigation` and `LookControl` to move and pick targets.
+- **Entity -> Pathfinding**: `PathNavigation` runs `PathFinder` (A* over a `Node` graph) with `BinaryHeap`. The pathfinder checks tile solidity from `Level`.
 - **Item <-> Tile**: Items and tiles share an ID space. `TileItem` wraps a `Tile` as an `Item`. Items like `BucketItem` and `BedItem` place or interact with tiles.
 - **Enchantment -> Item/Entity**: `EnchantmentHelper` queries item enchantments during combat (`DamageEnchantment`, `ProtectionEnchantment`) and tool use (`DiggingEnchantment`).
 - **MobEffect -> Entity**: Status effects modify entity attributes each tick. `PotionBrewing` defines how ingredients combine in the brewing stand.
 - **Recipes -> Item/Tile**: `ShapedRecipy` and `ShapelessRecipy` map `ItemInstance` grids to output items. `FurnaceRecipes` maps smelting inputs to outputs.
 - **Container/Menu -> Item/Tile Entity**: Menus like `FurnaceMenu` bind UI slots to a `TileEntity`'s inventory. `ContainerMenu` handles click logic and slot transfer.
 - **Packet <-> Level/Entity**: Packets serialize game state changes. `MoveEntityPacket`, `TileUpdatePacket`, `ContainerSetSlotPacket`, etc. keep client and server in sync.
-- **World Gen -> Level**: `ChunkSource` implementations (`RandomLevelSource`, `HellRandomLevelSource`, `TheEndLevelRandomLevelSource`) generate chunks. `BiomeSource` uses the `Layer` pipeline to produce biome maps. `Feature` and `StructureFeature` decorate generated terrain.
-- **Storage -> Level/NBT**: `LevelStorage` persists world data. Console editions use `ConsoleSaveFile` variants and `ZonedChunkStorage`. All serialization goes through the NBT `Tag` hierarchy.
+- **World Gen -> Level**: `ChunkSource` implementations (`RandomLevelSource`, `HellRandomLevelSource`, `TheEndLevelRandomLevelSource`) generate chunks. `BiomeSource` uses the `Layer` pipeline to produce biome maps. `Feature` and `StructureFeature` decorate the generated terrain.
+- **Storage -> Level/NBT**: `LevelStorage` saves world data. Console editions use `ConsoleSaveFile` variants and `ZonedChunkStorage`. All serialization goes through the NBT `Tag` hierarchy.
 - **DamageSource -> Entity**: `DamageSource` identifies damage types. `EntityDamageSource` and `IndirectEntityDamageSource` track the attacking entity for kill credit and enchantment application.
 
 ## Namespace Headers
 
-The 54 `net.minecraft.*.h` files are aggregate include headers that mirror the original Java package structure. They do not contain logic — they bundle related headers for convenience. For example:
+The 54 `net.minecraft.*.h` files are aggregate include headers that mirror the original Java package structure. They don't contain any logic, they just bundle related headers together for convenience. For example:
 
 | Header | Bundles |
 |--------|---------|

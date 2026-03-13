@@ -3,9 +3,9 @@ title: Items
 description: Complete documentation of the LCEMP item system.
 ---
 
-The item system in LCE is built around the `Item` base class. All non-block items are registered with numeric IDs starting at **256** (the constructor offsets by +256 internally). The global registry holds up to **32,000** slots.
+The item system in LCE is built around the `Item` base class. Every non-block item gets a numeric ID starting at **256** (the constructor adds +256 internally). The global registry can hold up to **32,000** slots.
 
-For the full architecture (base class, ItemInstance, registration system, class hierarchy, crafting menu enums), see the **[Item System Overview](/lcemp-docs/world/items/overview/)**.
+For the full architecture (base class, ItemInstance, registration system, class hierarchy, crafting menu enums), head over to the **[Item System Overview](/lcemp-docs/world/items/overview/)**.
 
 ## Item Categories
 

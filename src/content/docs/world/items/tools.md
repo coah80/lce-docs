@@ -1,15 +1,15 @@
 ---
 title: Tools & Weapons
-description: Swords, pickaxes, axes, shovels, hoes, shears, and fishing rods — tier system, diggable tiles, damage values, and durability.
+description: Swords, pickaxes, axes, shovels, hoes, shears, and fishing rods. Tier system, diggable tiles, damage values, and durability.
 ---
 
-Tools and weapons are the primary interactive items in LCE. They share a common **Tier** system that defines durability, mining speed, attack damage, and enchantability.
+Tools and weapons are the main interactive items in LCE. They all share a **Tier** system that controls durability, mining speed, attack damage, and enchantability.
 
 ## Tool Tiers
 
 **Defined in:** `Item::Tier` (nested class in `Item.h`)
 
-Each tier defines mining level, durability, mining speed, attack damage bonus, and enchantability.
+Each tier sets the mining level, durability, mining speed, attack damage bonus, and enchantability.
 
 ```cpp
 const Tier *WOOD    = new Tier(0,   59, 2.0f, 0, 15);
@@ -27,13 +27,13 @@ const Tier *GOLD    = new Tier(0,   32, 12.0f, 0, 22);
 | Diamond | 3 | 1561 | 8.0 | +3 | 10 | Diamond (264) |
 | Gold | 0 | 32 | 12.0 | +0 | 22 | Gold Ingot (266) |
 
-Gold has the highest mining speed (12.0) and enchantability (22) but the lowest durability (32) and mining level (0, same as Wood).
+Gold is interesting: it has the fastest mining speed (12.0) and highest enchantability (22), but it breaks super quickly (32 durability) and has a mining level of 0, same as Wood.
 
 ## WeaponItem (Swords)
 
 **Files:** `Minecraft.World/WeaponItem.h`, `Minecraft.World/WeaponItem.cpp`
 
-Swords have a base damage of **4 + tier damage bonus**. They use `UseAnim_block` for blocking, with a maximum block duration of one hour (72,000 ticks). Swords cut cobwebs at speed 15.0 and all other blocks at 1.5.
+Swords deal a base damage of **4 + tier damage bonus**. They use `UseAnim_block` for blocking, with a max block duration of one hour (72,000 ticks). Swords cut cobwebs at speed 15.0 and all other blocks at 1.5.
 
 | Sword | ID | Total Damage | Durability |
 |-------|----|-------------|------------|
@@ -45,19 +45,19 @@ Swords have a base damage of **4 + tier damage bonus**. They use `UseAnim_block`
 
 **Durability costs:**
 - **1 per hit** on an enemy
-- **2 per block mined** (only if block has nonzero destroy speed)
+- **2 per block mined** (only if the block has nonzero destroy speed)
 
-**Blocking:** Right-click activates `UseAnim_block`. While blocking, damage is reduced. The maximum use duration is `20 * 60 * 60` ticks (one hour), though in practice the player releases the button.
+**Blocking:** Right-click activates `UseAnim_block`. While blocking, incoming damage is reduced. The max use duration is `20 * 60 * 60` ticks (one hour), though in practice you'll release the button way before that.
 
 ## DiggerItem (Base Mining Tool)
 
 **Files:** `Minecraft.World/DiggerItem.h`, `Minecraft.World/DiggerItem.cpp`
 
-Base class for pickaxes, shovels, and axes. Each subclass defines a list of "diggable" tiles that receive the tier's speed bonus. The attack damage is `baseAttackDamage + tier.getAttackDamageBonus()`.
+This is the base class for pickaxes, shovels, and axes. Each subclass defines a list of "diggable" tiles that get the tier's speed bonus. Attack damage is calculated as `baseAttackDamage + tier.getAttackDamageBonus()`.
 
 **Durability costs:**
 - **2 per hit** on an enemy
-- **1 per block mined** (only if block has nonzero destroy speed)
+- **1 per block mined** (only if the block has nonzero destroy speed)
 
 ### PickaxeItem
 
@@ -67,7 +67,7 @@ Base attack damage parameter: **2** (total = 2 + tier bonus).
 
 **Diggable tiles (22):** Stone Brick, Stone Slab, Stone Slab Half, Rock, Sandstone, Mossy Cobblestone, Iron Ore, Iron Block, Coal Ore, Gold Block, Gold Ore, Diamond Ore, Diamond Block, Ice, Netherrack, Lapis Ore, Lapis Block, Redstone Ore, Lit Redstone Ore, Rail, Detector Rail, Golden Rail.
 
-Also gets speed bonus on any tile with `Material::metal`, `Material::heavyMetal`, or `Material::stone`.
+Also gets a speed bonus on any tile with `Material::metal`, `Material::heavyMetal`, or `Material::stone`.
 
 **Mining level requirements:**
 
@@ -91,7 +91,7 @@ Base attack damage parameter: **1** (total = 1 + tier bonus).
 
 **Diggable tiles (10):** Grass, Dirt, Sand, Gravel, Top Snow, Snow, Clay, Farmland, Soul Sand, Mycelium.
 
-Can harvest Top Snow and Snow blocks (via `canDestroySpecial`).
+Can harvest Top Snow and Snow blocks (through `canDestroySpecial`).
 
 ### HatchetItem (Axe)
 
@@ -101,13 +101,13 @@ Base attack damage parameter: **3** (total = 3 + tier bonus).
 
 **Diggable tiles (8):** Planks, Bookshelf, Logs, Chest, Stone Slab, Stone Slab Half, Pumpkin, Lit Pumpkin.
 
-Also gets speed bonus on any tile with `Material::wood`.
+Also gets a speed bonus on any tile with `Material::wood`.
 
 ## HoeItem
 
 **Files:** `Minecraft.World/HoeItem.h`, `Minecraft.World/HoeItem.cpp`
 
-Hoes convert grass and dirt blocks to farmland when used on them (face != 0, air above). They do not have a diggable tile list since they are not mining tools. Durability is set to the tier's uses, and **1 durability** is consumed per use.
+Hoes turn grass and dirt blocks into farmland when you use them (face != 0, with air above). They don't have a diggable tile list since they're not mining tools. Durability matches the tier's uses, and **1 durability** is used up each time.
 
 | Hoe | ID | Durability |
 |-----|----|-----------|
@@ -127,7 +127,7 @@ Hoes convert grass and dirt blocks to farmland when used on them (face != 0, air
 | Max Durability | 238 |
 | Stack Size | 1 |
 
-Shears provide speed bonuses and special harvesting for specific block types:
+Shears give speed bonuses and special harvesting for certain block types:
 
 | Tile | Destroy Speed | Can Harvest (drops block) |
 |------|--------------|--------------------------|
@@ -137,7 +137,7 @@ Shears provide speed bonuses and special harvesting for specific block types:
 | Redstone Dust | 1.0 | Yes |
 | Tripwire | 1.0 | Yes |
 
-Consumes **1 durability** when mining leaves, cobweb, tall grass, vines, or tripwire. Other blocks use the default `Item::mineBlock` behavior.
+Uses **1 durability** when mining leaves, cobweb, tall grass, vines, or tripwire. Other blocks follow the default `Item::mineBlock` behavior.
 
 ## FishingRodItem
 
@@ -151,7 +151,7 @@ Consumes **1 durability** when mining leaves, cobweb, tall grass, vines, or trip
 | Hand Equipped | Yes |
 | Mirrored Art | Yes |
 
-Right-click toggles between casting and reeling. When cast, creates a `FishingHook` entity. When reeled, calls `FishingHook::retrieve()` and applies durability damage equal to the return value.
+Right-click toggles between casting and reeling. When you cast, it creates a `FishingHook` entity. When you reel in, it calls `FishingHook::retrieve()` and takes durability damage equal to whatever that returns.
 
 ## Complete Tool ID Registry
 

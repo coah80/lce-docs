@@ -3,17 +3,17 @@ title: Adding Blocks
 description: Step-by-step guide to adding new blocks (tiles) to LCEMP.
 ---
 
-Blocks in LCEMP are called **tiles**. Every block in the game -- stone, dirt, furnaces, doors -- is a subclass (or direct instance) of the `Tile` class defined in `Minecraft.World/Tile.h`. This guide walks through creating a new tile from scratch, based on how existing tiles are implemented in the source code.
+Blocks in LCEMP are called **tiles**. Every block in the game (stone, dirt, furnaces, doors, you name it) is either a subclass or direct instance of the `Tile` class defined in `Minecraft.World/Tile.h`. This guide walks you through creating a new tile from scratch, based on how existing tiles work in the source code.
 
 ## Overview of the Tile System
 
-The base `Tile` class provides:
+The base `Tile` class gives you:
 
 - A **numeric ID** (`int id`) that uniquely identifies the tile in the world
-- **Material** (`Material *material`) controlling interaction behavior (flammable, solid, etc.)
-- **Properties** like destroy speed, explosion resistance, sound type, light emission
+- **Material** (`Material *material`) that controls interaction behavior (flammable, solid, etc.)
+- **Properties** like destroy speed, explosion resistance, sound type, and light emission
 - **Render shape** constants (`SHAPE_BLOCK`, `SHAPE_CROSS_TEXTURE`, `SHAPE_STAIRS`, etc.)
-- **Virtual methods** for behavior: `tick()`, `use()`, `attack()`, `neighborChanged()`, `onPlace()`, `onRemove()`, etc.
+- **Virtual methods** for behavior: `tick()`, `use()`, `attack()`, `neighborChanged()`, `onPlace()`, `onRemove()`, and more
 
 All tiles are stored in the static array `Tile::tiles[4096]`. The `Tile` constructor automatically registers itself:
 
@@ -25,7 +25,7 @@ this->id = id;
 
 ## Step 1: Create a Tile Subclass
 
-Create two new files in `Minecraft.World/`: a header and implementation.
+Create two new files in `Minecraft.World/`: a header and an implementation file.
 
 **`MyCustomTile.h`**
 ```cpp
@@ -104,11 +104,11 @@ The `Tile` constructor takes up to three parameters:
 Tile(int id, Material *material, bool isSolidRender = true);
 ```
 
-The third parameter `isSolidRender` controls whether the block is considered opaque for lighting and rendering. Set it to `false` for transparent or non-full blocks (like glass or fences).
+The third parameter `isSolidRender` controls whether the block counts as opaque for lighting and rendering. Set it to `false` for transparent or non-full blocks (like glass or fences).
 
 ## Step 2: Choose a Material
 
-The `Material` class determines fundamental block behavior. Available materials from `Material.h`:
+The `Material` class determines the fundamental behavior of a block. Here are the available materials from `Material.h`:
 
 | Material | Description |
 |----------|-------------|
@@ -134,7 +134,7 @@ MyCustomTile::MyCustomTile(int id) : Tile(id, Material::stone)
 
 ## Step 3: Register in Tile::staticCtor()
 
-Open `Minecraft.World/Tile.cpp` and add your registration inside `Tile::staticCtor()`. You also need a static pointer declaration in `Tile.h`.
+Open `Minecraft.World/Tile.cpp` and add your registration inside `Tile::staticCtor()`. You'll also need a static pointer declaration in `Tile.h`.
 
 **In `Tile.h`**, add a forward declaration and static pointer:
 
@@ -162,11 +162,11 @@ Tile::myCustomTile = (MyCustomTile *)(new MyCustomTile(160))
     ->setUseDescriptionId(IDS_DESC_MY_CUSTOM);
 ```
 
-Pick an unused ID. See [Getting Started](/lcemp-docs/modding/getting-started/) for guidance on finding available IDs.
+Pick an unused ID. See [Getting Started](/lcemp-docs/modding/getting-started/) for help finding available IDs.
 
 ## Step 4: Set Properties
 
-All property setters return `Tile*`, enabling the chained builder pattern. Here are the available setters:
+All property setters return `Tile*`, so you can chain them together in the builder pattern. Here's what's available:
 
 ### Destroy Time and Resistance
 
@@ -358,7 +358,7 @@ void MyCustomTile::onRemove(Level *level, int x, int y, int z, int id, int data)
 
 ## Step 6: Add the TileItem
 
-For tiles with IDs 0--255, the end of `Tile::staticCtor()` automatically creates a `TileItem` for any tile that does not already have a custom item:
+For tiles with IDs 0 through 255, the end of `Tile::staticCtor()` automatically creates a `TileItem` for any tile that doesn't already have a custom item:
 
 ```cpp
 for (int i = 0; i < 256; i++)
@@ -371,7 +371,7 @@ for (int i = 0; i < 256; i++)
 }
 ```
 
-If your tile needs special item behavior (multiple sub-types, custom icons, colored variants), register a custom `TileItem` subclass before this loop. The codebase has many examples:
+If your tile needs special item behavior (multiple sub-types, custom icons, colored variants), register a custom `TileItem` subclass before this loop runs. The codebase has plenty of examples:
 
 ```cpp
 // Wool has colored variants
@@ -394,13 +394,13 @@ Item::items[Tile::stoneSlabHalf_Id] = ( new StoneSlabTileItem(
 
 ## Step 7: Creative Inventory
 
-To make your tile appear in the creative inventory, set its base item type and material during registration:
+To make your tile show up in the creative inventory, set its base item type and material during registration:
 
 ```cpp
 ->setBaseItemTypeAndMaterial(Item::eBaseItemType_block, Item::eMaterial_stone)
 ```
 
-The `eBaseItemType` enum controls which tab the item appears on, and `eMaterial` controls sorting within that tab. Common base item types:
+The `eBaseItemType` enum controls which tab the item appears on, and `eMaterial` controls sorting within that tab. Here are the common base item types:
 
 | Type | Usage |
 |------|-------|
@@ -421,7 +421,7 @@ The `eBaseItemType` enum controls which tab the item appears on, and `eMaterial`
 
 ## Complete Example: Adding a Ruby Ore
 
-Here is a complete walkthrough based on the existing `OreTile` pattern.
+Here's a full walkthrough based on the existing `OreTile` pattern.
 
 **`RubyOreTile.h`**
 ```cpp
@@ -499,5 +499,5 @@ Add your new `.h` and `.cpp` files to `cmake/Sources.cmake`, rebuild, and the bl
 
 ## Related Guides
 
-- [Getting Started](/lcemp-docs/modding/getting-started/) -- environment setup and the staticCtor pattern
-- [Adding Items](/lcemp-docs/modding/adding-items/) -- create matching items for your blocks
+- [Getting Started](/lcemp-docs/modding/getting-started/) for environment setup and the staticCtor pattern
+- [Adding Items](/lcemp-docs/modding/adding-items/) to create matching items for your blocks

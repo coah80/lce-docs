@@ -3,7 +3,7 @@ title: "Overview & Differences"
 description: "How MinecraftConsoles differs from LCEMP."
 ---
 
-MinecraftConsoles is a community fork of the Legacy Console Edition source code maintained by **smartcmd** and contributors. It builds on the same TU19 (v1.6.0560.0) codebase that LCEMP uses, and credits LCEMP for its multiplayer networking implementation. Where LCEMP focuses on preserving and documenting the original 4J Studios code, MinecraftConsoles pushes the project forward with modern tooling, new gameplay systems, and a broader feature set.
+MinecraftConsoles is a community fork of the Legacy Console Edition source code, maintained by **smartcmd** and contributors. It's built on the same TU19 (v1.6.0560.0) codebase that LCEMP uses, and it credits LCEMP for its multiplayer networking implementation. While LCEMP focuses on preserving and documenting the original 4J Studios code, MinecraftConsoles pushes things forward with modern tooling, new gameplay systems, and a bigger feature set.
 
 ## At a glance
 
@@ -18,7 +18,7 @@ MinecraftConsoles is a community fork of the Legacy Console Edition source code 
 
 ## New systems
 
-MinecraftConsoles adds a significant number of gameplay systems that are not present in LCEMP. Each system is documented on its own page.
+MinecraftConsoles adds a ton of gameplay systems that don't exist in LCEMP. Each one has its own page with more details.
 
 ### Entity attributes and combat
 
@@ -36,15 +36,15 @@ Full [horse entities](/lcemp-docs/mc/horses/) with five types (horse, donkey, mu
 
 Multiple minecart subtypes beyond the base rideable minecart:
 
-- **MinecartChest** -- chest storage on rails
-- **MinecartFurnace** -- self-propelled furnace cart
-- **MinecartHopper** -- item collection on rails with cooldown and enable/disable via activator rail
-- **MinecartTNT** -- explosive cart with fuse, priming, and blast resistance checks
-- **MinecartSpawner** -- mob spawner on rails with its own `BaseMobSpawner` instance
+- **MinecartChest**, chest storage on rails
+- **MinecartFurnace**, self-propelled furnace cart
+- **MinecartHopper**, item collection on rails with cooldown and enable/disable via activator rail
+- **MinecartTNT**, explosive cart with fuse, priming, and blast resistance checks
+- **MinecartSpawner**, mob spawner on rails with its own `BaseMobSpawner` instance
 
 ### Hoppers and dispensers
 
-The `HopperTileEntity` implements item transfer logic with cooldown timing, item ejection, item suction from above, and container-to-container moves. The `DispenseItemBehavior` system provides a registry (`BehaviorRegistry`) mapping items to custom dispense actions.
+The `HopperTileEntity` handles item transfer logic with cooldown timing, item ejection, item suction from above, and container-to-container moves. The `DispenseItemBehavior` system provides a registry (`BehaviorRegistry`) that maps items to custom dispense actions.
 
 ### Fireworks
 
@@ -60,4 +60,4 @@ A `Redstone` constants class defining signal range (`SIGNAL_NONE = 0`, `SIGNAL_M
 
 ### Behavior and dispense registry
 
-A `Behavior` base class and `BehaviorRegistry` that maps `Item` pointers to `DispenseItemBehavior` instances, with a `DefaultDispenseItemBehavior` fallback (drops items as pickups). Used by the `DispenserBootstrap` to register item-specific dispense actions at startup.
+A `Behavior` base class and `BehaviorRegistry` that maps `Item` pointers to `DispenseItemBehavior` instances, with a `DefaultDispenseItemBehavior` fallback (drops items as pickups). The `DispenserBootstrap` registers item-specific dispense actions at startup.

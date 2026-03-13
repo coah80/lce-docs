@@ -3,13 +3,13 @@ title: Music Discs
 description: RecordingItem class, all disc IDs (2256-2267), track names, and jukebox interaction.
 ---
 
-Music discs are implemented by `RecordingItem` and interact with jukebox tiles (`RecordPlayerTile`) to play music.
+Music discs are handled by `RecordingItem` and work with jukebox tiles (`RecordPlayerTile`) to play music.
 
 ## RecordingItem
 
 **Files:** `Minecraft.World/RecordingItem.h`, `Minecraft.World/RecordingItem.cpp`
 
-Each `RecordingItem` stores a `recording` string (e.g., `"13"`, `"cat"`, `"blocks"`) that identifies the track. All discs share these properties:
+Each `RecordingItem` stores a `recording` string (like `"13"`, `"cat"`, `"blocks"`) that identifies the track. All discs share these properties:
 
 | Property | Value |
 |----------|-------|
@@ -26,23 +26,23 @@ RecordingItem::RecordingItem(int id, const wstring& recording) : Item(id), recor
 }
 ```
 
-The `recording` field is declared as `const std::wstring` and is `public` (4J changed it from `protected` in the Java source because they needed to access it externally).
+The `recording` field is a `const std::wstring` and is `public` (4J changed it from `protected` in the Java source because they needed to access it from outside the class).
 
 ## Jukebox Interaction
 
-When a disc is used on a jukebox tile (`Tile::recordPlayer`), the `useOn` method:
+When you use a disc on a jukebox tile (`Tile::recordPlayer`), the `useOn` method does the following:
 
-1. Checks that the target tile is a jukebox with data value 0 (no disc inserted)
+1. Checks that the target tile is a jukebox with data value 0 (meaning no disc is currently inserted)
 2. Calls `RecordPlayerTile::setRecord()` to insert the disc, passing the item ID
 3. Fires `LevelEvent::SOUND_PLAY_RECORDING` with the item ID as the data parameter
-4. Decrements the item stack count
-5. Awards the `musicToMyEars` statistic via `GenericStats`
+4. Decreases the item stack count
+5. Awards the `musicToMyEars` statistic through `GenericStats`
 
-The disc is only inserted on the server side (`level->isClientSide` check). The `bTestUseOnOnly` parameter (a 4J addition) allows the UI to check if the interaction would succeed without actually performing it, enabling tooltip display.
+The disc only gets inserted on the server side (`level->isClientSide` check). The `bTestUseOnOnly` parameter (a 4J addition) lets the UI check whether the interaction would work without actually doing it, which is how tooltip display works.
 
 ### Tooltip
 
-The `appendHoverText` method formats the artist and track name as `"C418 - <recording>"` with the rare rarity color applied via HTML formatting:
+The `appendHoverText` method formats the artist and track name as `"C418 - <recording>"` with the rare rarity color applied through HTML formatting:
 
 ```cpp
 swprintf(formatted, 256, L"<font color=\"#%08x\">%ls</font>", colour, L"C418 - ", recording.c_str());
@@ -65,7 +65,7 @@ swprintf(formatted, 256, L"<font color=\"#%08x\">%ls</font>", colour, L"C418 - "
 | 2266 | `"11"` | 11 | Broken/corrupted recording |
 | 2267 | `"where are we now"` | Where Are We Now | LCE-exclusive disc |
 
-The disc with ID 2267 (`"where are we now"`) is noted in the source as *"not playable in the PC game, but is fine in ours"* -- this is a Legacy Console Edition exclusive music disc.
+The disc with ID 2267 (`"where are we now"`) is noted in the source as *"not playable in the PC game, but is fine in ours"*. This is a Legacy Console Edition exclusive music disc.
 
 ## Icon Registration
 
@@ -78,4 +78,4 @@ void RecordingItem::registerIcons(IconRegister *iconRegister)
 }
 ```
 
-This means the texture files are named `record_13`, `record_cat`, `record_blocks`, etc.
+So the texture files are named `record_13`, `record_cat`, `record_blocks`, etc.

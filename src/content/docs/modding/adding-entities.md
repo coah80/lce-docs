@@ -3,11 +3,11 @@ title: Adding Entities
 description: Step-by-step guide to adding new entities to LCEMP.
 ---
 
-This guide walks through creating a new mob entity in LCEMP, covering the class hierarchy, registration, AI goals, synched data, spawning rules, and client-side rendering.
+This guide walks you through creating a new mob entity in LCEMP. We'll cover the class hierarchy, registration, AI goals, synched data, spawning rules, and client-side rendering.
 
 ## Entity Class Hierarchy
 
-Every entity in LCEMP inherits from `Entity` (`Minecraft.World/Entity.h`). The full mob hierarchy is:
+Every entity in LCEMP inherits from `Entity` (`Minecraft.World/Entity.h`). Here's the full mob hierarchy:
 
 ```
 Entity
@@ -28,7 +28,7 @@ Entity
                     └── Ozelot
 ```
 
-Choose which class to extend based on your mob's behavior:
+Pick whichever base class matches the behavior you want:
 
 | Base Class | Use When |
 |-----------|----------|
@@ -47,7 +47,7 @@ LCEMP uses an `eINSTANCEOF` enum instead of C++ `dynamic_cast` to identify entit
 eTYPE_MY_MOB,
 ```
 
-Every entity class overrides `GetType()` to return its enum value. This is how the engine performs type checks without `dynamic_cast`:
+Every entity class overrides `GetType()` to return its enum value. This is how the engine does type checks without `dynamic_cast`:
 
 ```cpp
 eINSTANCEOF GetType() { return eTYPE_MY_MOB; }
@@ -55,7 +55,7 @@ eINSTANCEOF GetType() { return eTYPE_MY_MOB; }
 
 ## Step 2: Create the Mob Class
 
-Here is a hostile mob example modeled after how `Zombie` is implemented:
+Here's a hostile mob example based on how `Zombie` is set up:
 
 ### Header (`Minecraft.World/MyMob.h`)
 
@@ -88,13 +88,13 @@ public:
 };
 ```
 
-Key points:
-- The static `create` function is a **factory** used by `EntityIO` to instantiate mobs from save data or network packets.
-- `useNewAi()` must return `true` to enable the `GoalSelector`-based AI system.
+A couple important things here:
+- The static `create` function is a **factory** that `EntityIO` uses to create mobs from save data or network packets.
+- `useNewAi()` needs to return `true` to turn on the `GoalSelector`-based AI system.
 
 ### Implementation (`Minecraft.World/MyMob.cpp`)
 
-Here is how `Cow` and `Zombie` set up their constructors -- follow this pattern:
+Here's the constructor pattern that `Cow` and `Zombie` both follow:
 
 ```cpp
 #include "MyMob.h"
@@ -141,7 +141,7 @@ MyMob::MyMob(Level *level) : Monster(level)
 }
 ```
 
-For a **passive mob** (like a Cow), extend `Animal` and use passive goals:
+For a **passive mob** (like a Cow), extend `Animal` and use passive goals instead:
 
 ```cpp
 MyCow::MyCow(Level *level) : Animal(level)
@@ -193,14 +193,14 @@ public:
 
 ### How GoalSelector Works
 
-Each tick, `GoalSelector::tick()`:
+Each tick, `GoalSelector::tick()` does the following:
 
-1. Iterates through all registered goals in priority order (lower number = higher priority).
+1. Goes through all registered goals in priority order (lower number = higher priority).
 2. Checks `canUse()` on inactive goals and `canContinueToUse()` on active ones.
-3. Uses `canCoExist()` to determine whether multiple goals can run simultaneously (based on control flags).
-4. Goals with a lower priority number can preempt goals with a higher number.
+3. Uses `canCoExist()` to figure out if multiple goals can run at the same time (based on control flags).
+4. Goals with a lower priority number can interrupt goals with a higher number.
 
-The `newGoalRate` field controls how often new goals are evaluated (set via `setNewGoalRate()`).
+The `newGoalRate` field controls how often new goals are checked (set via `setNewGoalRate()`).
 
 ### Common Built-in Goals
 
@@ -223,7 +223,7 @@ The `newGoalRate` field controls how often new goals are evaluated (set via `set
 
 ## Step 4: Synched Entity Data
 
-`SynchedEntityData` synchronizes mob state between server and client. Data items are defined with typed IDs:
+`SynchedEntityData` keeps mob state in sync between server and client. Data items are defined with typed IDs:
 
 ```cpp
 // In your header, declare synch data IDs as static constants:
@@ -250,7 +250,7 @@ void MyMob::setMyFlag(bool value)
 
 ### Reserved Data IDs
 
-The base classes use these IDs -- avoid reusing them:
+The base classes already use these IDs, so don't reuse them:
 
 | ID | Used By | Purpose |
 |----|---------|---------|
@@ -260,7 +260,7 @@ The base classes use these IDs -- avoid reusing them:
 | 12 | `AgableMob` | Age |
 | 13 | `Animal` | In-love state |
 
-`Zombie` uses IDs 12-14 (baby, villager, converting). `Creeper` uses 16-17 (swell direction, powered). `Wolf` uses 18-20 (health, interested, collar color). Pick IDs that do not collide with your parent class chain.
+`Zombie` uses IDs 12-14 (baby, villager, converting). `Creeper` uses 16-17 (swell direction, powered). `Wolf` uses 18-20 (health, interested, collar color). Pick IDs that don't collide with your parent class chain.
 
 ### Supported Data Types
 
@@ -296,7 +296,7 @@ void EntityIO::staticCtor()
 }
 ```
 
-The `setId` function registers your mob in five maps simultaneously:
+The `setId` function registers your mob in five maps at once:
 
 | Map | Key | Value |
 |-----|-----|-------|
@@ -306,13 +306,13 @@ The `setId` function registers your mob in five maps simultaneously:
 | `numClassMap` | Numeric ID | `eINSTANCEOF` |
 | `classNumMap` | `eINSTANCEOF` | Numeric ID |
 
-The six-argument overload also adds the mob to `idsSpawnableInCreative` for the spawn egg UI. Numeric IDs follow the vanilla convention: monsters are 50-63, animals are 90-99.
+The six-argument version also adds the mob to `idsSpawnableInCreative` for the spawn egg UI. Numeric IDs follow vanilla conventions: monsters are 50-63, animals are 90-99.
 
 ## Step 6: Add Spawning Rules
 
 ### Biome Mob Spawning
 
-Mobs spawn naturally based on per-biome mob lists. In the `Biome` constructor (`Minecraft.World/Biome.cpp`), default spawns are registered:
+Mobs spawn naturally based on per-biome mob lists. In the `Biome` constructor (`Minecraft.World/Biome.cpp`), default spawns are set up like this:
 
 ```cpp
 // Default hostile mobs (all biomes):
@@ -359,7 +359,7 @@ LCEMP has console-specific spawn limits defined in `MobCategory.h`:
 
 ### canSpawn() Override
 
-Hostile mobs (`Monster`) check light level and sky access via `isDarkEnoughToSpawn()` and `canSpawn()`. Passive mobs (`Animal`) check for grass blocks and light level. Override `canSpawn()` for custom spawn conditions:
+Hostile mobs (`Monster`) check light level and sky access through `isDarkEnoughToSpawn()` and `canSpawn()`. Passive mobs (`Animal`) look for grass blocks and light level. Override `canSpawn()` if you want custom spawn conditions:
 
 ```cpp
 bool MyMob::canSpawn()
@@ -371,7 +371,7 @@ bool MyMob::canSpawn()
 
 ## Step 7: Save and Load Data
 
-Override `addAdditonalSaveData` and `readAdditionalSaveData` to persist custom state via NBT:
+Override `addAdditonalSaveData` and `readAdditionalSaveData` to save custom state to NBT:
 
 ```cpp
 void MyMob::addAdditonalSaveData(CompoundTag *tag)
@@ -408,7 +408,7 @@ EntityRenderDispatcher::EntityRenderDispatcher()
 }
 ```
 
-The `EntityRenderDispatcher` maps `eINSTANCEOF` values directly to `EntityRenderer` instances. Every entity type that can appear in the world **must** have a renderer registered here -- there is no fallback hierarchy. The second parameter to most renderers is the shadow size.
+The `EntityRenderDispatcher` maps `eINSTANCEOF` values directly to `EntityRenderer` instances. Every entity type that can show up in the world **must** have a renderer here, since there's no fallback. The second parameter on most renderers is the shadow size.
 
 ### Existing Renderer/Model Pairings
 
@@ -428,7 +428,7 @@ Set `textureIdx` in your mob's constructor to a texture name constant (defined i
 
 ## Step 9: Implement Required Overrides
 
-Depending on your base class, these virtual functions need implementation:
+Depending on your base class, you'll need to implement these virtual functions:
 
 ### For All Mobs
 
@@ -461,16 +461,16 @@ The `MobType` enum (`Minecraft.World/MobType.h`) affects enchantment damage:
 
 ## Complete Example: Hostile Mob
 
-See the real `Zombie` implementation across these files for a complete reference:
-- `Minecraft.World/Zombie.h` -- class declaration, synched data IDs
-- `Minecraft.World/Zombie.cpp` -- constructor with AI goals, all overrides
-- `Minecraft.World/EntityIO.cpp` -- registration at ID 54 with spawn egg colors
-- `Minecraft.Client/EntityRenderDispatcher.cpp` -- renderer at `eTYPE_ZOMBIE`
+Check out the real `Zombie` implementation across these files for a complete reference:
+- `Minecraft.World/Zombie.h` for the class declaration and synched data IDs
+- `Minecraft.World/Zombie.cpp` for the constructor with AI goals and all overrides
+- `Minecraft.World/EntityIO.cpp` for registration at ID 54 with spawn egg colors
+- `Minecraft.Client/EntityRenderDispatcher.cpp` for the renderer at `eTYPE_ZOMBIE`
 
 ## Complete Example: Passive Mob
 
-See the real `Cow` implementation:
-- `Minecraft.World/Cow.h` -- extends `Animal`, declares `getBreedOffspring`
-- `Minecraft.World/Cow.cpp` -- passive AI goals, milking interaction, loot drops
-- `Minecraft.World/EntityIO.cpp` -- registration at ID 92 with spawn egg colors
-- `Minecraft.Client/EntityRenderDispatcher.cpp` -- `CowRenderer` with `CowModel`
+Check out the real `Cow` implementation:
+- `Minecraft.World/Cow.h` extends `Animal`, declares `getBreedOffspring`
+- `Minecraft.World/Cow.cpp` has passive AI goals, milking interaction, and loot drops
+- `Minecraft.World/EntityIO.cpp` for registration at ID 92 with spawn egg colors
+- `Minecraft.Client/EntityRenderDispatcher.cpp` has `CowRenderer` with `CowModel`

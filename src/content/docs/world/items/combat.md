@@ -3,7 +3,7 @@ title: Combat Items
 description: Bow draw mechanics, ender pearls, snowballs, fire charges, potions, and other projectile items.
 ---
 
-Combat items encompass ranged weapons and throwable projectiles. For melee weapons (swords), see [Tools & Weapons](/lcemp-docs/world/items/tools/).
+Combat items cover ranged weapons and throwable projectiles. For melee weapons (swords), check out [Tools & Weapons](/lcemp-docs/world/items/tools/).
 
 ## BowItem
 
@@ -20,7 +20,7 @@ Combat items encompass ranged weapons and throwable projectiles. For melee weapo
 
 ### Draw Mechanics
 
-The bow uses `releaseUsing` rather than `useTimeDepleted` -- power is calculated when the player releases the use button:
+The bow uses `releaseUsing` instead of `useTimeDepleted`. Power is calculated when the player lets go of the use button:
 
 ```cpp
 float pow = timeHeld / (float)MAX_DRAW_DURATION;
@@ -28,9 +28,9 @@ pow = ((pow * pow) + pow * 2) / 3;
 // Clamped to [0.1, 1.0]
 ```
 
-The arrow entity is created with velocity `pow * 2.0f`. Full-draw arrows (pow == 1.0) are flagged as **critical**.
+The arrow entity gets created with velocity `pow * 2.0f`. Fully drawn arrows (pow == 1.0) are flagged as **critical**.
 
-The maximum use duration is `20 * 60 * 60` ticks (one hour), giving the player unlimited time to hold the draw.
+The max use duration is `20 * 60 * 60` ticks (one hour), so the player has plenty of time to hold the draw.
 
 ### Enchantment Support
 
@@ -41,15 +41,15 @@ The maximum use duration is `20 * 60 * 60` ticks (one hour), giving the player u
 | Flame (`arrowFire`) | Sets arrow on fire for 100 ticks |
 | Infinity (`arrowInfinite`) | Fires without consuming arrows; arrows drop with `PICKUP_CREATIVE_ONLY` |
 
-Creative mode and Infinity enchantment both allow firing without consuming arrows from inventory.
+Creative mode and the Infinity enchantment both let you fire without using up arrows from inventory.
 
 ### Durability
 
-Consumes **1 durability per shot**, applied via `itemInstance->hurt(1, player)`.
+Uses **1 durability per shot**, applied through `itemInstance->hurt(1, player)`.
 
 ### Draw Icons
 
-Three pull textures are registered (`bow_pull_0`, `bow_pull_1`, `bow_pull_2`) for the draw animation stages. The `getDrawnIcon(int amount)` method returns the appropriate icon based on draw progress.
+Three pull textures are registered (`bow_pull_0`, `bow_pull_1`, `bow_pull_2`) for the draw animation stages. The `getDrawnIcon(int amount)` method returns the right icon based on draw progress.
 
 ## PotionItem
 
@@ -62,7 +62,7 @@ Three pull textures are registered (`bow_pull_0`, `bow_pull_1`, `bow_pull_2`) fo
 | Stack Size | 1 |
 | Use Animation | `UseAnim_drink` |
 
-Potions use `auxValue` to encode potion type and modifiers. Throwable (splash) potions are determined by `isThrowable(auxValue)`. When thrown, a `ThrownPotion` entity is created.
+Potions use `auxValue` to encode the potion type and modifiers. Throwable (splash) potions are determined by `isThrowable(auxValue)`. When thrown, a `ThrownPotion` entity gets created.
 
 The item has multiple sprite layers (base + overlay for liquid color) and caches mob effects per aux value in an `unordered_map<int, vector<MobEffectInstance*>*>`.
 
@@ -70,7 +70,7 @@ For the full potion effect system, see [Effects (Potions)](/lcemp-docs/world/eff
 
 ## Throwable Items
 
-All throwable items follow a similar pattern: right-click calls `use()`, which decrements the stack, plays a bow-like sound, and spawns a projectile entity on the server side.
+All throwable items work the same way: right-click calls `use()`, which decreases the stack, plays a bow-like sound, and spawns a projectile entity on the server side.
 
 ### SnowballItem
 
@@ -82,7 +82,7 @@ All throwable items follow a similar pattern: right-click calls `use()`, which d
 | Stack Size | 16 |
 | Projectile Entity | `Snowball` |
 
-Spawns a `Snowball` entity on use. Deals knockback but no damage to most mobs; deals 3 damage to Blazes.
+Spawns a `Snowball` entity on use. Does knockback but no damage to most mobs. Blazes are the exception, taking 3 damage.
 
 ### EnderpearlItem
 
@@ -94,7 +94,7 @@ Spawns a `Snowball` entity on use. Deals knockback but no damage to most mobs; d
 | Stack Size | 16 |
 | Projectile Entity | `ThrownEnderpearl` |
 
-Spawns a `ThrownEnderpearl` entity on use. Teleports the player to the impact location and deals 5 fall damage. Cannot be thrown while riding an entity (`player->riding != NULL`). Creative mode does not consume the pearl.
+Spawns a `ThrownEnderpearl` entity on use. Teleports the player to where it lands and deals 5 fall damage. You can't throw one while riding an entity (`player->riding != NULL`). Creative mode doesn't consume the pearl.
 
 ### EggItem
 
@@ -104,7 +104,7 @@ Spawns a `ThrownEnderpearl` entity on use. Teleports the player to the impact lo
 | Stack Size | 16 |
 | Projectile Entity | `ThrownEgg` |
 
-Spawns a `ThrownEgg` entity. Has a 1/8 chance of spawning a chicken on impact, with a further 1/32 chance of spawning four chickens.
+Spawns a `ThrownEgg` entity. There's a 1/8 chance of spawning a chicken on impact, and a further 1/32 chance of spawning four chickens instead.
 
 ### ExperienceItem (Bottle o' Enchanting)
 
@@ -114,7 +114,7 @@ Spawns a `ThrownEgg` entity. Has a 1/8 chance of spawning a chicken on impact, w
 | Stack Size | 64 |
 | Projectile Entity | `ThrownExpBottle` |
 
-Spawns a `ThrownExpBottle` entity that releases experience orbs on impact.
+Spawns a `ThrownExpBottle` entity that releases experience orbs when it hits something.
 
 ## FireChargeItem
 
@@ -126,13 +126,13 @@ Spawns a `ThrownExpBottle` entity that releases experience orbs on impact.
 | Stack Size | 64 |
 | Crafting Type | `eBaseItemType_torch` |
 
-Unlike other combat items, fire charges use `useOn` rather than `use` -- they must be targeted at a block face. The fire charge places a fire block at the adjacent position and plays the `FIRE_IGNITE` sound. Consumed on use (not in Creative mode).
+Unlike other combat items, fire charges use `useOn` instead of `use`. You have to target a block face. The fire charge places a fire block at the adjacent position and plays the `FIRE_IGNITE` sound. It's consumed on use (unless you're in Creative mode).
 
-Has a secondary icon (`dragonFireball`) for aux value > 0, used by the Ender Dragon's fireball projectile.
+There's also a secondary icon (`dragonFireball`) for aux value > 0, which is used by the Ender Dragon's fireball projectile.
 
 ## Potion Brewing Ingredients
 
-Several items are tagged with potion brewing formulas via `setPotionBrewingFormula()`. See [Raw Materials](/lcemp-docs/world/items/materials/) for the full brewing ingredient table.
+Several items are tagged with potion brewing formulas through `setPotionBrewingFormula()`. See [Raw Materials](/lcemp-docs/world/items/materials/) for the full brewing ingredient table.
 
 ## Combat Item ID Registry
 

@@ -62,7 +62,7 @@ Four armor tiers with protection values:
 | `ARMOR_GOLD` | 2 | 7 |
 | `ARMOR_DIAMOND` | 3 | 11 |
 
-Armor type is stored in synched data slot `DATA_ID_ARMOR` (index 22). Each tier has a dedicated texture (`horse_armor_iron.png`, etc.) and a hash string for the layered cache. `getArmorValue()` returns the protection amount, and `getArmorTypeForItem(ItemInstance)` identifies which tier an item belongs to.
+Armor type is stored in synched data slot `DATA_ID_ARMOR` (index 22). Each tier has a dedicated texture (`horse_armor_iron.png`, etc.) and a hash string for the layered cache. `getArmorValue()` returns the protection amount, and `getArmorTypeForItem(ItemInstance)` figures out which tier an item belongs to.
 
 Only standard horses can wear armor (`canWearArmor()` checks the type).
 
@@ -73,7 +73,7 @@ Entity data IDs:
 | ID | Index | Contents |
 |---|---|---|
 | `DATA_ID_HORSE_FLAGS` | 16 | Bitmask of state flags |
-| `DATA_ID_TYPE` | 19 | Horse type (0--4) |
+| `DATA_ID_TYPE` | 19 | Horse type (0 to 4) |
 | `DATA_ID_TYPE_VARIANT` | 20 | Coat variant + marking combo |
 | `DATA_ID_OWNER_NAME` | 21 | Tamed owner name |
 | `DATA_ID_ARMOR` | 22 | Armor tier |
@@ -98,7 +98,7 @@ Horse flag bits:
 |---|---|---|
 | `INV_SLOT_SADDLE` | 0 | Saddle item |
 | `INV_SLOT_ARMOR` | 1 | Horse armor item |
-| Chest slots | 2--16 | Donkey/mule chest (15 slots) |
+| Chest slots | 2 to 16 | Donkey/mule chest (15 slots) |
 
 The base inventory size is `INV_BASE_COUNT` (2). Donkeys and mules with chests get an additional `INV_DONKEY_CHEST_COUNT` (15) slots.
 
@@ -106,10 +106,10 @@ The base inventory size is `INV_BASE_COUNT` (2). Donkeys and mules with chests g
 
 ### HorseInventoryMenu
 
-The container menu for horse inventory. Extends `AbstractContainerMenu` and defines two specialized slot types:
+The container menu for horse inventory. It extends `AbstractContainerMenu` and defines two specialized slot types:
 
-- **`HorseSaddleSlot`** -- only accepts saddle items (`mayPlace` validates the item)
-- **`HorseArmorSlot`** -- only accepts horse armor items, with an `isActive()` check that queries the parent menu's horse for `canWearArmor()`
+- **`HorseSaddleSlot`** only accepts saddle items (`mayPlace` validates the item)
+- **`HorseArmorSlot`** only accepts horse armor items, with an `isActive()` check that queries the parent menu's horse for `canWearArmor()`
 
 The menu constructor takes the player inventory, horse inventory container, and the horse entity. `quickMoveStack` handles shift-click transfer logic between player and horse inventories.
 
@@ -117,7 +117,7 @@ The menu constructor takes the player inventory, horse inventory container, and 
 
 ### Taming
 
-- `temper` tracks the horse's willingness to be tamed (starts at 0)
+- `temper` tracks how willing the horse is to be tamed (starts at 0)
 - `modifyTemper(amount)` adjusts temper; `getMaxTemper()` returns the threshold
 - `tameWithName(Player)` attempts to tame and assign ownership
 - `spawnTamingParticles(bool)` shows heart or smoke particles
@@ -135,15 +135,15 @@ Foal scale is controlled by `getFoalScale()` and `updateSize(bool isBaby)`.
 
 ## Jump mechanics
 
-The horse has a dedicated `JUMP_STRENGTH` attribute (a `RangedAttribute` with default 0.7, range 0.0--2.0, client-syncable). Player-initiated jumps are handled by:
+The horse has a dedicated `JUMP_STRENGTH` attribute (a `RangedAttribute` with default 0.7, range 0.0 to 2.0, client-syncable). Player-initiated jumps are handled by:
 
-- `onPlayerJump(int jumpAmount)` -- called when the player presses jump; sets `playerJumpPendingScale`
-- `getCustomJump()` -- reads the computed jump strength from the attribute
-- `travel(float xa, float ya)` -- applies movement and jump physics
+- `onPlayerJump(int jumpAmount)` is called when the player presses jump; sets `playerJumpPendingScale`
+- `getCustomJump()` reads the computed jump strength from the attribute
+- `travel(float xa, float ya)` applies movement and jump physics
 
 ## Spawning
 
-`finalizeMobSpawn(MobGroupData*)` uses a `HorseGroupData` inner class to ensure horses spawning in a group share the same type and variant. The first horse in a group sets the type/variant; subsequent horses inherit it.
+`finalizeMobSpawn(MobGroupData*)` uses a `HorseGroupData` inner class to make sure horses spawning in a group share the same type and variant. The first horse in a group sets the type/variant, and the rest inherit it.
 
 `checkSpawningBiome()` validates the biome is appropriate. `canSpawn()` runs standard checks, and `removeWhenFarAway()` returns false (tamed horses persist).
 
@@ -161,7 +161,7 @@ Five base `ResourceLocation` textures are defined:
 - `HORSE_ZOMBIE_LOCATION`
 - `HORSE_SKELETON_LOCATION`
 
-For standard horses with layered textures (variant + marking + armor), `getOrCreateLayeredTextureLocation` looks up the horse's `getLayeredTextureHashName()` in a static `LAYERED_LOCATION_CACHE` map. If not cached, it creates a new `ResourceLocation` from the array returned by `getLayeredTextureLayers()` and stores it.
+For standard horses with layered textures (variant + marking + armor), `getOrCreateLayeredTextureLocation` looks up the horse's `getLayeredTextureHashName()` in a static `LAYERED_LOCATION_CACHE` map. If it's not cached yet, it creates a new `ResourceLocation` from the array returned by `getLayeredTextureLayers()` and stores it.
 
 The `bindTexture` override detects multi-layer textures and calls `bindTextureLayers` instead of the standard single-texture bind.
 
@@ -175,15 +175,15 @@ A detailed 3D model with `ModelPart` pointers for:
 - **Equipment**: Bag1, Bag2, Saddle, SaddleB, SaddleC, SaddleL, SaddleL2, SaddleR, SaddleR2, SaddleMouthL, SaddleMouthR, SaddleMouthLine, SaddleMouthLineR
 - **Head saddle**: HeadSaddle (bridle)
 
-`prepareMobModel` reads animation state (eating, standing, mouth) from the entity. `render` draws all parts with appropriate visibility based on type, saddle state, and chest state.
+`prepareMobModel` reads animation state (eating, standing, mouth) from the entity. `render` draws all parts with the right visibility based on type, saddle state, and chest state.
 
 ## UI scene
 
 `UIScene_HorseInventoryMenu` provides the in-game inventory screen. It maps UI controls to:
 
-- `m_slotSaddle` / `m_slotArmor` -- saddle and armor slots
-- `m_slotListChest` -- donkey/mule chest grid (`"DonkeyInventoryList"`)
-- `m_horsePreview` -- a `UIControl_MinecraftHorse` 3D preview of the horse
-- `m_labelHorse` -- the horse's name label
+- `m_slotSaddle` / `m_slotArmor` for saddle and armor slots
+- `m_slotListChest` for the donkey/mule chest grid (`"DonkeyInventoryList"`)
+- `m_horsePreview` for a `UIControl_MinecraftHorse` 3D preview of the horse
+- `m_labelHorse` for the horse's name label
 
 Flash functions `SetIsDonkey` and `SetHasInventory` control UI visibility of chest slots depending on the horse type.

@@ -1,20 +1,20 @@
 ---
 title: Item System Overview
-description: Core architecture of the LCEMP item system — base Item class, ItemInstance, registration, and ID offset.
+description: Core architecture of the LCEMP item system, including the base Item class, ItemInstance, registration, and ID offset.
 ---
 
-The item system in LCE is built around the `Item` base class. All non-block items are registered with numeric IDs starting at **256** (item constructor parameter `id` is offset by +256 internally). The global registry holds up to **32,000** slots.
+The item system in LCE is built around the `Item` base class. Every non-block item gets a numeric ID starting at **256** (the `id` you pass to the constructor gets +256 added internally). The global registry has room for up to **32,000** slots.
 
 ## Sub-Pages
 
-- [Tools & Weapons](/lcemp-docs/world/items/tools/) — Swords, pickaxes, axes, shovels, hoes, shears. Tool tiers, durability, speed, damage.
-- [Armor](/lcemp-docs/world/items/armor/) — All armor materials, defense values, durability, slots, leather dyeing.
-- [Food](/lcemp-docs/world/items/food/) — Nutrition, saturation, effects, all food types.
-- [Combat Items](/lcemp-docs/world/items/combat/) — Bow, arrows, snowballs, ender pearls, fire charges, potions.
-- [Music Discs](/lcemp-docs/world/items/music-discs/) — All disc IDs, field names, how records work.
-- [Decorative & Placement](/lcemp-docs/world/items/decorative/) — Paintings, item frames, signs, buckets, dyes, maps, books, beds.
-- [Raw Materials](/lcemp-docs/world/items/materials/) — Ingots, diamonds, redstone, glowstone dust, string, leather, and crafting ingredients.
-- [Special Items](/lcemp-docs/world/items/special/) — Spawn eggs, enchanted books, written books, fireworks, name tags.
+- [Tools & Weapons](/lcemp-docs/world/items/tools/) - Swords, pickaxes, axes, shovels, hoes, shears. Tool tiers, durability, speed, damage.
+- [Armor](/lcemp-docs/world/items/armor/) - All armor materials, defense values, durability, slots, leather dyeing.
+- [Food](/lcemp-docs/world/items/food/) - Nutrition, saturation, effects, all food types.
+- [Combat Items](/lcemp-docs/world/items/combat/) - Bow, arrows, snowballs, ender pearls, fire charges, potions.
+- [Music Discs](/lcemp-docs/world/items/music-discs/) - All disc IDs, field names, how records work.
+- [Decorative & Placement](/lcemp-docs/world/items/decorative/) - Paintings, item frames, signs, buckets, dyes, maps, books, beds.
+- [Raw Materials](/lcemp-docs/world/items/materials/) - Ingots, diamonds, redstone, glowstone dust, string, leather, and crafting ingredients.
+- [Special Items](/lcemp-docs/world/items/special/) - Spawn eggs, enchanted books, written books, fireworks, name tags.
 
 ## Item Base Class
 
@@ -51,11 +51,11 @@ The item system in LCE is built around the `Item` base class. All non-block item
 Item::Item(int id) : id(256 + id)
 ```
 
-The constructor offsets the provided ID by 256 and registers the item into the global `items` array at that index. Default `maxStackSize` is 64, and `maxDamage` is 0. A conflict check prints a debug message if the slot is already occupied.
+The constructor takes the given ID, adds 256 to it, and registers the item into the global `items` array at that index. By default, `maxStackSize` is 64 and `maxDamage` is 0. If the slot is already taken, a debug message gets printed.
 
 ### Builder-Pattern Setters
 
-All setter methods return `this` (or `Item*`) to enable chaining:
+All setter methods return `this` (or `Item*`) so you can chain them together:
 
 ```cpp
 Item *setTextureName(const wstring &name);
@@ -123,7 +123,7 @@ enum UseAnim {
 
 **Files:** `Minecraft.World/ItemInstance.h`, `Minecraft.World/ItemInstance.cpp`
 
-`ItemInstance` represents a specific stack of items in an inventory or the world. It wraps an `Item` with count, auxiliary data, and NBT tag data.
+`ItemInstance` represents a specific stack of items sitting in an inventory or out in the world. It wraps an `Item` with a count, auxiliary data, and NBT tag data.
 
 | Field | Type | Purpose |
 |-------|------|---------|
@@ -138,7 +138,7 @@ Key operations: `copy()`, `hurt()`, `save()`/`load()` for NBT serialization, `en
 
 ## Item Registration System
 
-All items are registered in `Item::staticCtor()` inside `Item.cpp`. The method creates each item via `new`, sets properties through builder-pattern chaining, and the `Item` constructor automatically inserts each item into the global `Item::items` array at index `256 + id`.
+All items get registered in `Item::staticCtor()` inside `Item.cpp`. This method creates each item with `new`, sets properties through builder-pattern chaining, and the `Item` constructor automatically drops each item into the global `Item::items` array at index `256 + id`.
 
 ```cpp
 // Example from staticCtor():
@@ -149,7 +149,7 @@ Item::sword_wood = (new WeaponItem(12, _Tier::WOOD))
     ->setUseDescriptionId(IDS_DESC_SWORD);
 ```
 
-After `staticCtor()`, `Item::staticInit()` is called separately (after other static constructors like Recipes) which builds item statistics via `Stats::buildItemStats()`.
+After `staticCtor()` runs, `Item::staticInit()` gets called separately (after other static constructors like Recipes) and builds item statistics through `Stats::buildItemStats()`.
 
 ## Class Hierarchy
 
@@ -208,11 +208,11 @@ Item (base class)
 
 ## Material and Type Classification
 
-The crafting menu uses two enums to categorize items for filtering. These were added by 4J Studios for the console edition's crafting UI.
+The crafting menu uses two enums to sort items for filtering. These were added by 4J Studios for the console edition's crafting UI.
 
 ### eMaterial Enum
 
-Used by the crafting menu to group items by material:
+The crafting menu uses this to group items by material:
 
 | Value | Name | Example Items |
 |-------|------|--------------|
@@ -264,7 +264,7 @@ Used by the crafting menu to group items by material:
 
 ### eBaseItemType Enum
 
-Classifies items by functional type:
+This groups items by what they actually do:
 
 | Value | Name | Example Items |
 |-------|------|--------------|

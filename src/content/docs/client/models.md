@@ -3,7 +3,7 @@ title: "Models"
 description: "3D model definitions for entities in LCEMP."
 ---
 
-LCEMP uses a hierarchical box-based model system to define the geometry of all entities. Models are constructed from `ModelPart` nodes, each containing one or more `Cube` primitives, arranged in parent-child trees that allow jointed animation.
+LCEMP uses a hierarchical box-based model system to define the geometry of all entities. Models are built from `ModelPart` nodes, each containing one or more `Cube` primitives. These are arranged in parent-child trees that allow jointed animation.
 
 ## Core classes
 
@@ -72,7 +72,7 @@ The `compile()` method bakes geometry into an OpenGL display list for fast repea
 
 ### Cube
 
-`Cube` is the atomic geometry primitive -- a textured box:
+`Cube` is the atomic geometry primitive, basically a textured box:
 
 ```cpp
 class Cube {
@@ -90,7 +90,7 @@ class Cube {
 };
 ```
 
-The `faceMask` parameter (default `63` = all 6 faces) allows omitting internal faces when boxes overlap. Each face is a `_Polygon` with four `Vertex` instances that carry position and UV data.
+The `faceMask` parameter (default `63` = all 6 faces) lets you skip internal faces when boxes overlap. Each face is a `_Polygon` with four `Vertex` instances that carry position and UV data.
 
 ### Vertex and Polygon
 
@@ -111,7 +111,7 @@ class _Polygon {
 
 ### TexOffs
 
-`TexOffs` stores a named texture offset (x, y) used by `Model::mappedTexOffs` to allow parts to reference specific regions of the texture atlas by name.
+`TexOffs` stores a named texture offset (x, y) used by `Model::mappedTexOffs` to let parts reference specific regions of the texture atlas by name.
 
 ## HumanoidModel
 
@@ -163,7 +163,7 @@ The `animbits` enum controls per-skin animation overrides via bitmask:
 | 15 | `eAnim_DisableRenderLeg1` | Hide left leg |
 | 16 | `eAnim_DisableRenderHair` | Hide hair/hat overlay |
 
-The `m_staticBitmaskIgnorePlayerCustomAnimSetting` constant combines bits that should always be applied regardless of the player's "custom skin animation" setting.
+The `m_staticBitmaskIgnorePlayerCustomAnimSetting` constant combines bits that should always apply regardless of the player's "custom skin animation" setting.
 
 ### Additional model parts (SkinBox)
 
@@ -254,11 +254,11 @@ HumanoidModel::HumanoidModel(float g) {
 }
 ```
 
-The `g` parameter is a "growth" or "inflation" factor that expands boxes outward -- used for armor overlay layers that need to be slightly larger than the base body.
+The `g` parameter is a "growth" or "inflation" factor that expands boxes outward. It's used for armor overlay layers that need to be slightly larger than the base body.
 
 ## Model rendering pipeline
 
 1. `MobRenderer::render()` calls `Model::prepareMobModel()` to set riding/baby state
 2. `Model::setupAnim()` calculates limb rotations based on walk cycle, head rotation, and attack time
-3. `Model::render()` iterates all parts and calls `ModelPart::render()` recursively
+3. `Model::render()` goes through all parts and calls `ModelPart::render()` recursively
 4. Each `ModelPart::render()` pushes a matrix, applies its transform, renders its `Cube` list via `Tesselator`, then renders children

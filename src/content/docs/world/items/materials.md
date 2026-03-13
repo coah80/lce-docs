@@ -3,11 +3,11 @@ title: Raw Materials
 description: Ingots, gems, redstone dust, glowstone dust, and other crafting ingredients registered as simple Item instances.
 ---
 
-Raw materials are the crafting ingredients and resource items in LCE. Most are registered as plain `Item` instances in `Item::staticCtor()` with no special subclass behavior. A few have dedicated classes for placement or potion brewing.
+Raw materials are the crafting ingredients and resource items in LCE. Most of them are just plain `Item` instances registered in `Item::staticCtor()` with no special subclass. A few have their own classes for placement or potion brewing.
 
 ## Simple Material Items
 
-These items are registered as `new Item(id)` with builder-pattern configuration. They have no special `useOn`, `use`, or other overridden behavior beyond their stack and texture settings.
+These items are registered as `new Item(id)` with builder-pattern config. They don't override `useOn`, `use`, or any other methods beyond their stack and texture settings.
 
 | Item | ID | Class | Notes |
 |------|----|-------|-------|
@@ -41,7 +41,7 @@ These items are registered as `new Item(id)` with builder-pattern configuration.
 
 ## Special Material Classes
 
-These materials have dedicated subclasses with extra behavior.
+These materials have their own subclasses with extra behavior.
 
 ### CoalItem
 
@@ -52,7 +52,7 @@ These materials have dedicated subclasses with extra behavior.
 | ID | 263 |
 | Stacked By Data | Yes |
 
-Uses `auxValue` to differentiate Coal (0) and Charcoal (1). Each variant has its own texture and description string.
+Uses `auxValue` to tell apart Coal (0) and Charcoal (1). Each variant has its own texture and description string.
 
 ### RedStoneItem
 
@@ -63,7 +63,7 @@ Uses `auxValue` to differentiate Coal (0) and Charcoal (1). Each variant has its
 | ID | 331 |
 | Brewing Formula | `MOD_REDSTONE` |
 
-Overrides `useOn` to place redstone dust tile (`Tile::redStoneDust`) on the target block face. Also serves as a potion brewing ingredient.
+Overrides `useOn` to place redstone dust tile (`Tile::redStoneDust`) on the target block face. Also works as a potion brewing ingredient.
 
 ### SeedItem
 
@@ -85,11 +85,11 @@ Seeds are plantable items that place crop tiles on farmland.
 | ID | 262 |
 | Class | `Item` |
 
-A simple item with no special behavior. Consumed by `BowItem` when firing. See [Combat Items](/lcemp-docs/world/items/combat/) for bow mechanics.
+A simple item with no special behavior. Gets consumed by `BowItem` when firing. See [Combat Items](/lcemp-docs/world/items/combat/) for bow mechanics.
 
 ## Potion Brewing Ingredients
 
-Several material items are tagged with potion brewing formulas via `setPotionBrewingFormula()`. These items can be placed in a brewing stand to modify potions.
+Several material items are tagged with potion brewing formulas through `setPotionBrewingFormula()`. You can put these items in a brewing stand to modify potions.
 
 | Item | ID | Brewing Formula |
 |------|-----|----------------|
