@@ -458,9 +458,9 @@ Item::ruby = ( new Item(151) )  // 256 + 151 = 407
     ->setUseDescriptionId(IDS_DESC_RUBY);
 ```
 
-This creates a simple gem item, similar to how emeralds and diamonds are registered. Pair it with a [Ruby Ore block](/lcemp-docs/modding/adding-blocks/) that drops this item.
+This creates a simple gem item, similar to how emeralds and diamonds are registered. Pair it with a [Ruby Ore block](/lce-docs/modding/adding-blocks/) that drops this item.
 
 ## Related Guides
 
-- [Getting Started](/lcemp-docs/modding/getting-started/) for environment setup and the staticCtor pattern
-- [Adding Blocks](/lcemp-docs/modding/adding-blocks/) to create blocks that drop your custom items
+- [Getting Started](/lce-docs/modding/getting-started/) for environment setup and the staticCtor pattern
+- [Adding Blocks](/lce-docs/modding/adding-blocks/) to create blocks that drop your custom items

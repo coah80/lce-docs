@@ -231,4 +231,4 @@ Reads explosion data from the item's NBT tag to determine display color and tool
 
 These blocks and items are registered in the global `Tile` and `Item` static initialization (in `Tile.cpp` and `Item.cpp` respectively). The stained glass and hay block tiles follow the standard `Tile::tiles[]` array pattern, while items use `Item::items[]` with their numeric IDs.
 
-For more details on fireworks, see the [Fireworks](/lcemp-docs/mc/fireworks/) page. For horse-related items (armor, saddles), see the [Horses](/lcemp-docs/mc/horses/) page.
+For more details on fireworks, see the [Fireworks](/lce-docs/mc/fireworks/) page. For horse-related items (armor, saddles), see the [Horses](/lce-docs/mc/horses/) page.

@@ -477,6 +477,6 @@ Add any new source files to `cmake/Sources.cmake` (for `.h` and `.cpp`), rebuild
 
 ## Related Guides
 
-- [Adding Blocks](/lcemp-docs/modding/adding-blocks/) for the full tile creation process
-- [Adding Items](/lcemp-docs/modding/adding-items/) to create matching item textures
-- [Texture Packs](/lcemp-docs/modding/texture-packs/) for the texture pack override system
+- [Adding Blocks](/lce-docs/modding/adding-blocks/) for the full tile creation process
+- [Adding Items](/lce-docs/modding/adding-items/) to create matching item textures
+- [Texture Packs](/lce-docs/modding/texture-packs/) for the texture pack override system

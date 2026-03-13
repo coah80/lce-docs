@@ -698,6 +698,6 @@ This "seed" pattern is useful whenever you want a burst of particles spread over
 
 ## Related Guides
 
-- [Adding Blocks](/lcemp-docs/modding/adding-blocks/) to learn about `animateTick()` for ambient block particles
-- [Adding Entities](/lcemp-docs/modding/adding-entities/) for spawning particles from entity logic
-- [Texture Packs](/lcemp-docs/modding/texture-packs/) for customizing the `particles.png` sprite sheet
+- [Adding Blocks](/lce-docs/modding/adding-blocks/) to learn about `animateTick()` for ambient block particles
+- [Adding Entities](/lce-docs/modding/adding-entities/) for spawning particles from entity logic
+- [Texture Packs](/lce-docs/modding/texture-packs/) for customizing the `particles.png` sprite sheet

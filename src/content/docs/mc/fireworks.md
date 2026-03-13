@@ -327,4 +327,4 @@ The overlay renders as a single quad using a fixed texture region (32x32 pixels 
 
 ## Related pages
 
-- [Redstone Mechanics](/lcemp-docs/mc/redstone/) for redstone activation of dispensers for firework launching
+- [Redstone Mechanics](/lce-docs/mc/redstone/) for redstone activation of dispensers for firework launching

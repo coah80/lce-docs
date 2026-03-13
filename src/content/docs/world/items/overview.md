@@ -7,14 +7,14 @@ The item system in LCE is built around the `Item` base class. Every non-block it
 
 ## Sub-Pages
 
-- [Tools & Weapons](/lcemp-docs/world/items/tools/) - Swords, pickaxes, axes, shovels, hoes, shears. Tool tiers, durability, speed, damage.
-- [Armor](/lcemp-docs/world/items/armor/) - All armor materials, defense values, durability, slots, leather dyeing.
-- [Food](/lcemp-docs/world/items/food/) - Nutrition, saturation, effects, all food types.
-- [Combat Items](/lcemp-docs/world/items/combat/) - Bow, arrows, snowballs, ender pearls, fire charges, potions.
-- [Music Discs](/lcemp-docs/world/items/music-discs/) - All disc IDs, field names, how records work.
-- [Decorative & Placement](/lcemp-docs/world/items/decorative/) - Paintings, item frames, signs, buckets, dyes, maps, books, beds.
-- [Raw Materials](/lcemp-docs/world/items/materials/) - Ingots, diamonds, redstone, glowstone dust, string, leather, and crafting ingredients.
-- [Special Items](/lcemp-docs/world/items/special/) - Spawn eggs, enchanted books, written books, fireworks, name tags.
+- [Tools & Weapons](/lce-docs/world/items/tools/) - Swords, pickaxes, axes, shovels, hoes, shears. Tool tiers, durability, speed, damage.
+- [Armor](/lce-docs/world/items/armor/) - All armor materials, defense values, durability, slots, leather dyeing.
+- [Food](/lce-docs/world/items/food/) - Nutrition, saturation, effects, all food types.
+- [Combat Items](/lce-docs/world/items/combat/) - Bow, arrows, snowballs, ender pearls, fire charges, potions.
+- [Music Discs](/lce-docs/world/items/music-discs/) - All disc IDs, field names, how records work.
+- [Decorative & Placement](/lce-docs/world/items/decorative/) - Paintings, item frames, signs, buckets, dyes, maps, books, beds.
+- [Raw Materials](/lce-docs/world/items/materials/) - Ingots, diamonds, redstone, glowstone dust, string, leather, and crafting ingredients.
+- [Special Items](/lce-docs/world/items/special/) - Spawn eggs, enchanted books, written books, fireworks, name tags.
 
 ## Item Base Class
 

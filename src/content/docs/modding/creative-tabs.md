@@ -413,6 +413,6 @@ Players navigate pages with the right analog stick (up/down) or by dragging the 
 
 ## Related Guides
 
-- [Adding Items](/lcemp-docs/modding/adding-items/) for creating items to put in creative tabs
-- [Adding Blocks](/lcemp-docs/modding/adding-blocks/) for creating blocks to put in creative tabs
-- [Custom Potions](/lcemp-docs/modding/custom-potions/) for adding potions to the Brewing tab
+- [Adding Items](/lce-docs/modding/adding-items/) for creating items to put in creative tabs
+- [Adding Blocks](/lce-docs/modding/adding-blocks/) for creating blocks to put in creative tabs
+- [Custom Potions](/lce-docs/modding/custom-potions/) for adding potions to the Brewing tab

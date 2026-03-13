@@ -224,5 +224,5 @@ Two textures are used: the default `icon` for unpowered and `iconPowered` (regis
 
 ## Related pages
 
-- [Hoppers and Droppers](/lcemp-docs/mc/hoppers-droppers/) for hopper mechanics including analog output for comparators
-- [Minecart Variants](/lcemp-docs/mc/minecarts/) for powered rail interaction with minecarts
+- [Hoppers and Droppers](/lce-docs/mc/hoppers-droppers/) for hopper mechanics including analog output for comparators
+- [Minecart Variants](/lce-docs/mc/minecarts/) for powered rail interaction with minecarts

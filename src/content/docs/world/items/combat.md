@@ -3,7 +3,7 @@ title: Combat Items
 description: Bow draw mechanics, ender pearls, snowballs, fire charges, potions, and other projectile items.
 ---
 
-Combat items cover ranged weapons and throwable projectiles. For melee weapons (swords), check out [Tools & Weapons](/lcemp-docs/world/items/tools/).
+Combat items cover ranged weapons and throwable projectiles. For melee weapons (swords), check out [Tools & Weapons](/lce-docs/world/items/tools/).
 
 ## BowItem
 
@@ -66,7 +66,7 @@ Potions use `auxValue` to encode the potion type and modifiers. Throwable (splas
 
 The item has multiple sprite layers (base + overlay for liquid color) and caches mob effects per aux value in an `unordered_map<int, vector<MobEffectInstance*>*>`.
 
-For the full potion effect system, see [Effects (Potions)](/lcemp-docs/world/effects/).
+For the full potion effect system, see [Effects (Potions)](/lce-docs/world/effects/).
 
 ## Throwable Items
 
@@ -132,7 +132,7 @@ There's also a secondary icon (`dragonFireball`) for aux value > 0, which is use
 
 ## Potion Brewing Ingredients
 
-Several items are tagged with potion brewing formulas through `setPotionBrewingFormula()`. See [Raw Materials](/lcemp-docs/world/items/materials/) for the full brewing ingredient table.
+Several items are tagged with potion brewing formulas through `setPotionBrewingFormula()`. See [Raw Materials](/lce-docs/world/items/materials/) for the full brewing ingredient table.
 
 ## Combat Item ID Registry
 

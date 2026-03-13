@@ -4,17 +4,17 @@ import starlight from '@astrojs/starlight';
 
 export default defineConfig({
 	site: 'https://coah80.github.io',
-	base: '/lcemp-docs',
+	base: '/lce-docs',
 	integrations: [
 		starlight({
 			title: 'LCE Docs',
 			favicon: '/favicon.png',
 			head: [
-				{ tag: 'link', attrs: { rel: 'icon', href: '/lcemp-docs/favicon.png', type: 'image/png' } },
-				{ tag: 'meta', attrs: { property: 'og:image', content: 'https://coah80.github.io/lcemp-docs/og-image.png' } },
-				{ tag: 'meta', attrs: { name: 'twitter:image', content: 'https://coah80.github.io/lcemp-docs/og-image.png' } },
+				{ tag: 'link', attrs: { rel: 'icon', href: '/lce-docs/favicon.png', type: 'image/png' } },
+				{ tag: 'meta', attrs: { property: 'og:image', content: 'https://coah80.github.io/lce-docs/og-image.png' } },
+				{ tag: 'meta', attrs: { name: 'twitter:image', content: 'https://coah80.github.io/lce-docs/og-image.png' } },
 			],
-			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/coah80/lcemp-docs' }],
+			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/coah80/lce-docs' }],
 			sidebar: [
 				{
 					label: 'Overview',

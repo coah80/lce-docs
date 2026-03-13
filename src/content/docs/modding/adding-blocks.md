@@ -162,7 +162,7 @@ Tile::myCustomTile = (MyCustomTile *)(new MyCustomTile(160))
     ->setUseDescriptionId(IDS_DESC_MY_CUSTOM);
 ```
 
-Pick an unused ID. See [Getting Started](/lcemp-docs/modding/getting-started/) for help finding available IDs.
+Pick an unused ID. See [Getting Started](/lce-docs/modding/getting-started/) for help finding available IDs.
 
 ## Step 4: Set Properties
 
@@ -499,5 +499,5 @@ Add your new `.h` and `.cpp` files to `cmake/Sources.cmake`, rebuild, and the bl
 
 ## Related Guides
 
-- [Getting Started](/lcemp-docs/modding/getting-started/) for environment setup and the staticCtor pattern
-- [Adding Items](/lcemp-docs/modding/adding-items/) to create matching items for your blocks
+- [Getting Started](/lce-docs/modding/getting-started/) for environment setup and the staticCtor pattern
+- [Adding Items](/lce-docs/modding/adding-items/) to create matching items for your blocks

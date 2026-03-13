@@ -301,5 +301,5 @@ The rideable minecart is the simplest variant with type `TYPE_RIDEABLE` (0). Its
 
 ## Related pages
 
-- [Redstone Mechanics](/lcemp-docs/mc/redstone/) for powered rail signal propagation
-- [Hoppers and Droppers](/lcemp-docs/mc/hoppers-droppers/) for the tile hopper transfer logic shared with MinecartHopper
+- [Redstone Mechanics](/lce-docs/mc/redstone/) for powered rail signal propagation
+- [Hoppers and Droppers](/lce-docs/mc/hoppers-droppers/) for the tile hopper transfer logic shared with MinecartHopper

@@ -41,7 +41,7 @@ The horse is the most complex new entity. It extends `Animal` and implements `Co
 
 `HorseRenderer` extends `MobRenderer` with texture locations for each horse type (horse, mule, donkey, zombie, skeleton). Applies foal scaling and height adjustment.
 
-For full details on horse inventory and equipment, see the [Horses](/lcemp-docs/mc/horses/) page.
+For full details on horse inventory and equipment, see the [Horses](/lce-docs/mc/horses/) page.
 
 ## Ocelot
 

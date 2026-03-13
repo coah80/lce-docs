@@ -3,14 +3,14 @@ title: Getting Started
 description: How to set up your environment for modding LCE.
 ---
 
-This guide covers the basics of adding new content to the LCE codebase. Before you start modding, make sure you can build the project first by following the [Building & Compiling](/lcemp-docs/overview/building/) guide.
+This guide covers the basics of adding new content to the LCE codebase. Before you start modding, make sure you can build the project first by following the [Building & Compiling](/lce-docs/overview/building/) guide.
 
 ## Prerequisites
 
 - **CMake** 3.10+
 - **MSVC** (Visual Studio 2022 recommended)
 - **C++11**, the project standard is set via `set(CMAKE_CXX_STANDARD 11)` in `CMakeLists.txt`
-- A working LCE build (see [Building & Compiling](/lcemp-docs/overview/building/))
+- A working LCE build (see [Building & Compiling](/lce-docs/overview/building/))
 
 ## Project Structure
 
@@ -151,11 +151,11 @@ Item IDs are offset by 256 internally. The constructor parameter is `id - 256`, 
 
 - **Debug build** enables `_DEBUG_MENUS_ENABLED` and `_DEBUG` defines, which turn on in-game debug menus
 - Set the working directory in Visual Studio via project properties or the CMake variable `LCEMP_WORKING_DIR`
-- Use `-name`, `-ip`, and `-port` launch arguments for testing multiplayer (see [Building & Compiling](/lcemp-docs/overview/building/))
+- Use `-name`, `-ip`, and `-port` launch arguments for testing multiplayer (see [Building & Compiling](/lce-docs/overview/building/))
 - The codebase uses `shared_ptr<>` a lot for entities and players, so watch for lifetime issues when adding new interactions
 - If your tile isn't showing up, make sure it has a non-NULL entry in `Tile::tiles[]` and that a matching `TileItem` or custom item exists in `Item::items[]`
 
 ## Next Steps
 
-- [Adding Blocks](/lcemp-docs/modding/adding-blocks/) to create and register a new tile (block)
-- [Adding Items](/lcemp-docs/modding/adding-items/) to create and register a new item
+- [Adding Blocks](/lce-docs/modding/adding-blocks/) to create and register a new tile (block)
+- [Adding Items](/lce-docs/modding/adding-items/) to create and register a new item

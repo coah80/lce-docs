@@ -85,7 +85,7 @@ Seeds are plantable items that place crop tiles on farmland.
 | ID | 262 |
 | Class | `Item` |
 
-A simple item with no special behavior. Gets consumed by `BowItem` when firing. See [Combat Items](/lcemp-docs/world/items/combat/) for bow mechanics.
+A simple item with no special behavior. Gets consumed by `BowItem` when firing. See [Combat Items](/lce-docs/world/items/combat/) for bow mechanics.
 
 ## Potion Brewing Ingredients
 
@@ -106,7 +106,7 @@ Several material items are tagged with potion brewing formulas through `setPotio
 | Glistering Melon | 382 | `MOD_SPECKLEDMELON` |
 | Golden Carrot | 396 | `MOD_GOLDENCARROT` |
 
-See [Effects (Potions)](/lcemp-docs/world/effects/) for the full potion system.
+See [Effects (Potions)](/lce-docs/world/effects/) for the full potion system.
 
 ## MinecraftConsoles differences
 

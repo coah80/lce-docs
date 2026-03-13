@@ -567,7 +567,7 @@ shared_ptr<ItemInstance> GemPolisherMenu::quickMoveStack(shared_ptr<Player> play
 
 ### Step 7: The screen
 
-You also need a screen class to render the UI. See the [Custom GUI Screens](/lcemp-docs/modding/custom-screens/) guide for the full screen system. The short version:
+You also need a screen class to render the UI. See the [Custom GUI Screens](/lce-docs/modding/custom-screens/) guide for the full screen system. The short version:
 
 ```cpp
 // GemPolisherScreen.h
@@ -711,6 +711,6 @@ Clicking outside the menu window (`CLICKED_OUTSIDE = -999`) drops the carried it
 
 ## Related guides
 
-- [Custom GUI Screens](/lcemp-docs/modding/custom-screens/) for the screen and rendering system
-- [Adding Items](/lcemp-docs/modding/adding-items/) for creating the items that go in your container
-- [Adding Blocks](/lcemp-docs/modding/adding-blocks/) for creating the block that opens your container
+- [Custom GUI Screens](/lce-docs/modding/custom-screens/) for the screen and rendering system
+- [Adding Items](/lce-docs/modding/adding-items/) for creating the items that go in your container
+- [Adding Blocks](/lce-docs/modding/adding-blocks/) for creating the block that opens your container

@@ -22,15 +22,15 @@ MinecraftConsoles adds a ton of gameplay systems that don't exist in LCE. Each o
 
 ### Entity attributes and combat
 
-A full [attribute system](/lcemp-docs/mc/attributes/) with modifier operations (`ADDITION`, `MULTIPLY_BASE`, `MULTIPLY_TOTAL`), shared monster attributes (max health, follow range, knockback resistance, movement speed, attack damage), and a combat tracker that records damage entries and generates death messages. Seven attribute types and twelve named modifier IDs are defined.
+A full [attribute system](/lce-docs/mc/attributes/) with modifier operations (`ADDITION`, `MULTIPLY_BASE`, `MULTIPLY_TOTAL`), shared monster attributes (max health, follow range, knockback resistance, movement speed, attack damage), and a combat tracker that records damage entries and generates death messages. Seven attribute types and twelve named modifier IDs are defined.
 
 ### Scoreboard and teams
 
-A complete [scoreboard system](/lcemp-docs/mc/scoreboard/) with objectives, criteria (`dummy`, `deathCount`, `playerKillCount`, `totalKillCount`, `health`), player scores, display slots (list, sidebar, below-name), and player teams with friendly-fire and invisibility options. Includes a `ServerScoreboard` subclass that tracks objectives and sends packets to clients.
+A complete [scoreboard system](/lce-docs/mc/scoreboard/) with objectives, criteria (`dummy`, `deathCount`, `playerKillCount`, `totalKillCount`, `health`), player scores, display slots (list, sidebar, below-name), and player teams with friendly-fire and invisibility options. Includes a `ServerScoreboard` subclass that tracks objectives and sends packets to clients.
 
 ### Horse entities
 
-Full [horse entities](/lcemp-docs/mc/horses/) with five types (horse, donkey, mule, zombie, skeleton), seven coat variants, five markings, four armor tiers (none, iron, gold, diamond), saddle and chest support, breeding, taming, jump strength attribute, and a dedicated inventory menu. Layered texture rendering combines variant, marking, and armor textures.
+Full [horse entities](/lce-docs/mc/horses/) with five types (horse, donkey, mule, zombie, skeleton), seven coat variants, five markings, four armor tiers (none, iron, gold, diamond), saddle and chest support, breeding, taming, jump strength attribute, and a dedicated inventory menu. Layered texture rendering combines variant, marking, and armor textures.
 
 ### Minecart variants
 

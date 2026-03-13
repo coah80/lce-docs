@@ -88,7 +88,7 @@ Leather armor (`ArmorMaterial::CLOTH`) supports custom colors through NBT. The c
 
 Leather armor uses two sprite layers (base + overlay) for dyeing. The base layer gets tinted with the custom color, while the overlay renders untinted for detail.
 
-Dyeing happens through the `ArmorDyeRecipe` crafting recipe, which combines leather armor with one or more `DyePowderItem` instances. Check out [Crafting & Recipes](/lcemp-docs/world/crafting/) for more on that.
+Dyeing happens through the `ArmorDyeRecipe` crafting recipe, which combines leather armor with one or more `DyePowderItem` instances. Check out [Crafting & Recipes](/lce-docs/world/crafting/) for more on that.
 
 ## MinecraftConsoles differences
 
