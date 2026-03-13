@@ -15,21 +15,32 @@ Every page on this site, organized by section. Use this as a quick reference to 
 
 The game logic layer. Blocks, items, entities, world generation, networking, and everything that runs the actual game.
 
+### Core Systems
+
 - [Overview](/lce-docs/world/overview/) - High-level look at the World module
 - [Blocks (Tiles)](/lce-docs/world/blocks/) - Every block type and the Tile class system
 - [Entities](/lce-docs/world/entities/) - All entity types and the Entity class hierarchy
 - [Tile Entities](/lce-docs/world/tile-entities/) - Block entities like chests, furnaces, signs
+
+### World
+
 - [World Generation](/lce-docs/world/worldgen/) - How worlds get generated
 - [Biomes](/lce-docs/world/biomes/) - All biome types and the biome system
 - [Structures](/lce-docs/world/structures/) - Generated structures like villages and strongholds
+
+### Gameplay
+
 - [AI & Goals](/lce-docs/world/ai-goals/) - The Goal-based AI system for mobs
 - [Enchantments](/lce-docs/world/enchantments/) - All enchantment types and the enchantment system
 - [Effects (Potions)](/lce-docs/world/effects/) - Potion effects and the MobEffect system
 - [Crafting & Recipes](/lce-docs/world/crafting/) - Recipe types and the crafting system
 - [Container Menus](/lce-docs/world/containers/) - Inventory and container menu system
+- [Game Rules](/lce-docs/world/gamerules/) - All game rules and the GameRules system
+
+### Infrastructure
+
 - [Networking & Packets](/lce-docs/world/networking/) - Packet types and multiplayer networking
 - [Level Storage & IO](/lce-docs/world/storage/) - Save/load and level storage
-- [Game Rules](/lce-docs/world/gamerules/) - All game rules and the GameRules system
 
 ### Items
 
@@ -47,15 +58,23 @@ The game logic layer. Blocks, items, entities, world generation, networking, and
 
 The rendering and UI layer. Everything the player sees and interacts with.
 
+### Rendering
+
 - [Overview](/lce-docs/client/overview/) - High-level look at the Client module
 - [Rendering Pipeline](/lce-docs/client/rendering/) - How frames get drawn
 - [Models](/lce-docs/client/models/) - Entity and block models
 - [Particles](/lce-docs/client/particles/) - The particle system
+
+### UI & Input
+
 - [Screens & GUI](/lce-docs/client/screens/) - The SWF/Iggy UI system and all screen types
 - [Input System](/lce-docs/client/input/) - Keyboard, mouse, and controller input
+- [Settings](/lce-docs/client/settings/) - Game settings and options
+
+### Resources
+
 - [Textures & Resources](/lce-docs/client/textures/) - Texture loading, atlases, and resource management
 - [Audio](/lce-docs/client/audio/) - Miles Sound System and audio playback
-- [Settings](/lce-docs/client/settings/) - Game settings and options
 
 ## Platform Code
 
@@ -143,19 +162,27 @@ Complete starter mods you can follow end-to-end. Each one teaches multiple syste
 
 Documentation for smartcmd's MinecraftConsoles fork, which builds on the LCE codebase with more content.
 
+### Core Changes
+
 - [Overview & Differences](/lce-docs/mc/overview/) - What MinecraftConsoles adds and changes
 - [Attribute System](/lce-docs/mc/attributes/) - Entity attribute system
-- [Scoreboard & Teams](/lce-docs/mc/scoreboard/) - Scoreboard and team system
+- [Behavior System](/lce-docs/mc/behaviors/) - Entity behavior system
+- [Build System & CI](/lce-docs/mc/build/) - Build system and CI setup
+- [Commands](/lce-docs/mc/commands/) - Command system changes
+
+### New Content
+
+- [New Blocks & Items](/lce-docs/mc/new-content/) - Blocks and items added by MinecraftConsoles
+- [New Entities & Models](/lce-docs/mc/new-entities/) - Entities and models added
 - [Horse Entities](/lce-docs/mc/horses/) - Horse entity implementation
+- [Fireworks](/lce-docs/mc/fireworks/) - Firework rockets and stars
+
+### Systems
+
+- [Scoreboard & Teams](/lce-docs/mc/scoreboard/) - Scoreboard and team system
 - [Redstone Mechanics](/lce-docs/mc/redstone/) - Redstone system changes
 - [Hoppers & Droppers](/lce-docs/mc/hoppers-droppers/) - Hopper and dropper mechanics
 - [Minecart Variants](/lce-docs/mc/minecarts/) - Minecart types
-- [Fireworks](/lce-docs/mc/fireworks/) - Firework rockets and stars
-- [Behavior System](/lce-docs/mc/behaviors/) - Entity behavior system
-- [New Blocks & Items](/lce-docs/mc/new-content/) - Blocks and items added by MinecraftConsoles
-- [New Entities & Models](/lce-docs/mc/new-entities/) - Entities and models added
-- [Commands](/lce-docs/mc/commands/) - Command system changes
-- [Build System & CI](/lce-docs/mc/build/) - Build system and CI setup
 
 ## Reference
 
