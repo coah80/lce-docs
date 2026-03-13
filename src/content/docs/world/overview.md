@@ -21,33 +21,33 @@ This bootstraps all static registries — tiles, items, biomes, enchantments, re
 
 | Subsystem | Files | Units | Key Base Class | Details |
 |-----------|------:|------:|----------------|---------|
-| [Blocks (Tiles)](/world/blocks/) | 210 | 105 | `Tile` | All block types, from `AirTile` to `WoolCarpetTile` |
+| [Blocks (Tiles)](/lcemp-docs/world/blocks/) | 210 | 105 | `Tile` | All block types, from `AirTile` to `WoolCarpetTile` |
 | Tile Items | 30 | 15 | `TileItem` | Item representations of placeable blocks |
-| [Tile Entities](/world/tile-entities/) | 22 | 11 | `TileEntity` | Blocks with persistent state (chests, furnaces, signs) |
-| [Items](/world/items/) | 94 | 47 | `Item` | Tools, weapons, food, armor, and special items |
-| [Entities](/world/entities/) — Mobs | 36 | 18 | `Monster` | Hostile mobs: Zombie, Skeleton, Creeper, EnderDragon, etc. |
-| [Entities](/world/entities/) — Animals | 24 | 12 | `Animal` | Passive mobs: Pig, Cow, Sheep, Wolf, Ozelot, etc. |
-| [Entities](/world/entities/) — Projectiles | 24 | 12 | `Throwable` / `Fireball` | Arrow, Snowball, ThrownPotion, DragonFireball, etc. |
-| [Entities](/world/entities/) — Other | 24 | 12 | `Entity` | Boat, Minecart, FallingTile, PrimedTnt, ItemEntity |
+| [Tile Entities](/lcemp-docs/world/tile-entities/) | 22 | 11 | `TileEntity` | Blocks with persistent state (chests, furnaces, signs) |
+| [Items](/lcemp-docs/world/items/) | 94 | 47 | `Item` | Tools, weapons, food, armor, and special items |
+| [Entities](/lcemp-docs/world/entities/) — Mobs | 36 | 18 | `Monster` | Hostile mobs: Zombie, Skeleton, Creeper, EnderDragon, etc. |
+| [Entities](/lcemp-docs/world/entities/) — Animals | 24 | 12 | `Animal` | Passive mobs: Pig, Cow, Sheep, Wolf, Ozelot, etc. |
+| [Entities](/lcemp-docs/world/entities/) — Projectiles | 24 | 12 | `Throwable` / `Fireball` | Arrow, Snowball, ThrownPotion, DragonFireball, etc. |
+| [Entities](/lcemp-docs/world/entities/) — Other | 24 | 12 | `Entity` | Boat, Minecart, FallingTile, PrimedTnt, ItemEntity |
 | Entity Core | 37 | 19 | `Entity` | Base classes, spawner, entity data sync, IO |
-| [AI Goals](/world/ai-goals/) | 88 | 44 | `Goal` | Behavior tree goals: attack, flee, breed, follow, etc. |
+| [AI Goals](/lcemp-docs/world/ai-goals/) | 88 | 44 | `Goal` | Behavior tree goals: attack, flee, breed, follow, etc. |
 | AI Controls & Navigation | 23 | 12 | `PathNavigation` | Movement, look, and jump controls; A* pathfinding |
-| [Networking](/world/networking/) | 167 | 86 | `Packet` | All game packets for client-server communication |
-| [World Gen](/world/worldgen/) — Features | 89 | 45 | `Feature` | Terrain decorations: ores, trees, lakes, dungeons |
-| [Biomes](/world/biomes/) | 50 | 26 | `Biome` | Biome definitions and the `BiomeSource` / `BiomeDecorator` |
-| [World Gen](/world/worldgen/) — Layers | 40 | 20 | `Layer` | Biome map generation pipeline (zoom, smooth, river, etc.) |
-| [Structures](/world/structures/) | 16 | 8 | `StructureFeature` | Villages, strongholds, mine shafts, nether bridges |
-| [World Gen](/world/worldgen/) — Noise | 12 | 6 | `PerlinNoise` | Perlin, simplex, and FastNoise generators |
-| [World Gen](/world/worldgen/) — Level Sources | 19 | 10 | `ChunkSource` | Chunk generators for overworld, nether, end, and flat |
-| [Enchantments](/world/enchantments/) | 45 | 23 | `Enchantment` | All enchantment types plus `EnchantmentHelper` |
-| [Effects](/world/effects/) | 10 | 5 | `MobEffect` | Status effects and potion brewing |
-| [Crafting](/world/crafting/) | 33 | 17 | `Recipy` | Shaped, shapeless, and furnace recipes |
-| [Containers](/world/containers/) | 51 | 26 | `ContainerMenu` | Inventory screens: crafting table, furnace, anvil, etc. |
-| [Storage](/world/storage/) | 67 | 36 | `LevelStorage` | World save/load, region files, NBT I/O, console save formats |
+| [Networking](/lcemp-docs/world/networking/) | 167 | 86 | `Packet` | All game packets for client-server communication |
+| [World Gen](/lcemp-docs/world/worldgen/) — Features | 89 | 45 | `Feature` | Terrain decorations: ores, trees, lakes, dungeons |
+| [Biomes](/lcemp-docs/world/biomes/) | 50 | 26 | `Biome` | Biome definitions and the `BiomeSource` / `BiomeDecorator` |
+| [World Gen](/lcemp-docs/world/worldgen/) — Layers | 40 | 20 | `Layer` | Biome map generation pipeline (zoom, smooth, river, etc.) |
+| [Structures](/lcemp-docs/world/structures/) | 16 | 8 | `StructureFeature` | Villages, strongholds, mine shafts, nether bridges |
+| [World Gen](/lcemp-docs/world/worldgen/) — Noise | 12 | 6 | `PerlinNoise` | Perlin, simplex, and FastNoise generators |
+| [World Gen](/lcemp-docs/world/worldgen/) — Level Sources | 19 | 10 | `ChunkSource` | Chunk generators for overworld, nether, end, and flat |
+| [Enchantments](/lcemp-docs/world/enchantments/) | 45 | 23 | `Enchantment` | All enchantment types plus `EnchantmentHelper` |
+| [Effects](/lcemp-docs/world/effects/) | 10 | 5 | `MobEffect` | Status effects and potion brewing |
+| [Crafting](/lcemp-docs/world/crafting/) | 33 | 17 | `Recipy` | Shaped, shapeless, and furnace recipes |
+| [Containers](/lcemp-docs/world/containers/) | 51 | 26 | `ContainerMenu` | Inventory screens: crafting table, furnace, anvil, etc. |
+| [Storage](/lcemp-docs/world/storage/) | 67 | 36 | `LevelStorage` | World save/load, region files, NBT I/O, console save formats |
 | NBT & Tags | 15 | 14 | `Tag` | Named Binary Tag types (CompoundTag, ListTag, etc.) |
 | Commands | 23 | 13 | `Command` | Server commands: give, kill, time, gamemode, etc. |
 | Stats & Achievements | 19 | 10 | `Stat` | Gameplay statistics and achievement tracking |
-| [Game Rules](/world/gamerules/) | — | — | `LevelData` | Game rule flags stored in level data |
+| [Game Rules](/lcemp-docs/world/gamerules/) | — | — | `LevelData` | Game rule flags stored in level data |
 | Level Core | 49 | 28 | `Level` | The world itself: tick loop, lighting, chunks, dimensions |
 | Materials | 9 | 7 | `Material` | Block material properties (solid, liquid, flammable) |
 | Physics & Math | 31 | 16 | — | AABB, Vec3, Pos, Random, Mth, Facing |
