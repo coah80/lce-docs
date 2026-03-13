@@ -107,8 +107,8 @@ enum UseAnim {
 |--------|-------|
 | `common` | Most items |
 | `uncommon` | Enchanted items |
-| `rare` | Golden apples (aux 0) |
-| `epic` | Enchanted golden apples (aux > 0), music discs |
+| `rare` | Golden apples (aux 0), music discs |
+| `epic` | Enchanted golden apples (aux > 0) |
 
 ### ItemInstance
 

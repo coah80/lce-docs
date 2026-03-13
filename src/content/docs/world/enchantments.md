@@ -117,7 +117,7 @@ The total protection across all armor pieces is capped at 25. Fire Protection al
 
 ### Damage enchantments
 
-| Type | Bonus per level | Condition |
+| Type | Total bonus at level | Condition |
 |---|---|---|
 | ALL (Sharpness) | `floor(level * 2.75)` | Always |
 | UNDEAD (Smite) | `floor(level * 4.5)` | Target is undead mob type |
