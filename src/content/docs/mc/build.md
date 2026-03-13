@@ -143,9 +143,9 @@ MinecraftConsoles uses three GitHub Actions workflows:
 
 ### debug-test.yml (PR gate)
 
-**Triggers**: Pull requests (opened, reopened, synchronize) and pushes to `main`.
+**Triggers**: Pull requests (opened, reopened, synchronize), pushes to `main`, and manual dispatch.
 
-Runs a Debug build on `windows-latest` using MSBuild. This is the primary CI gate that validates all PRs compile successfully. Ignores changes to `.gitignore` and markdown files.
+Runs a Debug build on `windows-latest` using MSBuild. This is the primary CI gate that validates all PRs compile successfully. Ignores changes to `.gitignore` and markdown files (both root and `.github/` markdown).
 
 ### nightly.yml (nightly release)
 

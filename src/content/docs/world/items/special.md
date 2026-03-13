@@ -98,7 +98,7 @@ The tooltip displays all stored enchantments using `Enchantment::getFullname()`.
 | Max Durability | 64 |
 | Stack Size | 1 |
 
-Places fire on the adjacent block face. Consumes 1 durability per use.
+Places fire on the adjacent block face. If used on air above obsidian, attempts to create a Nether portal via `PortalTile::trySpawnPortal()`. Consumes 1 durability per use.
 
 ## SaddleItem
 

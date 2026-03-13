@@ -86,9 +86,9 @@ Item *handEquipped();
 | `getUseDuration(...)` | Returns `0` | How long the use action takes in ticks |
 | `releaseUsing(...)` | No-op | Called when use button is released early (bow charging) |
 | `isHandEquipped()` | Returns `m_handEquipped` | Render as hand-held tool |
-| `isFoil(...)` | Returns `false` | Whether the item has an enchantment glint |
-| `getRarity(...)` | Returns `Rarity::common` | Item rarity (affects name color) |
-| `isEnchantable(...)` | Returns `false` | Whether item can be enchanted |
+| `isFoil(...)` | Returns `true` if `itemInstance->isEnchanted()` | Whether the item has an enchantment glint |
+| `getRarity(...)` | Returns `Rarity::rare` if enchanted, otherwise `Rarity::common` | Item rarity (affects name color) |
+| `isEnchantable(...)` | Returns `true` if stack size is 1 and item can be depleted | Whether item can be enchanted |
 | `getEnchantmentValue()` | Returns `0` | Enchantability score |
 | `isValidRepairItem(...)` | Returns `false` | Whether the given item can repair this one in an anvil |
 | `isComplex()` | Returns `false` | Whether item needs special network sync (maps) |
@@ -115,9 +115,9 @@ enum UseAnim {
 | Rarity | Usage |
 |--------|-------|
 | `common` | Most items |
-| `uncommon` | Enchanted items |
-| `rare` | Golden apples (aux 0) |
-| `epic` | Enchanted golden apples (aux > 0), music discs |
+| `uncommon` | Enchanted items, enchanted books (with stored enchantments) |
+| `rare` | Golden apples (aux 0), music discs |
+| `epic` | Enchanted golden apples (aux > 0) |
 
 ## ItemInstance
 
@@ -279,7 +279,7 @@ Classifies items by functional type:
 | 8 | `chestplate` | All chestplates |
 | 9 | `leggings` | All leggings |
 | 10 | `boots` | All boots |
-| 11 | `ingot` | Iron ingot, gold ingot |
+| 11 | `ingot` | (Defined but unused; iron/gold ingots use `treasure` instead) |
 | 12 | `rail` | Rails |
 | 13 | `block` | Block items |
 | 14 | `pressureplate` | Pressure plates |
@@ -298,7 +298,7 @@ Classifies items by functional type:
 | 27 | `devicetool` | Flint and steel, shears |
 | 28 | `fence` | Fences |
 | 29 | `device` | Brewing stand |
-| 30 | `treasure` | Diamond, iron/gold ingots, emerald |
+| 30 | `treasure` | Diamond, iron/gold ingots, gold nugget, emerald |
 | 31 | `seed` | Seeds |
 | 32 | `HangingItem` | Painting, item frame, sign |
 | 33 | `button` | Buttons |

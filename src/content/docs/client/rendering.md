@@ -214,7 +214,8 @@ On Vita, `Tesselator` includes:
 | `tesselateDoorInWorld()` | Doors |
 | `tesselateFenceInWorld()` | Fences |
 | `tesselateThinFenceInWorld()` | Glass panes, iron bars |
-| `tesselatePistonBaseInWorld()` | Pistons |
+| `tesselatePistonBaseInWorld()` | Piston bases |
+| `tesselatePistonExtensionInWorld()` | Piston extensions |
 | `tesselateBedInWorld()` | Beds |
 | `tesselateFireInWorld()` | Fire |
 | `tesselateDustInWorld()` | Redstone dust |
@@ -231,12 +232,14 @@ On Vita, `Tesselator` includes:
 | `tesselateStemInWorld()` | Melon/pumpkin stems |
 | `tesselateTreeInWorld()` | Logs |
 | `tesselateQuartzInWorld()` | Quartz pillars |
+| `tesselateTripwireSourceInWorld()` | Tripwire hooks |
 | `tesselateTripwireInWorld()` | Tripwire |
 | `tesselateWallInWorld()` | Cobblestone walls |
 | `tesselateEggInWorld()` | Dragon egg |
 | `tesselateFenceGateInWorld()` | Fence gates |
 | `tesselateAirPortalFrameInWorld()` | End portal frames |
 | `tesselateFlowerPotInWorld()` | Flower pots |
+| `tesselateRowInWorld()` | Crop rows |
 
 ### Ambient occlusion
 
@@ -277,7 +280,7 @@ The `render()` method calculates the entity's interpolated position and delegate
 | `SheepRenderer` | Sheep |
 | `WolfRenderer` | Wolves |
 | `SquidRenderer` | Squids |
-| `SpiderRenderer` | Spiders |
+| `SpiderRenderer` | Spiders and cave spiders |
 | `GhastRenderer` | Ghasts |
 | `SlimeRenderer` | Slimes |
 | `LavaSlimeRenderer` | Magma cubes |
@@ -291,7 +294,7 @@ The `render()` method calculates the entity's interpolated position and delegate
 | `OzelotRenderer` | Ocelots/cats |
 | `MushroomCowRenderer` | Mooshrooms |
 | `ZombieRenderer` | Zombies |
-| `SkeletonModel`-based | Skeletons (via `HumanoidMobRenderer`) |
+| `HumanoidMobRenderer` | Skeletons (with `SkeletonModel`), pig zombies (with `ZombieModel`) |
 | `GiantMobRenderer` | Giants |
 | `ArrowRenderer` | Arrows |
 | `BoatRenderer` | Boats |
@@ -299,11 +302,12 @@ The `render()` method calculates the entity's interpolated position and delegate
 | `TntRenderer` | Primed TNT |
 | `FallingTileRenderer` | Falling blocks |
 | `ItemRenderer` | Dropped items |
-| `ItemSpriteRenderer` | Item sprites |
+| `ItemSpriteRenderer` | Thrown projectiles (snowballs, ender pearls, eyes of ender, eggs, potions, exp bottles) |
 | `ExperienceOrbRenderer` | XP orbs |
 | `PaintingRenderer` | Paintings |
 | `FishingHookRenderer` | Fishing bobbers |
-| `FireballRenderer` | Fireballs |
+| `FireballRenderer` | Fireballs, small fireballs, dragon fireballs |
+| `EnderCrystalRenderer` | Ender crystals |
 | `LightningBoltRenderer` | Lightning |
 | `ItemFrameRenderer` | Item frames |
 | `DefaultRenderer` | Fallback renderer |
@@ -322,7 +326,6 @@ The `render()` method calculates the entity's interpolated position and delegate
 | `PistonPieceRenderer` | Piston extensions |
 | `SkullTileRenderer` | Mob heads |
 | `TheEndPortalRenderer` | End portals |
-| `EnderCrystalRenderer` | Ender crystals |
 
 ## Camera
 

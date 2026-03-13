@@ -33,7 +33,7 @@ The block system in LCE is built around the `Tile` base class. All blocks are ca
 | `soundType` | `const SoundType*` | Sound effects |
 | `friction` | `float` | Surface friction coefficient |
 | `gravity` | `float` | Gravity effect on entities |
-| `xx0, yy0, zz0, xx1, yy1, zz1` | `double` | Bounding box coordinates |
+| *(via ThreadStorage TLS)* `xx0, yy0, zz0, xx1, yy1, zz1` | `double` | Bounding box coordinates (originally direct members, moved to per-thread `ThreadStorage` via TLS by 4J for thread safety) |
 
 #### Static Arrays (indexed by tile ID)
 

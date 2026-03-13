@@ -220,7 +220,7 @@ All packet IDs as registered in `Packet::staticCtor()`:
 | 100 | `ContainerOpenPacket` | recv | -- | Open a container GUI |
 | 101 | `ContainerClosePacket` | recv | recv | Close a container |
 | 102 | `ContainerClickPacket` | -- | recv | Inventory click action |
-| 103 | `ContainerSetSlotPacket` | recv | -- | Set a single inventory slot |
+| 103 | `ContainerSetSlotPacket` | recv | recv | Set a single inventory slot |
 | 104 | `ContainerSetContentPacket` | recv | -- | Set entire container contents |
 | 105 | `ContainerSetDataPacket` | recv | -- | Container property update (furnace progress, etc.) |
 | 106 | `ContainerAckPacket` | recv | recv | Transaction confirmation |

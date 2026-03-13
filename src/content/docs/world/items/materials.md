@@ -12,8 +12,8 @@ These items are registered as `new Item(id)` with builder-pattern configuration.
 | Item | ID | Class | Notes |
 |------|----|-------|-------|
 | Diamond | 264 | `Item` | Repair item for Diamond tier |
-| Iron Ingot | 265 | `Item` | Repair item for Iron tier; `eBaseItemType_ingot` |
-| Gold Ingot | 266 | `Item` | Repair item for Gold tier; `eBaseItemType_ingot` |
+| Iron Ingot | 265 | `Item` | Repair item for Iron tier; `eBaseItemType_treasure`, `eMaterial_iron` |
+| Gold Ingot | 266 | `Item` | Repair item for Gold tier; `eBaseItemType_treasure`, `eMaterial_gold` |
 | Stick | 280 | `Item` | Crafting ingredient for tools, torches, fences |
 | Bowl | 281 | `Item` | Crafting ingredient for mushroom stew |
 | Feather | 288 | `Item` | Crafting ingredient for arrows |

@@ -146,7 +146,7 @@ Uses `auxValue` 0-4 to represent five skull types. Each has its own icon (`ICON_
 
 | Item | ID | Class | Notes |
 |------|----|-------|-------|
-| Cake | 354 | `TilePlanterItem` | Places cake tile, stack size 1 |
+| Cake | 354 | `TilePlanterItem` | Places cake tile, stack size 64 (4J changed from 1, Jens approved) |
 | Redstone Repeater | 356 | `TilePlanterItem` | Places diode tile |
 | Flower Pot | 390 | `TilePlanterItem` | Places flower pot tile |
 | Brewing Stand | 379 | `TilePlanterItem` | Places brewing stand tile |
