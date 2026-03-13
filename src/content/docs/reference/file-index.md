@@ -503,21 +503,6 @@ Xbox UI (XUI) scene and control implementations. Includes SlotProgressControl, X
 
 </details>
 
-### Platform: macOS (10 files)
-
-<details>
-<summary>macOS/ subdirectories</summary>
-
-**4JLibs/inc:** 4J_Input, 4J_Profile, 4J_Render, 4J_Storage
-
-**Iggy/gdraw:** gdraw_metal
-
-**Iggy/include:** iggy
-
-**Sentient:** DynamicConfigurations, MinecraftTelemetry, SentientManager, SentientTelemetryCommon
-
-</details>
-
 ### Windows_Libs/ (32 files)
 
 <details>

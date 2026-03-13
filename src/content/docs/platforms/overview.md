@@ -3,7 +3,7 @@ title: Overview
 description: Platform abstraction layer in LCEMP.
 ---
 
-The LCEMP codebase targets seven platforms through a layered abstraction system developed by 4J Studios. Each platform directory under `Minecraft.Client/` contains platform-specific implementations that plug into shared interfaces defined in `Minecraft.Client/Common/`.
+The LCEMP codebase targets six platforms through a layered abstraction system developed by 4J Studios. Each platform directory under `Minecraft.Client/` contains platform-specific implementations that plug into shared interfaces defined in `Minecraft.Client/Common/`.
 
 ## Supported Platforms
 
@@ -15,7 +15,6 @@ The LCEMP codebase targets seven platforms through a layered abstraction system 
 | `Orbis/` | PlayStation 4 | Orbis | Sony eighth-gen |
 | `PSVita/` | PS Vita | -- | Sony handheld |
 | `Windows64/` | Windows 64-bit | -- | PC port (LCEMP primary target) |
-| `macOS/` | macOS | -- | Mac port |
 
 ## Abstraction Pattern
 
@@ -71,7 +70,7 @@ The 4J render abstraction (`RenderManager` singleton) wraps platform graphics AP
 - Command buffers for batched draw calls
 - Viewport management for splitscreen
 
-Xbox 360 uses Direct3D 9, Xbox One and Windows 64 use Direct3D 11, and macOS uses Metal. The Sony platforms use their native GNM/GCM renderers.
+Xbox 360 uses Direct3D 9, Xbox One and Windows 64 use Direct3D 11. The Sony platforms use their native GNM/GCM renderers.
 
 ### Input (`C_4JInput`)
 
@@ -79,7 +78,7 @@ The `InputManager` singleton provides unified gamepad input across all platforms
 
 ### Storage (`C4JStorage`)
 
-The `StorageManager` singleton handles save/load operations, DLC package mounting, and TMS file retrieval. Each platform provides native implementations for its storage model (Xbox content packages, PSN save data dialogs, filesystem on PC/macOS).
+The `StorageManager` singleton handles save/load operations, DLC package mounting, and TMS file retrieval. Each platform provides native implementations for its storage model (Xbox content packages, PSN save data dialogs, filesystem on PC).
 
 ### Profiles and Achievements (`C4JProfile`)
 
@@ -95,7 +94,6 @@ Beyond the core abstractions, each platform has unique subsystems:
 - **PS4**: NP Toolkit integration, voice chat with party support, remote play, pronunciation XML
 - **PS Vita**: Ad-hoc networking (`SQRNetworkManager_AdHoc_Vita`), custom memory allocators, `libdivide` optimizations
 - **Windows 64**: Winsock LAN discovery, keyboard/mouse input, post-process gamma correction, Win32 windowed mode
-- **macOS**: Metal rendering backend stubs, Iggy/GDraw stubs, filesystem-based storage
 
 ## File Naming Conventions
 

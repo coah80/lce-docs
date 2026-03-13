@@ -117,7 +117,6 @@ Platform-specific code lives in sibling directories at the `Minecraft.Client` le
 - `PS3/` -- PlayStation 3
 - `PSVita/` -- PlayStation Vita
 - `Xbox/` -- Xbox 360
-- `macOS/` -- macOS port
 - `Windows64/` -- Windows 64-bit build
 
 Conditional compilation (`#ifdef _DURANGO`, `#ifdef __ORBIS__`, `#ifdef __PS3__`, `#ifdef __PSVITA__`, `#ifdef _XBOX`, `#ifdef _WINDOWS64`) gates platform-specific behavior throughout the shared code.

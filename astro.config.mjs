@@ -63,7 +63,6 @@ export default defineConfig({
 						{ label: 'PS3', slug: 'platforms/ps3' },
 						{ label: 'PS4 (Orbis)', slug: 'platforms/orbis' },
 						{ label: 'PS Vita', slug: 'platforms/psvita' },
-						{ label: 'macOS', slug: 'platforms/macos' },
 					],
 				},
 				{

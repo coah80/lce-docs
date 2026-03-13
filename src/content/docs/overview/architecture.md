@@ -36,7 +36,6 @@ LCEMP/
 │   ├── Orbis/             # PS4 platform layer
 │   ├── PSVita/            # PS Vita platform layer
 │   ├── Windows64/         # Windows 64-bit platform layer
-│   ├── macOS/             # macOS platform layer
 │   └── Windows_Libs/      # Windows dev libraries
 │
 ├── CMakeLists.txt         # Build configuration

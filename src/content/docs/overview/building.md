@@ -10,7 +10,7 @@ description: How to set up and build the LCEMP project.
 - **Windows** — currently the only supported build target (the CMakeLists.txt explicitly checks for WIN32)
 
 :::note
-While the codebase contains platform code for Xbox 360, Xbox One, PS3, PS4, PS Vita, and macOS, the CMake build system currently only targets Windows 64-bit.
+While the codebase contains platform code for Xbox 360, Xbox One, PS3, PS4, and PS Vita, the CMake build system currently only targets Windows 64-bit.
 :::
 
 ## Required Asset Directories

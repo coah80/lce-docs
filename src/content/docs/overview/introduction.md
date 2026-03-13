@@ -7,7 +7,7 @@ description: What LCEMP is and what this documentation covers.
 
 LCEMP (**Legacy Console Edition Multiplayer**) is a source fork of Minecraft Legacy Console Edition (LCE) that enables LAN multiplayer hosting alongside more complete PC compatibility. It was created by **notpies**.
 
-The codebase is written in **C++11** and targets multiple platforms including Windows 64-bit, Xbox 360, Xbox One (Durango), PS3, PS4 (Orbis), PS Vita, and macOS.
+The codebase is written in **C++11** and targets multiple platforms including Windows 64-bit, Xbox 360, Xbox One (Durango), PS3, PS4 (Orbis), and PS Vita.
 
 :::caution
 This is NOT the full Minecraft LCE source code. You need to provide required asset files yourself. See the [Building & Compiling](/lcemp-docs/overview/building/) page for details.
