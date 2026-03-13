@@ -1,42 +1,81 @@
 ---
 title: Music Discs
-description: All music disc IDs, field names, and how RecordingItem works in LCE.
+description: RecordingItem class, all disc IDs (2256-2267), track names, and jukebox interaction.
 ---
+
+Music discs are implemented by `RecordingItem` and interact with jukebox tiles (`RecordPlayerTile`) to play music.
 
 ## RecordingItem
 
 **Files:** `Minecraft.World/RecordingItem.h`, `Minecraft.World/RecordingItem.cpp`
 
-Each disc stores a `recording` string (e.g., `"13"`, `"cat"`, `"blocks"`). The `useOn` method interacts with jukeboxes (`RecordPlayerTile`): when used on a jukebox with data 0, the disc is inserted, count is decremented, and a `SOUND_PLAY_RECORDING` level event is fired.
+Each `RecordingItem` stores a `recording` string (e.g., `"13"`, `"cat"`, `"blocks"`) that identifies the track. All discs share these properties:
 
-All discs have `Rarity::rare` (overridden via `getRarity()`). Stack size is 1 (set in the constructor). Texture icons are registered as `"record_" + recording`.
+| Property | Value |
+|----------|-------|
+| Stack Size | 1 |
+| Rarity | `rare` |
+| Texture Pattern | `record_` + recording name |
 
-The tooltip displays the artist and track name via `appendHoverText`, formatted with the rarity color.
+### Constructor
 
-## Complete Music Disc Table
+```cpp
+RecordingItem::RecordingItem(int id, const wstring& recording) : Item(id), recording(recording)
+{
+    this->maxStackSize = 1;
+}
+```
 
-| ID | Recording Field | Description |
-|----|----------------|-------------|
-| 2256 | `"13"` | C418 - 13 |
-| 2257 | `"cat"` | C418 - cat |
-| 2258 | `"blocks"` | C418 - blocks |
-| 2259 | `"chirp"` | C418 - chirp |
-| 2260 | `"far"` | C418 - far |
-| 2261 | `"mall"` | C418 - mall |
-| 2262 | `"mellohi"` | C418 - mellohi |
-| 2263 | `"stal"` | C418 - stal |
-| 2264 | `"strad"` | C418 - strad |
-| 2265 | `"ward"` | C418 - ward |
-| 2266 | `"11"` | C418 - 11 |
-| 2267 | `"where are we now"` | LCE-exclusive disc |
+The `recording` field is declared as `const std::wstring` and is `public` (4J changed it from `protected` in the Java source because they needed to access it externally).
 
-The disc with ID 2267 (`"where are we now"`) is noted in the source as "not playable in the PC game, but is fine in ours" -- a Legacy Console Edition exclusive music disc.
+## Jukebox Interaction
 
-## How Records Work
+When a disc is used on a jukebox tile (`Tile::recordPlayer`), the `useOn` method:
 
-1. Player right-clicks a jukebox tile (`RecordPlayerTile`) with a music disc
-2. `RecordingItem::useOn()` checks if the tile at the position is `Tile::recordPlayer` with data 0 (empty)
-3. The disc's item ID is passed to `RecordPlayerTile::setRecord()` which stores it in the tile data
-4. A `LevelEvent::SOUND_PLAY_RECORDING` event is fired with the item ID, triggering audio playback on the client
-5. The disc's `ItemInstance::count` is decremented (removing it from the player's inventory)
-6. The `musicToMyEars` achievement is awarded to the player
+1. Checks that the target tile is a jukebox with data value 0 (no disc inserted)
+2. Calls `RecordPlayerTile::setRecord()` to insert the disc, passing the item ID
+3. Fires `LevelEvent::SOUND_PLAY_RECORDING` with the item ID as the data parameter
+4. Decrements the item stack count
+5. Awards the `musicToMyEars` statistic via `GenericStats`
+
+The disc is only inserted on the server side (`level->isClientSide` check). The `bTestUseOnOnly` parameter (a 4J addition) allows the UI to check if the interaction would succeed without actually performing it, enabling tooltip display.
+
+### Tooltip
+
+The `appendHoverText` method formats the artist and track name as `"C418 - <recording>"` with the rare rarity color applied via HTML formatting:
+
+```cpp
+swprintf(formatted, 256, L"<font color=\"#%08x\">%ls</font>", colour, L"C418 - ", recording.c_str());
+```
+
+## Complete Disc Registry
+
+| ID | Field Name | Track Name | Notes |
+|----|-----------|------------|-------|
+| 2256 | `"13"` | 13 | Ambient/cave sounds |
+| 2257 | `"cat"` | Cat | Upbeat synthesizer |
+| 2258 | `"blocks"` | Blocks | Upbeat electronic |
+| 2259 | `"chirp"` | Chirp | Retro chiptune |
+| 2260 | `"far"` | Far | Calm ambient |
+| 2261 | `"mall"` | Mall | Mellow retro |
+| 2262 | `"mellohi"` | Mellohi | Slow haunting melody |
+| 2263 | `"stal"` | Stal | Jazz piano |
+| 2264 | `"strad"` | Strad | Tropical/upbeat |
+| 2265 | `"ward"` | Ward | Starts with record noise, then upbeat |
+| 2266 | `"11"` | 11 | Broken/corrupted recording |
+| 2267 | `"where are we now"` | Where Are We Now | LCE-exclusive disc |
+
+The disc with ID 2267 (`"where are we now"`) is noted in the source as *"not playable in the PC game, but is fine in ours"* -- this is a Legacy Console Edition exclusive music disc.
+
+## Icon Registration
+
+Each disc registers its own icon using the pattern `record_<recording>`:
+
+```cpp
+void RecordingItem::registerIcons(IconRegister *iconRegister)
+{
+    icon = iconRegister->registerIcon(L"record_" + recording);
+}
+```
+
+This means the texture files are named `record_13`, `record_cat`, `record_blocks`, etc.
