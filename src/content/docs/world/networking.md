@@ -133,7 +133,7 @@ All packet IDs as registered in `Packet::staticCtor()`:
 | 205 | `ClientCommandPacket` | -- | recv | Client-issued commands (e.g., respawn request) |
 | 167 | `GameCommandPacket` | -- | recv | Game commands from client |
 
-### Player Movement (IDs 10-13, 27)
+### Player Movement (IDs 10-13)
 
 | ID | Packet | Client | Server | Description |
 |----|--------|--------|--------|-------------|

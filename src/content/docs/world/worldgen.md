@@ -75,7 +75,7 @@ After height preparation, surfaces are painted based on biome data:
 - Starting from the top of the column and working down, the first encountered stone is replaced with the biome's `topMaterial` (typically grass) and subsequent stone blocks become the biome's `material` (typically dirt).
 - Sand surfaces get sandstone layers beneath them.
 - Cold biomes (temperature < 0.15) get ice instead of water at the surface.
-- Bedrock is placed in the bottom 1-2 layers (4J changed from the Java 0-4 range to prevent players getting stuck).
+- Bedrock is placed at Y=0-2 using `y <= 1 + random->nextInt(2)` (Y=0 and Y=1 are always bedrock, Y=2 is 50% chance). 4J changed this from the Java `y <= 0 + random->nextInt(5)` range (Y=0-4) to prevent players getting stuck.
 
 ### 4. Carve caves and canyons
 

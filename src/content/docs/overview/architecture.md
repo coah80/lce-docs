@@ -52,7 +52,7 @@ This is the **game logic** layer. It has zero rendering code and no platform dep
 | System | Key Classes | Purpose |
 |--------|-------------|---------|
 | **Blocks** | `Tile`, `StoneTile`, `GrassTile`, etc. | Block definitions, properties, behavior |
-| **Items** | `Item`, `SwordItem`, `FoodItem`, etc. | Item definitions, tool tiers, food |
+| **Items** | `Item`, `WeaponItem`, `FoodItem`, etc. | Item definitions, tool tiers, food |
 | **Entities** | `Entity`, `Mob`, `Player`, `Zombie`, etc. | All living and non-living entities |
 | **World Gen** | `Biome`, `BiomeSource`, Layer classes | Terrain generation, biome placement |
 | **Structures** | `StructureStart`, `VillagePieces`, etc. | Generated structures (villages, dungeons) |

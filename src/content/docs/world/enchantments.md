@@ -89,7 +89,7 @@ Each enchantment is assigned a frequency constant that controls how likely it is
 | `digger` | Any `DiggerItem` |
 | `bow` | Any `BowItem` |
 
-Some enchantment subclasses override `canEnchant()` to expand compatibility. For example, `DamageEnchantment` also accepts `HatchetItem`, `DiggingEnchantment` also accepts shears, and `DigDurabilityEnchantment` accepts any damageable item.
+Some enchantment subclasses override `canEnchant()` to expand compatibility. For example, `DamageEnchantment` also accepts `HatchetItem`, `DiggingEnchantment` also accepts shears, `UntouchingEnchantment` (Silk Touch) also accepts shears, `ThornsEnchantment` accepts any `ArmorItem` (not just torso), and `DigDurabilityEnchantment` accepts any damageable item.
 
 ## Compatibility rules
 

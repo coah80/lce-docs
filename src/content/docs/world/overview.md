@@ -42,7 +42,7 @@ This bootstraps all static registries — tiles, items, biomes, enchantments, re
 | [Enchantments](/lcemp-docs/world/enchantments/) | 45 | 23 | `Enchantment` | All enchantment types plus `EnchantmentHelper` |
 | [Effects](/lcemp-docs/world/effects/) | 10 | 5 | `MobEffect` | Status effects and potion brewing |
 | [Crafting](/lcemp-docs/world/crafting/) | 33 | 17 | `Recipy` | Shaped, shapeless, and furnace recipes |
-| [Containers](/lcemp-docs/world/containers/) | 51 | 26 | `ContainerMenu` | Inventory screens: crafting table, furnace, anvil, etc. |
+| [Containers](/lcemp-docs/world/containers/) | 51 | 26 | `AbstractContainerMenu` | Inventory screens: crafting table, furnace, anvil, etc. |
 | [Storage](/lcemp-docs/world/storage/) | 67 | 36 | `LevelStorage` | World save/load, region files, NBT I/O, console save formats |
 | NBT & Tags | 15 | 14 | `Tag` | Named Binary Tag types (CompoundTag, ListTag, etc.) |
 | Commands | 23 | 13 | `Command` | Server commands: give, kill, time, gamemode, etc. |
