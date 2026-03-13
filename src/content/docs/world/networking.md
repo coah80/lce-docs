@@ -410,7 +410,7 @@ The PS Vita also supports **ad-hoc mode** for direct wireless connections betwee
 
 ## MinecraftConsoles Differences
 
-MC registers **104 packets** compared to LCE's **98**. The core networking architecture (Socket, Connection, PacketListener, client/server split) is the same. Here are the new packets:
+MC registers **104 packets** compared to LCEMP's **98**. The core networking architecture (Socket, Connection, PacketListener, client/server split) is the same. Here are the new packets:
 
 ### New packets in MC
 
@@ -429,7 +429,7 @@ MC registers **104 packets** compared to LCE's **98**. The core networking archi
 
 - **`AddMobPacket` (ID 24)**: In MC, this packet can also carry initial attribute data for the spawned mob, since the attribute system needs to sync on spawn.
 - **`SetEntityDataPacket` (ID 40)**: Same structure, but MC mobs can have more synched data fields (like horse type, wither invulnerability timer, etc.)
-- **Packet IDs 39 and 44**: In LCE these IDs are unused. MC assigns them to `SetEntityLinkPacket` and `UpdateAttributesPacket`.
+- **Packet IDs 39 and 44**: In LCEMP these IDs are unused. MC assigns them to `SetEntityLinkPacket` and `UpdateAttributesPacket`.
 
 ### Platform backends
 

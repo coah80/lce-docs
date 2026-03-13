@@ -245,7 +245,7 @@ Audio resources are stored in:
 
 ## MinecraftConsoles differences
 
-MinecraftConsoles adds a large batch of new sound types to `SoundTypes.h`. These cover mobs and features that don't exist in LCE:
+MinecraftConsoles adds a large batch of new sound types to `SoundTypes.h`. These cover mobs and features that don't exist in LCEMP:
 
 ### Firework sounds
 
@@ -272,7 +272,7 @@ MinecraftConsoles adds a large batch of new sound types to `SoundTypes.h`. These
 
 ### Mob step/ambient sounds
 
-A bunch of mob step sounds are added that LCE was missing:
+A bunch of mob step sounds are added that LCEMP was missing:
 
 - `eSoundType_MOB_COW_STEP`, `_CHICKEN_STEP`, `_PIG_STEP`
 - `eSoundType_MOB_ENDERMAN_STARE`, `_SCREAM`

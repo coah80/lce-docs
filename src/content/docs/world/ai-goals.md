@@ -194,7 +194,7 @@ Lower priority numbers take precedence. Goals at the same priority level can coe
 
 ## MinecraftConsoles Differences
 
-MC adds two new AI goal types that LCE doesn't have:
+MC adds two new AI goal types that LCEMP doesn't have:
 
 ### RunAroundLikeCrazyGoal
 
@@ -202,9 +202,9 @@ Used by horses when they're being tamed. Makes the horse run around wildly to tr
 
 ### RangedAttackGoal
 
-A new ranged attack goal that's separate from the existing `ArrowAttackGoal`. In LCE, `ArrowAttackGoal` handles both arrow-type and snowball-type ranged attacks. MC splits this out so `RangedAttackGoal` can be used by the Witch (for potion throwing) and the Skeleton (using the `RangedAttackMob` interface).
+A new ranged attack goal that's separate from the existing `ArrowAttackGoal`. In LCEMP, `ArrowAttackGoal` handles both arrow-type and snowball-type ranged attacks. MC splits this out so `RangedAttackGoal` can be used by the Witch (for potion throwing) and the Skeleton (using the `RangedAttackMob` interface).
 
-MC also adds `OcelotAttackGoal` as a separate file pair. In LCE, this goal exists but its source may be structured slightly differently.
+MC also adds `OcelotAttackGoal` as a separate file pair. In LCEMP, this goal exists but its source may be structured slightly differently.
 
 ### New mob AI setups
 

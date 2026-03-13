@@ -415,11 +415,11 @@ Each structure type calls `app.AddTerrainFeaturePosition()` when created, regist
 
 ## MinecraftConsoles Differences
 
-The structure system in MC is mostly the same as LCE, but with a few additions:
+The structure system in MC is mostly the same as LCEMP, but with a few additions:
 
 ### Witch huts
 
-MC adds a third scattered feature type: `SwamplandHut`. In LCE, `RandomScatteredLargeFeature` only generates desert pyramids and jungle temples. MC adds swampland to the allowed biomes and generates witch huts in swamp biomes.
+MC adds a third scattered feature type: `SwamplandHut`. In LCEMP, `RandomScatteredLargeFeature` only generates desert pyramids and jungle temples. MC adds swampland to the allowed biomes and generates witch huts in swamp biomes.
 
 The witch hut has its own enemy spawn list (`swamphutEnemies`) that just contains Witch (weight 1, groups of 1). MC also adds `isSwamphut()` and `getSwamphutEnemies()` methods to `RandomScatteredLargeFeature` so the spawning system can check if a position is inside a witch hut and use the special spawn list.
 
@@ -430,7 +430,7 @@ MC adds two new classes for saving structure data:
 - **`StructureFeatureIO`**: Handles reading and writing structure bounding boxes and piece data to/from NBT tags. This lets the game remember where structures are between saves.
 - **`StructureFeatureSavedData`**: Extends the saved data system to persist structure locations. This is important for things like witch hut mob spawning, where the game needs to know structure boundaries even after the world has been saved and reloaded.
 
-LCE doesn't persist structure data at all. Once a structure is generated during world creation, its bounding box info only lives in memory until the game closes.
+LCEMP doesn't persist structure data at all. Once a structure is generated during world creation, its bounding box info only lives in memory until the game closes.
 
 ### Everything else
 

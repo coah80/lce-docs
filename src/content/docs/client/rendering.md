@@ -372,17 +372,17 @@ The `Lighting` class provides static methods for fixed-function lighting:
 
 ## MinecraftConsoles differences
 
-MinecraftConsoles has a bunch of additions to the rendering pipeline compared to LCE:
+MinecraftConsoles has a bunch of additions to the rendering pipeline compared to LCEMP:
 
 ### New entity renderers
 
 | Class | Entity | Notes |
 |---|---|---|
 | `BatRenderer` | Bats | New mob added in 1.4 |
-| `CaveSpiderRenderer` | Cave spiders | Gets its own renderer (extends `SpiderRenderer`) with a separate texture and a smaller scale. In LCE, `SpiderRenderer` handles both. |
+| `CaveSpiderRenderer` | Cave spiders | Gets its own renderer (extends `SpiderRenderer`) with a separate texture and a smaller scale. In LCEMP, `SpiderRenderer` handles both. |
 | `HorseRenderer` | Horses | Full horse renderer with layered texture caching for markings, armor overlays, and variant types (horse, donkey, mule, zombie, skeleton) |
-| `OcelotRenderer` | Ocelots/cats | Gets a dedicated renderer class. In LCE this was handled by the generic `OzelotRenderer` (note the spelling change too, `Ozelot` to `Ocelot`). |
-| `SkeletonRenderer` | Skeletons | Separated into its own class (extends `HumanoidMobRenderer`) with texture switching between normal and wither skeleton. In LCE, `HumanoidMobRenderer` handles both directly. |
+| `OcelotRenderer` | Ocelots/cats | Gets a dedicated renderer class. In LCEMP this was handled by the generic `OzelotRenderer` (note the spelling change too, `Ozelot` to `Ocelot`). |
+| `SkeletonRenderer` | Skeletons | Separated into its own class (extends `HumanoidMobRenderer`) with texture switching between normal and wither skeleton. In LCEMP, `HumanoidMobRenderer` handles both directly. |
 | `WitchRenderer` / `WitchModel` | Witches | Completely new mob. |
 | `WitherBossRenderer` | Wither boss | New boss mob with invulnerability texture, armor overlay, and scaling. |
 | `WitherSkullRenderer` | Wither skulls | Projectile renderer for wither skull attacks. |
@@ -414,4 +414,4 @@ A bunch of `_SPU` tile files are also added for PS3 SPU offloading of tile geome
 
 ### Renderer base class
 
-`LivingEntityRenderer` is inserted as a new base class between `EntityRenderer` and `MobRenderer`. It handles the common mob rendering pipeline: model rendering, positioning, rotations, attack animations, armor layers, name tags, and arrow-stuck-in-entity rendering. This is stuff that was previously jammed directly into `MobRenderer` in LCE.
+`LivingEntityRenderer` is inserted as a new base class between `EntityRenderer` and `MobRenderer`. It handles the common mob rendering pipeline: model rendering, positioning, rotations, attack animations, armor layers, name tags, and arrow-stuck-in-entity rendering. This is stuff that was previously jammed directly into `MobRenderer` in LCEMP.

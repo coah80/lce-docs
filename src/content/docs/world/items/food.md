@@ -110,6 +110,6 @@ This extends `FoodItem` and can be both eaten and planted on farmland (it overri
 
 ## MinecraftConsoles differences
 
-The food system is the same between LCE and MinecraftConsoles. Same `FoodItem` class, same nutrition values, same saturation modifiers, same exhaustion constants. No new food items are added in the MinecraftConsoles version.
+The food system is the same between LCEMP and MinecraftConsoles. Same `FoodItem` class, same nutrition values, same saturation modifiers, same exhaustion constants. No new food items are added in the MinecraftConsoles version.
 
 The golden apple mechanics, bowl food, and seed food subclasses are all identical.

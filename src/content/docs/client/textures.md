@@ -255,7 +255,7 @@ MinecraftConsoles expands the texture system in a few ways:
 
 ### New mob textures
 
-The `TEXTURE_NAME` enum gains a lot of new entries for mobs that don't exist in LCE:
+The `TEXTURE_NAME` enum gains a lot of new entries for mobs that don't exist in LCEMP:
 
 - **Bat:** `TN_MOB_BAT`
 - **Horse variants:** `TN_MOB_HORSE_BLACK`, `TN_MOB_HORSE_BROWN`, `TN_MOB_HORSE_CHESTNUT`, `TN_MOB_HORSE_CREAMY`, `TN_MOB_HORSE_DARKBROWN`, `TN_MOB_HORSE_GRAY`, `TN_MOB_HORSE_WHITE`, `TN_MOB_HORSE_SKELETON`, `TN_MOB_HORSE_ZOMBIE`

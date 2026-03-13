@@ -139,16 +139,16 @@ The `Minecraft` class also exposes some static helpers:
 
 ## MinecraftConsoles differences
 
-MinecraftConsoles is a later version of the codebase (roughly TU19/1.6.4 era vs LCE's TU9/1.2.2 base). Here are the big structural differences at the module level:
+MinecraftConsoles is a later version of the codebase (roughly TU19/1.6.4 era vs LCEMP's TU9/1.2.2 base). Here are the big structural differences at the module level:
 
 - **`LivingEntityRenderer`** is a new intermediate class between `EntityRenderer` and `MobRenderer`. It pulls mob rendering logic (armor overlays, name tags, body rotation, arrow rendering) into its own layer.
 - **`ResourceLocation`** is added as a proper type for texture paths, replacing raw string lookups. There's also a `TextureAtlas` class with `LOCATION_BLOCKS` and `LOCATION_ITEMS` static fields.
-- **`BossMobGuiInfo`** tracks boss health bar state (health progress, display ticks, name, darken-world flag). LCE doesn't have the Wither boss so there's no boss health bar system.
+- **`BossMobGuiInfo`** tracks boss health bar state (health progress, display ticks, name, darken-world flag). LCEMP doesn't have the Wither boss so there's no boss health bar system.
 - **New UI scene interfaces** are added: `IUIScene_HUD`, `IUIScene_BeaconMenu`, `IUIScene_CommandBlockMenu`, `IUIScene_FireworksMenu`, `IUIScene_HopperMenu`, `IUIScene_HorseInventoryMenu`.
 - **`DLCCapeFile`** and **`DLCFile`** are new DLC file types for cape content.
 - **`DurangoTelemetry`** adds Xbox One specific telemetry.
-- **`UISplitScreenHelpers`** has split-screen utility functions not present in LCE.
+- **`UISplitScreenHelpers`** has split-screen utility functions not present in LCEMP.
 - **`ChunkRebuildData`** is a separate class for chunk rebuild tracking instead of being inlined in `LevelRenderer`.
-- The **`gdraw` graphics layer** is much bigger. LCE only has `gdraw_metal.h` (macOS port), while MinecraftConsoles has the original multi-platform set: `gdraw_d3d.h`, `gdraw_d3d10.h`, `gdraw_d3d11.h`, `gdraw_orbis.h`, `gdraw_ps3gcm.h`, `gdraw_psp2.h`, `gdraw_wgl.h`, plus the generic `gdraw.h`.
+- The **`gdraw` graphics layer** is much bigger. LCEMP only has `gdraw_metal.h` (macOS port), while MinecraftConsoles has the original multi-platform set: `gdraw_d3d.h`, `gdraw_d3d10.h`, `gdraw_d3d11.h`, `gdraw_orbis.h`, `gdraw_ps3gcm.h`, `gdraw_psp2.h`, `gdraw_wgl.h`, plus the generic `gdraw.h`.
 - **New host options** include `eGameHostOption_WorldSize`, `eGameHostOption_MobGriefing`, `eGameHostOption_KeepInventory`, `eGameHostOption_DoMobSpawning`, `eGameHostOption_DoMobLoot`, `eGameHostOption_DoTileDrops`, `eGameHostOption_NaturalRegeneration`, `eGameHostOption_DoDaylightCycle`.
 - **Controller actions** add `ACTION_MENU_QUICK_MOVE` for quick-moving items in inventories.

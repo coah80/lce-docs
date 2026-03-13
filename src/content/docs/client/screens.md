@@ -382,7 +382,7 @@ Computes screen dimensions accounting for console safe zones and split-screen la
 
 ## MinecraftConsoles differences
 
-MinecraftConsoles adds a bunch of new screens and UI scenes for features that don't exist in LCE:
+MinecraftConsoles adds a bunch of new screens and UI scenes for features that don't exist in LCEMP:
 
 ### New UIScene classes
 
@@ -392,7 +392,7 @@ MinecraftConsoles adds a bunch of new screens and UI scenes for features that do
 | `UIScene_FireworksMenu` | Firework rocket crafting UI |
 | `UIScene_HopperMenu` | Hopper inventory (5-slot single-row container) |
 | `UIScene_HorseInventoryMenu` | Horse/donkey/mule inventory (saddle, armor, and chest slots) |
-| `UIScene_LanguageSelector` | In-game language selection (LCE handles this differently) |
+| `UIScene_LanguageSelector` | In-game language selection (LCEMP handles this differently) |
 | `UIScene_NewUpdateMessage` | Title update notification screen |
 
 ### New UIScene interfaces

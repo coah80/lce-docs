@@ -319,16 +319,16 @@ MinecraftConsoles expands the item system pretty significantly. Here's what chan
 | `FireworksChargeItem` | Firework stars. Multi-layer sprite with explosion tag reading for tooltip display. |
 | `NameTagItem` | Name tags for naming mobs. Uses `interactEnemy` to apply the item's custom name to a mob. |
 | `LeashItem` | Leads/leashes. `useOn` attaches leashed mobs to fences via `bindPlayerMobs`. Has a test method `bindPlayerMobsTest` for UI tooltip checks. |
-| `EmptyMapItem` | Empty maps (separate from `MapItem`). Extends `ComplexItem` and creates a new map on `use()`. In LCE, map creation is handled within `MapItem` itself. |
+| `EmptyMapItem` | Empty maps (separate from `MapItem`). Extends `ComplexItem` and creates a new map on `use()`. In LCEMP, map creation is handled within `MapItem` itself. |
 | `SpawnEggItem` | Replaces `MonsterPlacerItem`. Same spawn limit system but adds `eSpawnResult_FailTooManyBats` for the new bat mob. The class name change reflects the vanilla Minecraft naming. |
 | `SimpleFoiledItem` | A generic item that always shows the enchantment glint. Used for the Nether Star. |
-| `WrittenBookItem` | Written (signed) books with title, author, and pages. Has validation for tag structure. In LCE, books don't have the signed/written variant. Note: the implementation exists only as a commented-out Java pseudocode block in the header. |
+| `WrittenBookItem` | Written (signed) books with title, author, and pages. Has validation for tag structure. In LCEMP, books don't have the signed/written variant. Note: the implementation exists only as a commented-out Java pseudocode block in the header. |
 
 ### Renamed items
 
-Some items got renamed between LCE and MinecraftConsoles:
+Some items got renamed between LCEMP and MinecraftConsoles:
 
-| LCE name | MinecraftConsoles name |
+| LCEMP name | MinecraftConsoles name |
 |---|---|
 | `monsterPlacer` | `spawnEgg` |
 | `sulphur` | `gunpowder` |
@@ -339,7 +339,7 @@ Some items got renamed between LCE and MinecraftConsoles:
 
 ### New static item fields
 
-These items exist in MinecraftConsoles but not LCE:
+These items exist in MinecraftConsoles but not LCEMP:
 
 - `fireworks`, `fireworksCharge`
 - `nameTag`, `lead` (leash)

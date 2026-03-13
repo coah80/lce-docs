@@ -230,9 +230,9 @@ Additional selectors are defined alongside specific entities (e.g., `HorseEntity
 This is not the `@a`/`@p`/`@r`/`@e` target selector system from Java Edition. The console edition uses a different packet-based player selection mechanism through its UI-driven command system.
 :::
 
-## Comparison with LCE
+## Comparison with LCEMP
 
-LCE has a smaller set of commands. The commands in MinecraftConsoles but not in the LCE base include:
+LCEMP has a smaller set of commands. The commands in MinecraftConsoles but not in the LCEMP base include:
 
 - `/effect` (stub)
 - `/enchant`

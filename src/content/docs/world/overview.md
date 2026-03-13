@@ -141,17 +141,17 @@ The 54 `net.minecraft.*.h` files are aggregate include headers that mirror the o
 
 ## MinecraftConsoles Differences
 
-MinecraftConsoles (MC) is a later version of the same codebase. It has roughly **1,837 source files** compared to LCE's 1,560, so about 277 more files. The extra content comes from features added between the two versions. Here's a quick summary of what changed:
+MinecraftConsoles (MC) is a later version of the same codebase. It has roughly **1,837 source files** compared to LCEMP's 1,560, so about 277 more files. The extra content comes from features added between the two versions. Here's a quick summary of what changed:
 
 - **More blocks**: MC fills in the gaps in the tile ID table. It adds command blocks (137), beacons (138), comparators (149-150), daylight detectors (151), hoppers (154), activator rails (157), droppers (158), stained hardened clay (159), stained glass panes (160), hay blocks (170), hardened clay (172), and stained glass (replaces locked chest at 95). A new `ColoredTile` base class handles stained variants.
 - **More entities**: MC adds Witch, Wither Boss, Bat, Horse (with donkey/mule/skeleton/zombie horse variants), leash fence knot entity, and fireworks rocket entity. Minecarts are split into subtypes: MinecartChest, MinecartFurnace, MinecartTNT, MinecartHopper, MinecartSpawner, MinecartRideable.
 - **More tile entities**: MC goes from 13 to 18 registered tile entity types. New ones: Command Block Entity, Beacon, Daylight Detector, Hopper, and Comparator.
-- **More effects**: MC adds Wither (20), Health Boost (21), Absorption (22), and Saturation (23) on top of LCE's 19 effects.
-- **Attribute system**: MC adds a full entity attribute system (`Attribute`, `BaseAttribute`, `RangedAttribute`, `AttributeModifier`, `SharedMonsterAttributes`) that LCE doesn't have.
+- **More effects**: MC adds Wither (20), Health Boost (21), Absorption (22), and Saturation (23) on top of LCEMP's 19 effects.
+- **Attribute system**: MC adds a full entity attribute system (`Attribute`, `BaseAttribute`, `RangedAttribute`, `AttributeModifier`, `SharedMonsterAttributes`) that LCEMP doesn't have.
 - **Scoreboard system**: MC adds a scoreboard with objectives, scores, player teams, criteria, and related packets.
 - **Vanilla game rules**: MC adds a proper `GameRules` class with boolean/integer rules like `keepInventory`, `doMobSpawning`, and `doDaylightCycle`. This is separate from the console game rules system both versions share.
-- **More packets**: MC registers 104 packets vs LCE's 98, adding leash, attribute, particle, command block, and scoreboard packets.
-- **More recipes**: MC has about 114 crafting recipes vs LCE's 100, plus a smelting recipe for clay blocks to hardened clay.
+- **More packets**: MC registers 104 packets vs LCEMP's 98, adding leash, attribute, particle, command block, and scoreboard packets.
+- **More recipes**: MC has about 114 crafting recipes vs LCEMP's 100, plus a smelting recipe for clay blocks to hardened clay.
 - **More menus**: MC adds `BeaconMenu`, `HopperMenu`, `HorseInventoryMenu`, `FireworksMenu`, and `AnvilMenu`.
 - **More AI goals**: MC adds `RunAroundLikeCrazyGoal` (horse taming) and `RangedAttackGoal` (used by witch and skeleton).
 - **Structure persistence**: MC adds `StructureFeatureIO` and `StructureFeatureSavedData` for saving/loading structure data to NBT.

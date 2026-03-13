@@ -549,7 +549,7 @@ Most tiles store 4 bits of metadata (0-15). Here are the common uses:
 
 ## MinecraftConsoles Differences
 
-MC fills in many of the unassigned tile IDs that are empty in LCE. Here's what gets added:
+MC fills in many of the unassigned tile IDs that are empty in LCEMP. Here's what gets added:
 
 | ID | Name | Class | Notes |
 |----|------|-------|-------|
@@ -564,7 +564,7 @@ MC fills in many of the unassigned tile IDs that are empty in LCE. Here's what g
 | 151 | daylightDetector | `DaylightDetectorTile` | Outputs signal based on sunlight |
 | 152 | redstoneBlock | -- | Block of redstone |
 | 154 | hopper | `HopperTile` | Item transport, tile entity |
-| 155 | quartzBlock | `QuartzBlockTile` | Already in LCE at this ID |
+| 155 | quartzBlock | `QuartzBlockTile` | Already in LCEMP at this ID |
 | 157 | activatorRail | `PoweredRailTile` | Activator rail |
 | 158 | dropper | `DropperTile` | Like a dispenser but just drops items |
 | 159 | stained_clay | `ColoredTile` | Stained hardened clay, 16 colors |
@@ -572,10 +572,10 @@ MC fills in many of the unassigned tile IDs that are empty in LCE. Here's what g
 | 170 | hayBlock | `HayBlockTile` | Hay bale, rotatable pillar |
 | 172 | hardened_clay | `Tile` | Plain hardened clay block |
 
-MC also adds a `ColoredTile` base class that handles blocks with 16 color variants (wool, stained clay, stained glass). In LCE, wool uses `ClothTile` instead.
+MC also adds a `ColoredTile` base class that handles blocks with 16 color variants (wool, stained clay, stained glass). In LCEMP, wool uses `ClothTile` instead.
 
-The `BasePressurePlateTile` and `BaseRailTile` classes are new in MC, providing shared base functionality that LCE handles directly in `PressurePlateTile` and `RailTile`.
+The `BasePressurePlateTile` and `BaseRailTile` classes are new in MC, providing shared base functionality that LCEMP handles directly in `PressurePlateTile` and `RailTile`.
 
-The `BaseEntityTile` class is another MC addition that provides a shared base for tile entity blocks. LCE uses `EntityTile` in its hierarchy instead.
+The `BaseEntityTile` class is another MC addition that provides a shared base for tile entity blocks. LCEMP uses `EntityTile` in its hierarchy instead.
 
-MC also adds `RepeaterTile` and `ComparatorTile` as separate source files. In LCE, the repeater logic lives entirely in `DiodeTile`.
+MC also adds `RepeaterTile` and `ComparatorTile` as separate source files. In LCEMP, the repeater logic lives entirely in `DiodeTile`.

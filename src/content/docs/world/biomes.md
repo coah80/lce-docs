@@ -391,8 +391,8 @@ Used for superflat worlds. Always returns the same biome with constant temperatu
 
 ## MinecraftConsoles Differences
 
-The biome system is basically the same between LCE and MC. Both have 23 biomes (`BIOME_COUNT = 23`) with the same IDs, names, and properties. The biome registry, layer pipeline, and decorator system are identical in structure.
+The biome system is basically the same between LCEMP and MC. Both have 23 biomes (`BIOME_COUNT = 23`) with the same IDs, names, and properties. The biome registry, layer pipeline, and decorator system are identical in structure.
 
-The one notable difference is that MC's `SwampBiome` now participates in the scattered feature system for witch hut generation. The swamp biome's enemy list can include Witch spawns near witch hut structures. In LCE, swamps don't have any special structure-related spawning.
+The one notable difference is that MC's `SwampBiome` now participates in the scattered feature system for witch hut generation. The swamp biome's enemy list can include Witch spawns near witch hut structures. In LCEMP, swamps don't have any special structure-related spawning.
 
 Otherwise, the biome classes, decorator counts, and mob spawn lists are the same across both codebases.

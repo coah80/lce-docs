@@ -188,9 +188,9 @@ The project includes a clang-format configuration based on the Microsoft style:
 
 Notable settings: `InsertBraces: true` makes sure all control flow blocks have braces, and `ColumnLimit: 0` turns off line length enforcement.
 
-## Differences from LCE build
+## Differences from LCEMP build
 
-| Aspect | LCE | MinecraftConsoles |
+| Aspect | LCEMP | MinecraftConsoles |
 |--------|-------|-------------------|
 | Build system | Visual Studio `.sln` | `.sln` + CMake |
 | CI/CD | None documented | 3 GitHub Actions workflows |

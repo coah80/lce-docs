@@ -170,7 +170,7 @@ Rule progress updates are sent through `UpdateGameRuleProgressPacket` (packet ID
 
 ## MinecraftConsoles Differences
 
-This is one of the bigger differences between LCE and MC. MC adds a **vanilla-style `GameRules` class** alongside the existing console game rules system.
+This is one of the bigger differences between LCEMP and MC. MC adds a **vanilla-style `GameRules` class** alongside the existing console game rules system.
 
 ### Vanilla GameRules class
 
@@ -190,7 +190,7 @@ MC has `GameRules.h` / `GameRules.cpp` with a proper key-value rule system. Each
 
 MC also adds a `GameRuleCommand` for toggling these rules in-game via the `/gamerule` command.
 
-LCE doesn't have any of this. The console game rules system documented above (the `GameRuleManager` / `GameRuleDefinition` / `EGameRuleType` stuff) still exists in MC too. So MC has *both* systems running at the same time: the vanilla `GameRules` for simple boolean toggles, and the console `GameRuleManager` for the complex data-driven DLC/minigame rules.
+LCEMP doesn't have any of this. The console game rules system documented above (the `GameRuleManager` / `GameRuleDefinition` / `EGameRuleType` stuff) still exists in MC too. So MC has *both* systems running at the same time: the vanilla `GameRules` for simple boolean toggles, and the console `GameRuleManager` for the complex data-driven DLC/minigame rules.
 
 ### How they coexist
 

@@ -3,11 +3,11 @@ title: "Overview & Differences"
 description: "How MinecraftConsoles differs from LCE."
 ---
 
-MinecraftConsoles is a community fork of the Legacy Console Edition source code, maintained by **smartcmd** and contributors. It's built on the same TU19 (v1.6.0560.0) codebase that LCE uses, and it credits LCEMP for its multiplayer networking implementation. While LCE focuses on preserving and documenting the original 4J Studios code, MinecraftConsoles pushes things forward with modern tooling, new gameplay systems, and a bigger feature set.
+MinecraftConsoles is a community fork of the Legacy Console Edition source code, maintained by **smartcmd** and contributors. It's built on the same TU19 (v1.6.0560.0) codebase that LCEMP uses, and it credits LCEMP for its multiplayer networking implementation. While LCEMP focuses on preserving and documenting the original 4J Studios code, MinecraftConsoles pushes things forward with modern tooling, new gameplay systems, and a bigger feature set.
 
 ## At a glance
 
-| | **LCE** | **MinecraftConsoles** |
+| | **LCEMP** | **MinecraftConsoles** |
 |---|---|---|
 | Source files | ~2,959 | ~3,968 |
 | C++ standard | C++11 | C++17 |
@@ -18,7 +18,7 @@ MinecraftConsoles is a community fork of the Legacy Console Edition source code,
 
 ## New systems
 
-MinecraftConsoles adds a ton of gameplay systems that don't exist in LCE. Each one has its own page with more details.
+MinecraftConsoles adds a ton of gameplay systems that don't exist in LCEMP. Each one has its own page with more details.
 
 ### Entity attributes and combat
 

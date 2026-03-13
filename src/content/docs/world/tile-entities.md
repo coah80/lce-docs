@@ -220,6 +220,6 @@ MC also changes a few existing ones:
 
 - The **Dispenser** tile entity gets a sibling: `DropperTileEntity` (string ID `"Dropper"`, type `eTYPE_DROPPERTILEENTITY`). The dropper works like a dispenser but just drops items instead of shooting them.
 - The **RecordPlayer** tile entity class gets renamed from `RecordPlayerTile::Entity` to `JukeboxTile::Entity` in MC. Same tile entity, different outer class name.
-- MC adds `BaseMobSpawner` as a shared base class. In LCE the spawner logic lives entirely in `MobSpawnerTileEntity`, but MC extracts it so it can be reused for spawner minecarts.
+- MC adds `BaseMobSpawner` as a shared base class. In LCEMP the spawner logic lives entirely in `MobSpawnerTileEntity`, but MC extracts it so it can be reused for spawner minecarts.
 
-So the total goes from 13 in LCE to 19 in MC (13 original + Dropper + Command Block + Beacon + Daylight Detector + Hopper + Comparator).
+So the total goes from 13 in LCEMP to 19 in MC (13 original + Dropper + Command Block + Beacon + Daylight Detector + Hopper + Comparator).

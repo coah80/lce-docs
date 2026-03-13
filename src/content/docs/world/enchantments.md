@@ -162,7 +162,7 @@ Enchantments are stored on items as NBT data using `"ench"` tags with `TAG_ENCH_
 
 ## MinecraftConsoles Differences
 
-The enchantment system is the same between LCE and MC. Both register the exact same 22 enchantments (IDs 0-7, 16-21, 32-35, 48-51) with the same frequencies, categories, max levels, and formulas.
+The enchantment system is the same between LCEMP and MC. Both register the exact same 22 enchantments (IDs 0-7, 16-21, 32-35, 48-51) with the same frequencies, categories, max levels, and formulas.
 
 No new enchantments are added in MC. The enchanting table mechanics, compatibility rules, damage/protection formulas, and cost calculations are all identical.
 

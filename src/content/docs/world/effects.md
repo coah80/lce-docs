@@ -206,7 +206,7 @@ Potion colors are computed by blending the colors of all active effects, weighte
 
 ## MinecraftConsoles Differences
 
-MC adds 4 new status effects on top of LCE's 19, filling in IDs 20-23:
+MC adds 4 new status effects on top of LCEMP's 19, filling in IDs 20-23:
 
 | ID | Static name | Class | Harmful | Notes |
 |---|---|---|---|---|
@@ -215,10 +215,10 @@ MC adds 4 new status effects on top of LCE's 19, filling in IDs 20-23:
 | 22 | `absorption` | `AbsoptionMobEffect` | No | Adds temporary extra hearts that don't regenerate. Has its own subclass. |
 | 23 | `saturation` | `InstantenousMobEffect` | No | Instant effect that restores hunger and saturation. Only works on players. |
 
-In LCE, IDs 20-31 are all reserved null slots. MC fills in 20-23 and leaves 24-31 as null.
+In LCEMP, IDs 20-31 are all reserved null slots. MC fills in 20-23 and leaves 24-31 as null.
 
 The Wither effect is used by the Wither Boss mob (also new in MC). The other three effects (Health Boost, Absorption, Saturation) come from golden apples and beacon effects.
 
 MC also adds `AttackDamageMobEffect` as a new subclass, likely used for the Strength effect to interact with the attribute system instead of just adding flat damage.
 
-The big structural change is that Health Boost uses the new attribute modifier system instead of directly changing health. In LCE, there's no attribute system at all, so effects like this couldn't exist.
+The big structural change is that Health Boost uses the new attribute modifier system instead of directly changing health. In LCEMP, there's no attribute system at all, so effects like this couldn't exist.

@@ -3,7 +3,7 @@ title: "New Entities & Models"
 description: "New entity types and their renderers in MinecraftConsoles."
 ---
 
-MinecraftConsoles adds several entity types beyond the LCE base, along with their renderers and models on the client side. Each entity has a type enum (`eINSTANCEOF`), a static `create()` factory, and synched data fields.
+MinecraftConsoles adds several entity types beyond the LCEMP base, along with their renderers and models on the client side. Each entity has a type enum (`eINSTANCEOF`), a static `create()` factory, and synched data fields.
 
 ## EntityHorse
 

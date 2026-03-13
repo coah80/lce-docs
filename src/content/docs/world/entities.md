@@ -722,7 +722,7 @@ Entity state gets communicated through several packet types:
 
 ## MinecraftConsoles Differences
 
-MC adds a bunch of new entity types that LCE doesn't have:
+MC adds a bunch of new entity types that LCEMP doesn't have:
 
 ### New mobs
 
@@ -745,15 +745,15 @@ MC adds a bunch of new entity types that LCE doesn't have:
 | `MinecartHopper` | 46 | Hopper minecart |
 | `MinecartSpawner` | 47 | Spawner minecart |
 
-In LCE, there's a single `Minecart` class (ID 40) and `Boat` class (ID 41). MC splits minecarts into typed subclasses with a shared `MinecartContainer` base for the ones that hold items.
+In LCEMP, there's a single `Minecart` class (ID 40) and `Boat` class (ID 41). MC splits minecarts into typed subclasses with a shared `MinecartContainer` base for the ones that hold items.
 
 ### New base classes
 
-MC adds several base classes that don't exist in LCE:
+MC adds several base classes that don't exist in LCEMP:
 
 - **`AmbientCreature`**: Base class for ambient mobs like bats. Sits between `PathfinderMob` and specific ambient entities.
-- **`MultiEntityMob`** / **`MultiEntityMobPart`**: For multi-part entities. LCE handled the Ender Dragon's parts differently.
-- **`LivingEntity`**: MC seems to be starting to split `Mob` responsibilities. This file exists in MC but not LCE.
+- **`MultiEntityMob`** / **`MultiEntityMobPart`**: For multi-part entities. LCEMP handled the Ender Dragon's parts differently.
+- **`LivingEntity`**: MC seems to be starting to split `Mob` responsibilities. This file exists in MC but not LCEMP.
 - **`Projectile`**: A shared interface/base for projectile entities.
 - **`OwnableEntity`**: Interface for entities that can be owned (used by horses and tameable animals).
 
@@ -766,11 +766,11 @@ MC adds a full attribute system for mobs. Instead of hardcoded health/speed/dama
 - `BaseAttributeMap` / `ServersideAttributeMap` manage per-entity attribute instances
 - `UpdateAttributesPacket` syncs attribute values to clients
 
-LCE doesn't have any of this. Health and speed are just direct member variables on the `Mob` class.
+LCEMP doesn't have any of this. Health and speed are just direct member variables on the `Mob` class.
 
 ### Combat tracking
 
-MC adds `CombatEntry` and `CombatTracker` classes for tracking combat events (who hit whom, when, with what). This feeds into death messages and the scoreboard system. LCE just has the basic `DamageSource` system.
+MC adds `CombatEntry` and `CombatTracker` classes for tracking combat events (who hit whom, when, with what). This feeds into death messages and the scoreboard system. LCEMP just has the basic `DamageSource` system.
 
 ### Entity selector
 
