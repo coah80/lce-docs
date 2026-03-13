@@ -9,25 +9,25 @@ MinecraftConsoles has a **behavior system** built around dispenser item behavior
 
 ```
 Behavior
-  └── DispenseItemBehavior          (abstract: dispense())
-        ├── NoOpDispenseItemBehavior (static NOOP singleton)
-        └── DefaultDispenseItemBehavior
-              ├── AbstractProjectileDispenseBehavior
-              │     ├── ArrowDispenseBehavior
-              │     ├── EggDispenseBehavior
-              │     ├── SnowballDispenseBehavior
-              │     ├── ExpBottleDispenseBehavior
-              │     └── ThrownPotionDispenseBehavior
-              ├── SpawnEggDispenseBehavior
-              ├── FireworksDispenseBehavior
-              ├── FireballDispenseBehavior
-              ├── BoatDispenseBehavior
-              ├── FilledBucketDispenseBehavior
-              ├── EmptyBucketDispenseBehavior
-              ├── FlintAndSteelDispenseBehavior
-              ├── DyeDispenseBehavior
-              ├── TntDispenseBehavior
-              └── PotionDispenseBehavior
+  +-- DispenseItemBehavior          (abstract: dispense())
+        +-- NoOpDispenseItemBehavior (static NOOP singleton)
+        +-- DefaultDispenseItemBehavior
+              +-- AbstractProjectileDispenseBehavior
+              |     +-- ArrowDispenseBehavior
+              |     +-- EggDispenseBehavior
+              |     +-- SnowballDispenseBehavior
+              |     +-- ExpBottleDispenseBehavior
+              |     +-- ThrownPotionDispenseBehavior
+              +-- SpawnEggDispenseBehavior
+              +-- FireworksDispenseBehavior
+              +-- FireballDispenseBehavior
+              +-- BoatDispenseBehavior
+              +-- FilledBucketDispenseBehavior
+              +-- EmptyBucketDispenseBehavior
+              +-- FlintAndSteelDispenseBehavior
+              +-- DyeDispenseBehavior
+              +-- TntDispenseBehavior
+              +-- PotionDispenseBehavior
 ```
 
 **Key source files** (all under `Minecraft.World/`):
@@ -40,6 +40,20 @@ Behavior
 | `AbstractProjectileDispenseBehavior.h/cpp` | Fires a projectile via the abstract `getProjectile()` method |
 | `ItemDispenseBehaviors.h/cpp` | All concrete behavior subclasses |
 | `BehaviorRegistry.h/cpp` | `unordered_map<Item*, DispenseItemBehavior*>` with a default fallback |
+
+## Behavior (base class)
+
+`Behavior` is an empty class with no methods or fields. It exists purely as the root of the hierarchy.
+
+## DispenseItemBehavior
+
+The abstract interface for all dispense behaviors. Defines a single pure virtual method:
+
+```cpp
+virtual shared_ptr<ItemInstance> dispense(BlockSource *source, shared_ptr<ItemInstance> item) = 0;
+```
+
+It also holds a static `NOOP` instance (`NoOpDispenseItemBehavior`) that does nothing and returns the item unchanged.
 
 ## BehaviorRegistry
 
@@ -60,6 +74,8 @@ public:
 
 The registry owns all registered behaviors and deletes them (along with the default) in its destructor. `DispenserTile` holds a static `REGISTRY` instance that the rest of the codebase queries.
 
+When `get()` is called with an item that isn't registered, the default behavior is returned. This means any item not in the registry will just get dropped on the ground.
+
 ## Outcome system
 
 `DefaultDispenseItemBehavior` defines a three-state outcome enum that drives sound and particle feedback:
@@ -74,6 +90,20 @@ The `dispense()` method calls `execute()`, then plays a sound and particle anima
 
 When the outcome is `LEFT_ITEM`, a failure click sound (`SOUND_CLICK_FAIL`) plays instead of the normal click.
 
+:::note
+The enum name `DISPENCED_ITEM` (misspelled) matches the source code exactly.
+:::
+
+## DefaultDispenseItemBehavior
+
+The default behavior drops the dispensed item as a pickup entity in the world. It:
+
+1. Gets the dispense position from the `BlockSource`.
+2. Gets the facing direction.
+3. Creates an `ItemEntity` at the dispense position with a small velocity in the facing direction.
+4. Decrements the source item stack.
+5. Sets outcome to `DISPENCED_ITEM`.
+
 ## Projectile dispensing
 
 `AbstractProjectileDispenseBehavior` extends `DefaultDispenseItemBehavior` to fire projectiles:
@@ -83,6 +113,7 @@ When the outcome is `LEFT_ITEM`, a failure click sound (`SOUND_CLICK_FAIL`) play
 3. Calls the pure-virtual `getProjectile()` to create the specific projectile type.
 4. Calls `projectile->shoot()` with the facing direction, adding a small Y offset (`+0.1`).
 5. Adds the projectile to the world and decrements the dispensed stack.
+6. Sets outcome to `ACTIVATED_ITEM`.
 
 Default values:
 
@@ -90,7 +121,17 @@ Default values:
 - **Power**: `1.1f`
 - **Sound**: `SOUND_LAUNCH` (instead of the default click)
 
-`ExpBottleDispenseBehavior` and `ThrownPotionDispenseBehavior` override these to halve uncertainty (`*0.5`) and increase power (`*1.25`).
+### Projectile subclasses
+
+| Class | Projectile created | Notes |
+|-------|-------------------|-------|
+| `ArrowDispenseBehavior` | `Arrow` | Standard arrow entity |
+| `EggDispenseBehavior` | `ThrownEgg` | Standard egg entity |
+| `SnowballDispenseBehavior` | `Snowball` | Standard snowball entity |
+| `ExpBottleDispenseBehavior` | `ThrownExpBottle` | Halved uncertainty (*0.5), increased power (*1.25) |
+| `ThrownPotionDispenseBehavior` | `ThrownPotion` | Halved uncertainty (*0.5), increased power (*1.25) |
+
+Each subclass overrides `getProjectile()` to return the right entity type.
 
 ## DispenserBootstrap
 
@@ -146,11 +187,29 @@ When the dye aux value is `DyePowderItem::WHITE` (bone meal), applies `growCrop(
 
 ### TntDispenseBehavior
 
-Checks `Level::newPrimedTntAllowed()` and the game host TNT option before spawning `PrimedTnt`.
+Checks `Level::newPrimedTntAllowed()` and the game host TNT option before spawning `PrimedTnt`. If either check fails, the TNT is not placed.
+
+### FilledBucketDispenseBehavior
+
+Places water or lava source blocks in front of the dispenser. The empty bucket replaces the filled one in the dispenser slot.
+
+### EmptyBucketDispenseBehavior
+
+Picks up water or lava source blocks in front of the dispenser. The filled bucket replaces the empty one in the dispenser slot.
 
 ## 4J-specific notes
 
 Comments tagged `4J-JEV` throughout the code mark console-edition-specific changes:
 
 - The `eOUTCOME` parameter was added to `execute()` to support failure sound effects when spawn limits are hit.
-- Spawn limits (`MAX_DISPENSABLE_PROJECTILES`, `MAX_DISPENSABLE_FIREBALLS`, `MAX_XBOX_BOATS`) are console-specific caps that don't exist in Java Edition.
+- Spawn limits (`MAX_DISPENSABLE_PROJECTILES`, `MAX_DISPENSABLE_FIREBALLS`, `MAX_XBOX_BOATS`) are console-specific caps that don't exist in Java Edition. These prevent performance issues on consoles.
+- The `BlockSource` abstraction wraps the level and position data for the dispenser.
+
+## Differences from LCEMP
+
+LCEMP does not have the behavior registry, `DispenseItemBehavior`, `BehaviorRegistry`, `DispenserBootstrap`, or any of the concrete dispense behaviors. The dispenser tile itself is not implemented in LCEMP either. This entire system is exclusive to MinecraftConsoles.
+
+## Related pages
+
+- [Hoppers and Droppers](/lce-docs/mc/hoppers-droppers/) for the dropper's use of `DefaultDispenseItemBehavior`
+- [Fireworks](/lce-docs/mc/fireworks/) for the `FireworksDispenseBehavior` and rocket entity

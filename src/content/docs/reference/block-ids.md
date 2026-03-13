@@ -7,7 +7,13 @@ Every block (called a "Tile" internally) is registered in `Tile::staticCtor()` i
 [`Minecraft.World/Tile.cpp`](/lce-docs/reference/file-index/). The ID passed to each
 tile constructor is the numeric block ID used on the wire and in save data.
 
-## Block ID Table
+The LCEMP repo covers blocks up to ID 171 (TU12-era). The MinecraftConsoles repo goes
+further, adding blocks up through ID 173 (TU19-era content like stained clay, hoppers,
+and hay blocks).
+
+## Block ID Table (LCEMP)
+
+These are the blocks present in the LCEMP source (the earlier codebase, roughly TU12).
 
 | ID | Field Name | Class | Texture Name |
 |----|-----------|-------|-------------|
@@ -160,9 +166,75 @@ tile constructor is the numeric block ID used on the wire and in save data.
 | 171 | `woolCarpet` | `WoolCarpetTile` | woolCarpet |
 
 :::note
-IDs 137-138, 146-152, 154, 157-170 are unassigned in this build.
+In the LCEMP source, IDs 137-138, 146-152, 154, 157-170 are unassigned.
 IDs 34 and 36 (`pistonExtension`, `pistonMovingPiece`) are technical blocks
 with no collectible item form.
+:::
+
+## Additional Blocks (MinecraftConsoles)
+
+The MinecraftConsoles repo has a newer codebase (roughly TU19). It renames some fields
+and adds a bunch of new blocks. Here is every block that was added or changed compared
+to the LCEMP source.
+
+### Renamed Fields
+
+Several fields got renamed between the two repos:
+
+| ID | LCEMP Field | MinecraftConsoles Field | Notes |
+|----|------------|------------------------|-------|
+| 1 | `rock` | `stone` | Same `StoneTile` class |
+| 4 | `stoneBrick` | `cobblestone` | Texture changed to `cobblestone` |
+| 25 | `musicBlock` | `noteblock` | Class changed to `NoteBlockTile` (was `MusicTile`) |
+| 35 | `cloth` | `wool` | Class changed to `ColoredTile` (was `ClothTile`) |
+| 48 | `mossStone` | `mossyCobblestone` | Texture changed to `cobblestone_mossy` |
+| 59 | `crops` | `wheat` | Same `CropTile` class |
+| 75 | `notGate_off` | `redstoneTorch_off` | Same `NotGateTile` class |
+| 76 | `notGate_on` | `redstoneTorch_on` | Same `NotGateTile` class |
+| 77 | `button` | `button` | Class changed to `StoneButtonTile` |
+| 84 | `recordPlayer` | `jukebox` | Class changed to `JukeboxTile` |
+| 87 | `hellRock` | `netherRack` | Class changed to `NetherrackTile` |
+| 88 | `hellSand` | `soulsand` | Class changed to `SoulSandTile` |
+| 89 | `lightGem` | `glowstone` | Field renamed only |
+| 93 | `diode_off` | `diode_off` | Class changed to `RepeaterTile` (was `DiodeTile`) |
+| 98 | `stoneBrickSmooth` | `stoneBrick` | Same `SmoothStoneBrickTile` class |
+| 99 | `hugeMushroom1` | `hugeMushroom_brown` | Same `HugeMushroomTile` class |
+| 100 | `hugeMushroom2` | `hugeMushroom_red` | Same `HugeMushroomTile` class |
+| 115 | `netherStalk` | `netherStalk` | Class changed to `NetherWartTile` |
+| 121 | `whiteStone` | `endStone` | Field renamed only |
+| 143 | `button_wood` | `button_wood` | Class changed to `WoodButtonTile` |
+
+### New Blocks
+
+| ID | Field Name | Class | Texture Name |
+|----|-----------|-------|-------------|
+| 137 | `commandBlock` | *(not registered in staticCtor)* | *(unknown)* |
+| 138 | `beacon` | `BeaconTile` | beacon |
+| 146 | `chest_trap` | `ChestTile` (TYPE_TRAP) | *(inherits chest)* |
+| 147 | `weightedPlate_light` | `WeightedPressurePlateTile` | gold_block |
+| 148 | `weightedPlate_heavy` | `WeightedPressurePlateTile` | iron_block |
+| 149 | `comparator_off` | `ComparatorTile` | comparator_off |
+| 150 | `comparator_on` | `ComparatorTile` | comparator_on |
+| 151 | `daylightDetector` | `DaylightDetectorTile` | daylight_detector |
+| 152 | `redstoneBlock` | `PoweredMetalTile` | redstone_block |
+| 154 | `hopper` | `HopperTile` | hopper |
+| 157 | `activatorRail` | `PoweredRailTile` | rail_activator |
+| 158 | `dropper` | `DropperTile` | dropper |
+| 159 | `clayHardened_colored` | `ColoredTile` | hardened_clay_stained |
+| 160 | `stained_glass_pane` | *(declared in Tile.h)* | *(unknown)* |
+| 170 | `hayBlock` | `HayBlockTile` | hay_block |
+| 172 | `clayHardened` | `Tile` | hardened_clay |
+| 173 | `coalBlock` | `Tile` | coal_block |
+
+:::note
+The `RailTile` class was refactored into `BaseRailTile` in MinecraftConsoles.
+`RailTile` (ID 66) still exists but now extends `BaseRailTile`, and `PoweredRailTile`
+replaces the old `RailTile(id, true)` pattern for powered/activator rails.
+`DetectorRailTile` also extends `BaseRailTile` instead of `RailTile`.
+
+The `EntityTile` base class was supplemented with `BaseEntityTile`. New tile entity
+blocks like `BeaconTile`, `HopperTile`, `DaylightDetectorTile`, `NoteBlockTile`, and
+`EnchantmentTableTile` extend `BaseEntityTile` instead of the older `EntityTile`.
 :::
 
 ## Data Values
@@ -175,18 +247,21 @@ Several blocks use auxiliary data bits to store sub-types:
 | `treeTrunk` (17) | 0 = Oak, 1 = Spruce, 2 = Birch, 3 = Jungle |
 | `leaves` (18) | Low 2 bits: 0 = Oak, 1 = Spruce, 2 = Birch, 3 = Jungle |
 | `sandStone` (24) | 0 = Normal, 1 = Chiseled, 2 = Smooth |
-| `cloth` (35) | 0 = White ... 15 = Black (standard wool colors) |
+| `cloth`/`wool` (35) | 0 = White ... 15 = Black (standard wool colors) |
 | `stoneSlab` / `stoneSlabHalf` (43/44) | 0 = Stone, 1 = Sandstone, 2 = Wooden, 3 = Cobblestone, 4 = Brick, 5 = Stone Brick |
 | `woodSlab` / `woodSlabHalf` (125/126) | 0 = Oak, 1 = Spruce, 2 = Birch, 3 = Jungle |
 | `wood` (5) | 0 = Oak, 1 = Spruce, 2 = Birch, 3 = Jungle |
-| `stoneBrickSmooth` (98) | 0 = Normal, 1 = Mossy, 2 = Cracked, 3 = Chiseled |
+| `stoneBrickSmooth`/`stoneBrick` (98) | 0 = Normal, 1 = Mossy, 2 = Cracked, 3 = Chiseled |
 | `monsterStoneEgg` (97) | 0 = Stone, 1 = Cobblestone, 2 = Stone Brick |
 | `cobbleWall` (139) | 0 = Cobblestone, 1 = Mossy Cobblestone |
 | `quartzBlock` (155) | 0 = Default, 1 = Chiseled, 2 = Pillar |
 | `woolCarpet` (171) | Same color values as wool |
 | `anvil` (145) | 0 = Anvil, 1 = Slightly Damaged, 2 = Very Damaged |
+| `clayHardened_colored` (159) | 0 = White ... 15 = Black (same as wool) |
 
 ## Source Reference
 
-- Tile IDs declared in: `Minecraft.World/Tile.h` (lines 163-315)
-- Tile registration in: `Minecraft.World/Tile.cpp`, `Tile::staticCtor()` (line 224)
+- LCEMP tile IDs declared in: `Minecraft.World/Tile.h` (lines 163-315)
+- LCEMP tile registration in: `Minecraft.World/Tile.cpp`, `Tile::staticCtor()` (line 224)
+- MinecraftConsoles tile IDs declared in: `Minecraft.World/Tile.h` (lines 369-542)
+- MinecraftConsoles tile registration in: `Minecraft.World/Tile.cpp`, `Tile::staticCtor()` (line 243)

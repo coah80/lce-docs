@@ -145,3 +145,53 @@ Registered in `Xbox_Minecraft.cpp`:
 - **Demo disc support**: `StoreLaunchData` and `ExitGame` handle returning to a demo disc launcher
 - **PIX profiling**: Named events throughout the main loop for Xbox PIX GPU/CPU profiling
 - **Debug features**: `SetDebugSequence("LRLRYYY")` for debug menu activation, Partnernet password protection for test builds
+
+## MinecraftConsoles Additions
+
+The MinecraftConsoles codebase adds several directories and files to the Xbox 360 platform.
+
+### 4JLibs Headers
+
+`Xbox/4JLibs/inc/` bundles the 4J abstraction layer headers directly:
+- `4J_Render.h` (Direct3D 9 render abstraction)
+- `4J_Input.h` (gamepad input)
+- `4J_Profile.h` (profiles and achievements)
+- `4J_Storage.h` (save data)
+- `4J_xtms.h` (Title Managed Storage)
+
+### Audio
+
+`Xbox/Audio/SoundEngine.h/.cpp` contains the Xbox 360-specific sound engine implementation.
+
+### Font System
+
+`Xbox/Font/` adds a custom XUI font system:
+- `XUI_Font.h/.cpp` with font loading
+- `XUI_FontData.h/.cpp` with glyph data
+- `XUI_FontRenderer.h/.cpp` with the rendering pipeline
+
+### Sentient Telemetry
+
+`Xbox/Sentient/` bundles the full Sentient analytics SDK:
+- `DynamicConfigurations.h/.cpp` for runtime configuration
+- `SentientManager.h/.cpp` for the telemetry manager
+- `SentientStats.h/.cpp` for stat tracking
+- `SentientTelemetryCommon.h`, `TelemetryEnum.h`, `MinecraftTelemetry.h`
+- `Include/` subdirectory with the complete Sentient client API (SenClientCore, SenClientStats, SenClientConfig, SenClientUGC, SenClientMarkers, SenClientFame, SenClientNews, and more)
+
+### Network Extra
+
+`Xbox/Network/extra.h` provides extra networking definitions not present in LCEMP.
+
+### Content and Build Directories
+
+MinecraftConsoles includes several content and build directories:
+- `ContentPackageBuild/` for content package creation
+- `Title Update/` for title update packaging
+- `SubmissionBuild/` and `ReleaseBuild/` for release builds
+- `Cheats/` for cheat/debug functionality
+- `TMSFiles/` for Title Managed Storage test files
+- `Docs/` for platform documentation
+- `kinect/` for Kinect integration assets
+- `Audio/` for sound data
+- `loc/` for localization strings

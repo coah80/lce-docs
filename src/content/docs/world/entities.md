@@ -64,6 +64,22 @@ Entity (abstract)
     ThrownExpBottle, DragonFireball)
 ```
 
+### Base Class Responsibilities
+
+Each base class adds a layer of functionality:
+
+| Base Class | What It Adds |
+|-----------|-------------|
+| `Entity` | Position, motion, rotation, bounding box, fire, water, air supply, synched data, save/load, collision, riding |
+| `Mob` | Health, death, AI (GoalSelector), effects, equipment, look/move/jump controls, pathfinding, sensing, knockback, sounds |
+| `PathfinderMob` | A* navigation with configurable range (default 16 blocks), attack target tracking, walk target scoring, wander support |
+| `AgableMob` | Baby/adult system with an age timer, `getBreedOffspring()` for producing babies |
+| `Animal` | Love mode, breeding, food items, despawn protection, grass-block spawn checks |
+| `TamableAnimal` | Owner tracking, tame/sit flags, `getOwner()`, sitting state via synched data |
+| `Monster` | Hostile behavior, burns in daylight, dark spawn checks via `isDarkEnoughToSpawn()`, attack damage, difficulty scaling |
+| `FlyingMob` | No gravity, flying movement physics, no fall damage |
+| `BossMob` | Boss bar, special death handling |
+
 ### Marker Interfaces
 
 A few empty or near-empty classes act as markers for classification:
@@ -96,6 +112,24 @@ The values are set up as a bitfield so a single bitwise AND can check category m
 | `0x100000` | `eTYPE_OTHERS` | Misc entities (no category bits) |
 
 Specific mob types combine these category bits. For example, `eTYPE_COW = 0x82201` has the `ANIMALS_SPAWN_LIMIT_CHECK`, `AGABLE_MOB`, and `ANIMAL` bits set, while `eTYPE_CHICKEN = 0x2206` doesn't have the `ANIMALS_SPAWN_LIMIT_CHECK` bit because chickens have a separate spawn cap.
+
+### How Type Checks Work
+
+Because the types are bitfields, you can check category membership with a simple AND:
+
+```cpp
+// Check if an entity is any kind of monster
+if ((entity->GetType() & eTYPE_MONSTER) == eTYPE_MONSTER) { ... }
+
+// Check if it's a specific type
+if (entity->GetType() == eTYPE_ZOMBIE) { ... }
+
+// MeleeAttackGoal uses this to filter targets
+if (attackType != eTYPE_NOTSET && (attackType & bestTarget->GetType()) != attackType)
+    return false;
+```
+
+This is way faster than `dynamic_cast` on console hardware, which is the whole reason 4J added it.
 
 ### Complete Entity Type ID Table
 
@@ -171,7 +205,7 @@ Each entity class has a static `create(Level *level)` factory function stored as
 - **`newById(int id, Level*)`**: Create by numeric ID (used in network packets)
 - **`newByEnumType(eINSTANCEOF, Level*)`**: Create by type enum (used by the mob spawner)
 
-If `getId()` can't find a string ID, it defaults to numeric ID `90` (Pig).
+If `getId()` can't find a string ID, it defaults to numeric ID `90` (Pig). This is a fun little fallback. If your entity type isn't registered properly, it just becomes a pig.
 
 ## Synched Entity Data
 
@@ -197,6 +231,12 @@ Each data entry is keyed by an ID. The ID and type are packed into a single byte
 - **Bits 5-7**: Data type (0-6)
 - **EOF marker**: `0x7F`
 - **Max string length**: 64 characters
+
+### DataItem Internals
+
+Each `DataItem` stores its value as separate typed fields rather than a generic `Object` like Java. The 4J port just keeps `value_byte`, `value_int`, `value_short`, `value_wstring`, and `value_itemInstance` as separate members. This avoids any boxing/unboxing overhead on console hardware.
+
+The `SynchedEntityData` class itself stores items in an `unordered_map<int, shared_ptr<DataItem>>` keyed by data ID. It provides typed getters: `getByte()`, `getShort()`, `getInteger()`, `getFloat()`, `getString()`, `getItemInstance()`, and `getPos()`.
 
 ### How Entities Register Data
 
@@ -244,6 +284,9 @@ Specific mobs define additional IDs starting from 16:
 | `Slime` | 16 | Size |
 | `EnderDragon` | 16, 17 | Synched health, synched action |
 | `Player` | 16, 17 | Player flags, running state |
+| `Minecart` | 16, 17, 18, 19 | Fuel, hurt, hurt direction, damage |
+| `Boat` | 17, 18, 19 | Hurt, hurt direction, damage |
+| `ItemEntity` | 10 | The item stack |
 
 ### Shared Entity Flags (ID 0)
 
@@ -260,9 +303,43 @@ The base `Entity` class uses a single byte at ID 0 as a bitfield:
 | 6 | `FLAG_IDLEANIM` | Idle animation state |
 | 7 | `FLAG_EFFECT_WEAKENED` | Weakened by potion (4J addition for the cure villager tooltip) |
 
+These flags are read/written through `getSharedFlag(bit)` and `setSharedFlag(bit, value)`. Both are protected methods, so only Entity and its friends (like `Gui`) can use them directly. Public accessors like `isSneaking()`, `isSprinting()`, `isInvisible()` wrap these.
+
 ### Dirty Tracking
 
 Each `DataItem` has a `dirty` flag. When a value changes through `set()`, the item gets marked dirty. `packDirty()` returns only the changed items for delta updates. `packAll()` serializes everything (used on initial sync). The `SetEntityDataPacket` carries these updates over the network.
+
+The `SynchedEntityData` class also tracks a global `m_isDirty` flag so the server can quickly check if any data changed without scanning every item.
+
+## Collision System
+
+### Bounding Boxes
+
+Every entity has an axis-aligned bounding box (`AABB *bb`) that defines its collision volume. The `setSize(float w, float h)` method sets `bbWidth` and `bbHeight`, then rebuilds the AABB around the entity's current position.
+
+Two key virtual methods control entity-to-entity collision:
+
+- **`getCollideBox()`**: Returns the AABB that other entities collide with when moving. Most entities return `nullptr` (no collision). `Boat` and `Minecart` override this to return their AABB so players can ride into them.
+- **`getCollideAgainstBox(Entity)`**: Returns the AABB used when checking if two entities are overlapping for push physics. `Boat` and `Minecart` return their AABB here too.
+
+### Entity Movement
+
+`Entity::move(xa, ya, za)` is the core movement method. It does:
+
+1. Check if stuck in a web (cuts speed to 5% if so)
+2. Get all tile collision boxes from the level in the movement path
+3. Resolve Y axis first, then X, then Z against those boxes
+4. Also check entity collision boxes (`getCollideAgainstBox`)
+5. Update the AABB to the new position
+6. Set `onGround`, `horizontalCollision`, `verticalCollision` flags
+7. Play step sounds, check fall damage, check inside tiles (portals, tripwires, etc.)
+8. Apply friction and web stuck slowdown
+
+The `noEntityCubes` parameter (a 4J addition) lets the movement skip entity collision boxes for performance in certain situations.
+
+### Push Physics
+
+When entities overlap, `Entity::push(Entity)` applies separation forces. The force is based on the overlap distance. `isPushable()` controls whether an entity can be pushed at all. Mobs are pushable, dropped items are not.
 
 ## Damage System
 
@@ -279,15 +356,15 @@ Each `DataItem` has a `dirty` flag. When a value changes through `set()`, the it
 | `lava` | In lava | Fire |
 | `inWall` | Suffocating in a block | Bypasses armor |
 | `drown` | Drowning | Bypasses armor |
-| `starve` | Starvation | Bypasses armor, bypasses invulnerability |
+| `starve` | Starvation | Bypasses armor |
 | `cactus` | Cactus damage | |
-| `fall` | Fall damage | |
+| `fall` | Fall damage | Bypasses armor |
 | `outOfWorld` | Falling into the void | Bypasses armor, bypasses invulnerability |
-| `genericSource` | Generic damage | |
-| `explosion` | Explosion | |
+| `genericSource` | Generic damage | Bypasses armor |
+| `explosion` | Explosion | Scales with difficulty |
 | `controlledExplosion` | Player-caused explosion | |
 | `magic` | Magic damage | Bypasses armor, magic |
-| `dragonbreath` | Dragon breath | |
+| `dragonbreath` | Dragon breath | Bypasses armor |
 | `wither` | Wither effect | Bypasses armor |
 | `anvil` | Falling anvil | |
 | `fallingBlock` | Falling block | |
@@ -314,7 +391,7 @@ Each `DataItem` has a `dirty` flag. When a value changes through `set()`, the it
 | `_isProjectile` | `isProjectile()` | Source is a projectile |
 | `_scalesWithDifficulty` | `scalesWithDifficulty()` | Damage scales with difficulty |
 | `_isMagic` | `isMagic()` | Magic damage |
-| `exhaustion` | `getFoodExhaustion()` | Food exhaustion caused |
+| `exhaustion` | `getFoodExhaustion()` | Food exhaustion caused (default `EXHAUSTION_ATTACK`, set to 0 when `bypassArmor` is called) |
 
 #### DamageSource Class Hierarchy
 
@@ -323,6 +400,10 @@ DamageSource
 └── EntityDamageSource (damage from an entity)
     └── IndirectEntityDamageSource (damage from a projectile with an owner)
 ```
+
+`EntityDamageSource` stores a `shared_ptr<Entity>` to the attacker. `getEntity()` returns it. `scalesWithDifficulty()` returns `true` for mob attacks but `false` for player attacks.
+
+`IndirectEntityDamageSource` stores both the direct entity (the projectile) and the owner. `getDirectEntity()` returns the projectile, `getEntity()` returns the owner. This is how kill credit goes to the player who shot an arrow, not the arrow itself.
 
 ### Armor Calculation Pipeline
 
@@ -373,6 +454,36 @@ Entity IDs are split into two ranges (a 4J console optimization):
 
 Thread-local storage (`TlsGetValue(tlsIdx)`) makes sure small IDs are only allocated from the server thread.
 
+### Entity Constructor Flow
+
+Every entity constructor follows this pattern:
+
+1. Call `Entity(level, useSmallId)` which runs `_init(useSmallId)` to assign an entity ID
+2. Call `defineSynchedData()` to register synched fields. This is done in the most-derived constructor because virtual dispatch doesn't work in base constructors in C++.
+3. Set `health = getMaxHealth()` after synched data is ready
+4. Set up texture, bounding box size, and navigation options
+5. Register AI goals (for mobs)
+
+The zombie constructor is a good example:
+
+```cpp
+Zombie::Zombie(Level *level) : Monster(level)
+{
+    this->defineSynchedData();
+    health = getMaxHealth();
+    this->textureIdx = TN_MOB_ZOMBIE;
+    runSpeed = 0.23f;
+    attackDamage = 4;
+    setSize(bbWidth, bbHeight);
+    getNavigation()->setCanOpenDoors(true);
+
+    // AI goals...
+    goalSelector.addGoal(0, new FloatGoal(this));
+    goalSelector.addGoal(1, new BreakDoorGoal(this));
+    // ... etc
+}
+```
+
 ### Tick
 
 The core update loop:
@@ -381,7 +492,7 @@ The core update loop:
 2. **`Entity::baseTick()`**: Handles:
    - Fire timer and fire damage (`lavaHurt()`, `burn()`)
    - Water state (`updateInWaterState()`)
-   - Air supply (drowning)
+   - Air supply (drowning): decreases by 1 per tick when submerged, deals 2 damage every tick at 0 supply. Total air supply is `20 * 15 = 300` ticks (15 seconds).
    - Web stuck state
    - Portal handling
    - Tick counter increment
@@ -390,12 +501,13 @@ The core update loop:
    - AI step (`aiStep()`)
    - Body rotation updates
    - Effect ticking (`tickEffects()`)
+   - Death handling (`tickDeath()` when `deathTime > 0`)
 4. **`Mob::aiStep()`**: Handles:
    - Despawn checking (`checkDespawn()`)
-   - Sensing updates
+   - Sensing updates (`sensing->tick()` clears the seen/unseen caches each tick)
    - Target selection
    - Goal selector ticks (`goalSelector.tick()`, `targetSelector.tick()`)
-   - Navigation and movement controls
+   - Navigation and movement controls (`lookControl->tick()`, `moveControl->tick()`, `jumpControl->tick()`)
    - Travel physics (`travel()`)
 
 ### Save and Load
@@ -406,7 +518,7 @@ Entities serialize to NBT `CompoundTag` structures:
 - `"id"`: String entity type ID (from `EntityIO`)
 - Then calls `saveWithoutId()`:
   - `"Pos"`: DoubleList of x, y, z
-  - `"Motion"`: DoubleList of xd, yd, zd
+  - `"Motion"`: DoubleList of xd, yd, zd (clamped to abs <= 10.0 on load)
   - `"Rotation"`: FloatList of yRot, xRot
   - `"FallDistance"`: float
   - `"Fire"`: short (fire timer)
@@ -428,7 +540,8 @@ Entities serialize to NBT `CompoundTag` structures:
    - Awards XP to the killing player (if `lastHurtByPlayer` is set)
    - Calls `dropDeathLoot()` to spawn item drops
    - Calls `dropRareDeathLoot()` for rare loot (affected by Looting enchantment)
-   - Awards kill score
+   - Awards kill score via `sourceEntity->awardKillScore()`
+   - Notifies the killer via `sourceEntity->killed()`
 2. **`Mob::tickDeath()`**: Called each tick while `deathTime` counts up:
    - Increments `deathTime`
    - At `deathTime == 20`, calls `remove()` to despawn the entity
@@ -439,9 +552,12 @@ Entities serialize to NBT `CompoundTag` structures:
 `Mob::checkDespawn()` runs every tick through `aiStep()`. The 4J console version adds despawn protection for animals:
 
 - Animals default to `despawnProtected = true` when spawned
-- `Animal::updateDespawnProtectedState()` tracks how far an animal has wandered
+- `Animal::updateDespawnProtectedState()` tracks how far an animal has wandered using `m_minWanderX/Z` and `m_maxWanderX/Z`
 - If an animal wanders more than `MAX_WANDER_DISTANCE` (20 tiles) from where it was last protected, it loses protection and can be despawned
 - The "extra wandering" system (`Entity::tickExtraWandering()`) periodically picks up to 3 entities at a time (`EXTRA_WANDER_MAX`) to wander for 30 seconds (`EXTRA_WANDER_TICKS`), figuring out whether they're enclosed in a farm
+- `isExtraWanderingEnabled()` and `getWanderingQuadrant()` are used by `RandomStrollGoal` to make these chosen entities wander in a specific direction
+
+Several goals also call `setDespawnProtected()` when they detect a nearby player, like `TemptGoal` and `BegGoal`. The idea is: if a player is interacting with this mob, don't despawn it.
 
 ## Mob Spawning System
 
@@ -493,9 +609,18 @@ Defined in `MobCategory` (`MobCategory.h`), each category has a spawn material a
    - Sheep get a random wool color
    - Ocelots have a 1-in-7 chance to spawn with 2 kittens
 
-### Water Spawn Position Validation
+### Spawn Position Validation
 
-Water mobs need deep, wide water: 5 blocks deep and at least 5 blocks wide in all cardinal directions.
+Different mob types have different spawn requirements:
+
+- **Monsters**: Must pass `isDarkEnoughToSpawn()` (light level check) and `canSpawn()` (block checks)
+- **Animals**: Need a grass block below and light level >= 9
+- **Water mobs**: Need deep, wide water: 5 blocks deep and at least 5 blocks wide in all cardinal directions
+- **Custom checks**: Any mob can override `canSpawn()` for special conditions
+
+### Biome Mob Lists
+
+Each biome has lists of mobs that can spawn there, stored as `MobSpawnerData` objects with a type, weight, and min/max group size. The base `Biome` constructor sets up default lists (zombies, skeletons, spiders for monsters; sheep, pigs, cows, chickens for friendlies). Specific biomes override or extend these.
 
 ### Bed Enemy Spawning
 
@@ -529,6 +654,8 @@ Water mobs need deep, wide water: 5 blocks deep and at least 5 blocks wide in al
 | `ZOMBIE_CONVERTING` | 16 | Zombie converting to villager |
 | `FIREWORKS_EXPLODE` | 17 | Fireworks explosion |
 | `IN_LOVE_HEARTS` | 18 | In-love heart particles |
+
+Events are broadcast with `level->broadcastEntityEvent(entity, eventId)` on the server side. The client receives them through `handleEntityEvent(byte)` which each entity overrides to trigger the right visual effect. For example, the Zombie handles `ZOMBIE_CONVERTING` to play the remedy sound effect.
 
 ## Player Entity
 
@@ -609,12 +736,16 @@ Each `Mob` creates several control objects in its constructor:
 
 | Control | Class | Purpose |
 |---------|-------|---------|
-| `lookControl` | `LookControl` | Head rotation toward targets |
-| `moveControl` | `MoveControl` | Movement velocity and direction |
-| `jumpControl` | `JumpControl` | Jump triggering |
+| `lookControl` | `LookControl` | Head rotation toward targets. Has `setLookAt(entity, yMax, xMax)` and `setLookAt(x, y, z, yMax, xMax)`. Ticks every frame to smoothly rotate the head toward the wanted position. |
+| `moveControl` | `MoveControl` | Movement velocity and direction. `setWantedPosition(x, y, z, speed)` tells the mob where to go. On tick, it calculates the rotation and sets the mob's speed. Stops if distance is less than `MIN_SPEED_SQR`. Triggers jump if target is above. |
+| `jumpControl` | `JumpControl` | Jump triggering. `jump()` sets a flag, `tick()` triggers the actual jump. |
 | `bodyControl` | `BodyControl` | Body rotation alignment |
-| `navigation` | `PathNavigation` | A* pathfinding (16 block range) |
-| `sensing` | `Sensing` | Line-of-sight checks |
+| `navigation` | `PathNavigation` | A* pathfinding (configurable range, defaults to 16 blocks) |
+| `sensing` | `Sensing` | Line-of-sight checks with per-tick caching. Maintains `seen` and `unseen` lists that are cleared every tick. |
+
+### Sensing Cache
+
+The `Sensing` class is a simple optimization. Every tick, it clears its `seen` and `unseen` entity lists. When `canSee(target)` is called, it first checks the cache. If the target isn't cached, it calls `mob->canSee(target)` (which does a raycast) and caches the result. This way, if multiple goals check visibility on the same target in the same tick, the raycast only happens once.
 
 ## Mob Reference
 
@@ -663,6 +794,35 @@ Each `Mob` creates several control objects in its constructor:
 |-----|--------|----------|-----------------|
 | `EnderDragon` | varies | `BossMob` | Multi-part entity (head, neck, body, tail, wings), ender crystal healing, pathfinding AI with holding pattern / strafe / landing / sitting states |
 
+### Non-Mob Entities
+
+| Entity | Class | Key Features |
+|--------|-------|-------------|
+| `ItemEntity` | `Entity` | Dropped items. Has a 5-minute lifetime (`LIFETIME = 5 * 60 * 20`). Merges with nearby identical items. `DATA_ITEM` at synch ID 10 holds the item stack. Has health (destroyed by fire, lava, explosions). |
+| `ExperienceOrb` | `Entity` | XP orbs. Attracted to nearby players. Has an age and value. |
+| `Painting` | `HangingEntity` | Wall art. Picks from available motifs based on wall size. |
+| `ItemFrame` | `HangingEntity` | Holds an item on a wall. Can rotate the displayed item. |
+| `LightningBolt` | `GlobalEntity` | Lightning strike. Global entities are visible to all players regardless of distance. Lasts a few ticks, sets nearby blocks on fire. |
+| `PrimedTnt` | `Entity` | Ticking TNT. Fuse timer counts down, then explodes. |
+| `FallingTile` | `Entity` | Falling sand/gravel. Checks block below each tick, places itself when landing. |
+| `Minecart` | `Entity` + `Container` | Rideable/chest/furnace types (all in one class via `type` field). Follows rails, has physics for powered rails and slopes. Synch IDs 16-19 for fuel, hurt, hurt direction, damage. |
+| `Boat` | `Entity` | Water vehicle. Has acceleration and speed physics. Breaks on collision (drops planks and sticks). Synch IDs 17-19 for hurt, hurt direction, damage. |
+| `EnderCrystal` | `Entity` | Heals the Ender Dragon. Explodes when destroyed. |
+
+### Projectile Entities
+
+| Entity | Description |
+|--------|-------------|
+| `Arrow` | Shot by skeletons and players. Sticks in blocks. Has pickup rules. Tracks its owner for kill credit. |
+| `Fireball` | Shot by Ghasts. Explodes on impact. Can be deflected by hitting it. |
+| `SmallFireball` | Shot by Blazes. Sets blocks on fire. Smaller explosion than Fireball. |
+| `Snowball` | Thrown by players and Snow Golems. Deals knockback, 3 damage to Blazes. |
+| `ThrownEnderpearl` | Teleports the thrower to the impact point. Deals 5 fall damage to the thrower. |
+| `EyeOfEnderSignal` | Floats toward the nearest stronghold. Breaks or drops after a short flight. |
+| `ThrownPotion` | Splash potion. Applies effects in an area on impact. |
+| `ThrownExpBottle` | Drops XP orbs on impact. |
+| `DragonFireball` | Shot by the Ender Dragon. Leaves lingering damage area. |
+
 ## Key Virtual Methods
 
 These are the most important virtual methods that entity subclasses override:
@@ -686,13 +846,18 @@ These are the most important virtual methods that entity subclasses override:
 | `getAmbientSound()` | `Mob` | Return ambient sound ID |
 | `getHurtSound()` | `Mob` | Return hurt sound ID |
 | `getDeathSound()` | `Mob` | Return death sound ID |
-| `useNewAi()` | `Mob` | Whether to use goal-based AI |
+| `useNewAi()` | `Mob` | Whether to use goal-based AI (returns false by default!) |
 | `getMobType()` | `Mob` | Return `MobType` for enchantment bonuses |
 | `interact(Player)` | `Entity` | Handle player right-click interaction |
 | `finalizeMobSpawn()` | `Mob` | Post-spawn initialization |
 | `removeWhenFarAway()` | `Mob` | Whether to despawn when distant |
 | `getExperienceReward(Player)` | `Mob` | XP dropped when killed by player |
 | `getBreedOffspring(AgableMob)` | `AgableMob` | Create baby entity for breeding |
+| `getWalkTargetValue(int, int, int)` | `PathfinderMob` | Score a position for wandering (monsters prefer dark, animals prefer grass) |
+| `isDarkEnoughToSpawn()` | `Monster` | Light level check for natural spawning |
+| `canBeControlledByRider()` | `Mob` | Whether a riding player can steer (Pig with carrot on stick) |
+| `isFood(ItemInstance)` | `Animal` | Whether an item triggers love mode |
+| `canMate(Animal)` | `Animal` | Whether two animals can breed together |
 
 ## Network Packets
 

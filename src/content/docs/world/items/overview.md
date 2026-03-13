@@ -20,6 +20,8 @@ The item system in LCE is built around the `Item` base class. Every non-block it
 
 **Files:** `Minecraft.World/Item.h`, `Minecraft.World/Item.cpp`
 
+The `Item` class extends `enable_shared_from_this<Item>` so it can create `shared_ptr` references to itself when needed by the engine.
+
 ### Constants
 
 | Constant | Value | Purpose |
@@ -27,72 +29,141 @@ The item system in LCE is built around the `Item` base class. Every non-block it
 | `ITEM_NUM_COUNT` | 32000 | Maximum possible items in the registry |
 | `MAX_STACK_SIZE` | 64 | Default max stack size (from `Container::LARGE_MAX_STACK_SIZE`) |
 | `ICON_COLUMNS` | 16 | Columns in the item texture atlas |
+| `ICON_DESCRIPTION_PREFIX` | `"item."` | Prefix for icon description lookup (static wstring) |
 
-### Key Member Variables
+### All Member Variables
 
-| Variable | Type | Access | Purpose |
-|----------|------|--------|---------|
-| `id` | `const int` | public | Unique item identifier (256 + constructor param) |
-| `maxStackSize` | `int` | protected | Maximum number per inventory slot (default 64) |
-| `maxDamage` | `int` | private | Maximum durability (0 = indestructible) |
-| `icon` | `Icon*` | protected | Texture icon reference |
-| `m_iBaseItemType` | `int` | protected | Crafting menu item type classification |
-| `m_iMaterial` | `int` | protected | Crafting menu material classification |
-| `m_handEquipped` | `bool` | protected | Whether item renders hand-equipped |
-| `m_isStackedByData` | `bool` | protected | Whether aux data differentiates stack types |
-| `craftingRemainingItem` | `Item*` | private | Item left in crafting grid after use (e.g., empty bucket) |
-| `potionBrewingFormula` | `wstring` | private | Potion brewing modifier string |
-| `descriptionId` | `unsigned int` | private | Localized name string ID |
-| `m_textureName` | `wstring` | private | Texture resource name |
+| Variable | Type | Access | Default | Purpose |
+|----------|------|--------|---------|---------|
+| `id` | `const int` | public | 256 + constructor param | Unique item identifier, set once in the constructor |
+| `maxStackSize` | `int` | protected | 64 | Maximum number per inventory slot |
+| `maxDamage` | `int` | private | 0 | Maximum durability (0 means the item can't be damaged) |
+| `icon` | `Icon*` | protected | `NULL` | Texture icon reference, set during `registerIcons()` |
+| `m_iBaseItemType` | `int` | protected | `eBaseItemType_undefined` (0) | Crafting menu item type classification |
+| `m_iMaterial` | `int` | protected | `eMaterial_undefined` (0) | Crafting menu material classification |
+| `m_handEquipped` | `bool` | protected | `false` | Whether item renders held in hand like a tool |
+| `m_isStackedByData` | `bool` | protected | `false` | Whether aux data differentiates stack types (used by golden apples) |
+| `craftingRemainingItem` | `Item*` | private | `NULL` | Item left in crafting grid after use (e.g., empty bucket) |
+| `potionBrewingFormula` | `wstring` | private | `""` (empty) | Potion brewing modifier string |
+| `descriptionId` | `unsigned int` | private | (uninitialized) | Localized name string ID from string table |
+| `useDescriptionId` | `unsigned int` | private | (uninitialized) | Localized description string ID from string table |
+| `m_textureName` | `wstring` | private | `""` (empty) | Texture resource name for atlas lookup |
+
+### Static Items Array
+
+```cpp
+static ItemArray items;  // size: ITEM_NUM_COUNT (32000)
+```
+
+Every `Item` constructor writes itself into this array at index `256 + id`. Anything in the game that needs an item (inventory, crafting, drops) looks it up by index.
 
 ### Constructor
 
 ```cpp
 Item::Item(int id) : id(256 + id)
+{
+    maxStackSize = Item::MAX_STACK_SIZE;  // 64
+    maxDamage = 0;
+    icon = NULL;
+    m_handEquipped = false;
+    m_isStackedByData = false;
+    craftingRemainingItem = NULL;
+    potionBrewingFormula = L"";
+    m_iMaterial = eMaterial_undefined;
+    m_iBaseItemType = eBaseItemType_undefined;
+    m_textureName = L"";
+
+    if (items[256 + id] != NULL)
+    {
+        // "CONFLICT @ id" debug message
+    }
+    items[256 + id] = this;
+}
 ```
 
-The constructor takes the given ID, adds 256 to it, and registers the item into the global `items` array at that index. By default, `maxStackSize` is 64 and `maxDamage` is 0. If the slot is already taken, a debug message gets printed.
+The constructor takes the given ID, adds 256 to it, and registers the item into the global `items` array at that index. If the slot is already taken, a debug message gets printed. All defaults are set here, so subclasses only need to override what they change.
 
 ### Builder-Pattern Setters
 
-All setter methods return `this` (or `Item*`) so you can chain them together:
+All setter methods return `Item*` (or a subclass pointer) so you can chain them together:
 
 ```cpp
-Item *setTextureName(const wstring &name);
-Item *setMaxStackSize(int max);
-Item *setBaseItemTypeAndMaterial(int iType, int iMaterial);
-Item *setMaxDamage(int maxDamage);
-Item *setDescriptionId(unsigned int id);
-Item *setUseDescriptionId(unsigned int id);
-Item *setCraftingRemainingItem(Item *craftingRemainingItem);
-Item *setPotionBrewingFormula(const wstring &formula);
-Item *setStackedByData(bool isStackedByData);
-Item *handEquipped();
+Item *setTextureName(const wstring &name);     // Sets m_textureName for atlas lookup
+Item *setMaxStackSize(int max);                // Override default 64
+Item *setBaseItemTypeAndMaterial(int iType, int iMaterial);  // Crafting menu classification
+Item *setMaxDamage(int maxDamage);             // Set durability (protected, used by subclasses)
+Item *setDescriptionId(unsigned int id);       // Localized item name
+Item *setUseDescriptionId(unsigned int id);    // Localized item description
+Item *setCraftingRemainingItem(Item *item);     // Item left after crafting (e.g., bucket)
+Item *setPotionBrewingFormula(const wstring &formula);  // Brewing ingredient modifier (protected)
+Item *setStackedByData(bool isStackedByData);  // Aux-value-based stacking (protected)
+Item *handEquipped();                          // Sets m_handEquipped = true
 ```
 
-### Key Virtual Methods
+### All Virtual Methods
 
-| Method | Default Behavior | Purpose |
-|--------|-----------------|---------|
-| `useOn(...)` | Returns `false` | Called when item is used on a block face |
-| `use(...)` | Returns the item unchanged | Called on right-click in air |
-| `useTimeDepleted(...)` | Returns the item unchanged | Called when use duration finishes (eating, drinking) |
-| `getDestroySpeed(...)` | Returns `1.0f` | Mining speed multiplier against a tile |
-| `hurtEnemy(...)` | Returns `false` | Called when hitting a mob; returns true if damage was dealt |
-| `mineBlock(...)` | Returns `false` | Called when a block is mined with this item |
-| `getAttackDamage(...)` | Returns `1` | Base attack damage value |
-| `canDestroySpecial(...)` | Returns `false` | Whether this tool can harvest a specific tile |
-| `getUseAnimation(...)` | Returns `UseAnim_none` | Animation type when using |
-| `getUseDuration(...)` | Returns `0` | How long the use action takes in ticks |
-| `releaseUsing(...)` | No-op | Called when use button is released early (bow charging) |
-| `isHandEquipped()` | Returns `m_handEquipped` | Render as hand-held tool |
-| `isFoil(...)` | Returns `true` if `itemInstance->isEnchanted()` | Whether the item has an enchantment glint |
-| `getRarity(...)` | Returns `Rarity::rare` if enchanted, otherwise `Rarity::common` | Item rarity (affects name color) |
-| `isEnchantable(...)` | Returns `true` if stack size is 1 and item can be depleted | Whether item can be enchanted |
-| `getEnchantmentValue()` | Returns `0` | Enchantability score |
-| `isValidRepairItem(...)` | Returns `false` | Whether the given item can repair this one in an anvil |
-| `isComplex()` | Returns `false` | Whether item needs special network sync (maps) |
-| `appendHoverText(...)` | No-op | Add lines to the item tooltip |
+These are every virtual method on the `Item` base class. Subclasses override the ones they need.
+
+| Method | Return | Default Behavior | When Called |
+|--------|--------|-----------------|------------|
+| `useOn(itemInstance, player, level, x, y, z, face, clickX, clickY, clickZ, bTestUseOnOnly)` | `bool` | Returns `false` | Right-click on a block face. The `bTestUseOnOnly` param is `true` when the game is just checking for tooltip display, not actually doing the action. |
+| `use(itemInstance, level, player)` | `shared_ptr<ItemInstance>` | Returns the item unchanged | Right-click in air (not aiming at a block) |
+| `useTimeDepleted(itemInstance, level, player)` | `shared_ptr<ItemInstance>` | Returns the item unchanged | When the use duration timer runs out (eating, drinking) |
+| `getDestroySpeed(itemInstance, tile)` | `float` | Returns `1.0f` | Mining speed multiplier against a specific tile |
+| `hurtEnemy(itemInstance, mob, attacker)` | `bool` | Returns `false` | When hitting a mob. Return true if the item was used in combat. |
+| `mineBlock(itemInstance, level, tile, x, y, z, owner)` | `bool` | Returns `false` | When a block is mined with this item. The `tile` param is the tile ID. |
+| `getAttackDamage(entity)` | `int` | Returns `1` | Query base attack damage value |
+| `canDestroySpecial(tile)` | `bool` | Returns `false` | Whether this tool can harvest a specific tile (e.g., iron pickaxe can harvest gold ore) |
+| `interactEnemy(itemInstance, mob)` | `bool` | Returns `false` | When right-clicking a mob with this item |
+| `isHandEquipped()` | `bool` | Returns `m_handEquipped` | Whether to render the item as a hand-held tool |
+| `isMirroredArt()` | `bool` | Returns `false` | Whether the item sprite should be horizontally mirrored (fishing rod uses this) |
+| `getUseAnimation(itemInstance)` | `UseAnim` | Returns `UseAnim_none` | Animation type when using the item |
+| `getUseDuration(itemInstance)` | `int` | Returns `0` | How long the use action takes in ticks |
+| `releaseUsing(itemInstance, level, player, durationLeft)` | `void` | No-op | Called when the use button is released early (bow charging) |
+| `isFoil(itemInstance)` | `bool` | Returns `true` if `itemInstance->isEnchanted()` | Whether the item has an enchantment glint |
+| `getRarity(itemInstance)` | `const Rarity*` | Returns `Rarity::rare` if enchanted, otherwise `Rarity::common` | Item rarity (affects name color) |
+| `isEnchantable(itemInstance)` | `bool` | Returns `true` if `getMaxStackSize() == 1 && canBeDepleted()` | Whether item can go on the enchanting table |
+| `getEnchantmentValue()` | `int` | Returns `0` | Enchantability score for the enchanting table RNG |
+| `isValidRepairItem(source, repairItem)` | `bool` | Returns `false` | Whether the given item can repair this one in an anvil |
+| `isComplex()` | `bool` | Returns `false` | Whether item needs special network sync (maps use this) |
+| `appendHoverText(itemInstance, player, lines, advanced, unformattedStrings)` | `void` | No-op | Add extra lines to the item tooltip |
+| `getHoverName(itemInstance)` | `wstring` | Returns `app.GetString(getDescriptionId(itemInstance))` | Get the display name of the item |
+| `getColor(item, spriteLayer)` | `int` | Returns `0xFFFFFF` (white) | Tint color for a sprite layer (leather armor uses this) |
+| `hasMultipleSpriteLayers()` | `bool` | Returns `false` | Whether the item uses layered sprites (leather armor overlay) |
+| `getLayerIcon(auxValue, spriteLayer)` | `Icon*` | Returns `getIcon(auxValue)` | Get the icon for a specific sprite layer |
+| `inventoryTick(itemInstance, level, owner, slot, selected)` | `void` | No-op | Called each tick while the item is in an inventory |
+| `onCraftedBy(itemInstance, level, player)` | `void` | No-op | Called when the item is crafted by a player |
+| `registerIcons(iconRegister)` | `void` | Registers `m_textureName` with the icon register | Called during texture loading to register the item's icon |
+| `shouldMoveCraftingResultToInventory(instance)` | `bool` | Returns `true` | Whether the crafted result should auto-move to inventory (4J addition) |
+| `shouldOverrideMultiplayerNBT()` | `bool` | Returns `true` | Whether NBT should be synced in multiplayer |
+| `TestUse(level, player)` | `bool` | Returns `false` | Pre-check before `use()` is called |
+| `getIconType()` | `int` | Returns `Icon::TYPE_ITEM` | Whether this is an item or tile icon |
+| `getIcon(auxValue)` | `Icon*` | Returns `icon` | Get the icon for a given aux value |
+| `getMaxStackSize()` | `int` | Returns `maxStackSize` | Maximum stack size |
+| `getLevelDataForAuxValue(auxValue)` | `int` | Returns `0` | Convert aux value to level data |
+| `getDescriptionId(iData)` | `unsigned int` | Returns `descriptionId` | Get the string table ID, optionally for a specific data value |
+| `getDescriptionId(instance)` | `unsigned int` | Returns `descriptionId` | Get the string table ID for an item instance |
+| `getUseDescriptionId()` | `unsigned int` | Returns `useDescriptionId` | Get the use description string table ID |
+| `getUseDescriptionId(instance)` | `unsigned int` | Returns `useDescriptionId` | Get the use description for a specific instance |
+| `getPotionBrewingFormula()` | `wstring` | Returns `potionBrewingFormula` | Get the brewing formula string |
+| `hasPotionBrewingFormula()` | `bool` | Returns `!potionBrewingFormula.empty()` | Whether this item has a brewing formula |
+
+### Non-Virtual Public Methods
+
+| Method | Return | Purpose |
+|--------|--------|---------|
+| `getBaseItemType()` | `int` | Returns `m_iBaseItemType` |
+| `getMaterial()` | `int` | Returns `m_iMaterial` |
+| `getIcon(itemInstance)` | `Icon*` | Calls `getIcon(itemInstance->getAuxValue())` |
+| `useOn(itemInstance, level, x, y, z, face, bTestUseOnOnly)` | `const bool` | Simplified `useOn` without player/click params, always returns `false` |
+| `isStackedByData()` | `bool` | Returns `m_isStackedByData` |
+| `getMaxDamage()` | `int` | Returns `maxDamage` |
+| `canBeDepleted()` | `bool` | Returns `maxDamage > 0 && !m_isStackedByData` |
+| `getDescription()` | `LPCWSTR` | Looks up localized name from string table |
+| `getDescription(instance)` | `LPCWSTR` | Looks up localized name for a specific instance |
+| `getCraftingRemainingItem()` | `Item*` | Returns `craftingRemainingItem` |
+| `hasCraftingRemainingItem()` | `bool` | Returns `craftingRemainingItem != NULL` |
+| `getName()` | `wstring` | Returns empty string (not fully implemented) |
 
 ### UseAnim Enum
 
@@ -116,25 +187,136 @@ enum UseAnim {
 |--------|-------|
 | `common` | Most items |
 | `uncommon` | Enchanted items, enchanted books (with stored enchantments) |
-| `rare` | Golden apples (aux 0), music discs |
+| `rare` | Enchanted items (base class default), golden apples (aux 0), music discs |
 | `epic` | Enchanted golden apples (aux > 0) |
+
+Note: the base `Item::getRarity()` returns `Rarity::rare` when enchanted, while `Rarity::common` is the default. The `uncommon` rarity is used by `EnchantedBookItem` which overrides `getRarity()`.
 
 ## ItemInstance
 
 **Files:** `Minecraft.World/ItemInstance.h`, `Minecraft.World/ItemInstance.cpp`
 
-`ItemInstance` represents a specific stack of items sitting in an inventory or out in the world. It wraps an `Item` with a count, auxiliary data, and NBT tag data.
+`ItemInstance` represents a specific stack of items sitting in an inventory or out in the world. It wraps an `Item` with a count, auxiliary data, and NBT tag data. It also extends `enable_shared_from_this<ItemInstance>`.
 
-| Field | Type | Purpose |
-|-------|------|---------|
-| `id` | `int` | Item ID |
-| `count` | `int` | Stack count |
-| `auxValue` | `int` | Auxiliary/damage value |
-| `tag` | `CompoundTag*` | NBT data (enchantments, display, etc.) |
-| `popTime` | `int` | Pickup animation timer |
-| `frame` | `shared_ptr<ItemFrame>` | Reference to the item frame holding this item |
+### Static Constants
 
-Key operations: `copy()`, `hurt()`, `save()`/`load()` for NBT serialization, `enchant()`, `isEnchanted()`, `getHoverName()`, `getRepairCost()`.
+| Constant | Type | Value | Purpose |
+|----------|------|-------|---------|
+| `TAG_ENCH_ID` | `const wchar_t*` | `"id"` | NBT tag key for enchantment ID |
+| `TAG_ENCH_LEVEL` | `const wchar_t*` | `"lvl"` | NBT tag key for enchantment level |
+
+### Member Variables
+
+| Field | Type | Access | Purpose |
+|-------|------|--------|---------|
+| `id` | `int` | public | Item ID (matches `Item::id`) |
+| `count` | `int` | public | Stack count |
+| `popTime` | `int` | public | Pickup animation timer |
+| `tag` | `CompoundTag*` | public | NBT data (enchantments, display name, repair cost, etc.) |
+| `auxValue` | `int` | private | Auxiliary/damage value. For tools, this tracks durability damage. For other items, it's metadata. |
+| `m_bForceNumberDisplay` | `bool` | private | Forces count display in the trading menu (4J addition) |
+| `frame` | `shared_ptr<ItemFrame>` | private | Reference to the item frame holding this item (TU9 addition) |
+
+### Constructors
+
+```cpp
+ItemInstance(Tile *tile);                        // From a tile, count 1, aux 0
+ItemInstance(Tile *tile, int count);              // From a tile with count
+ItemInstance(Tile *tile, int count, int auxValue); // From a tile with count and aux
+ItemInstance(Item *item);                        // From an item, count 1, aux 0
+ItemInstance(MapItem *item, int count);           // From a map item (4J addition)
+ItemInstance(Item *item, int count);              // From an item with count
+ItemInstance(Item *item, int count, int auxValue); // From an item with count and aux
+ItemInstance(int id, int count, int damage);      // From raw ID, count, and damage
+```
+
+All constructors call `_init(id, count, auxValue)` which sets `popTime = 0`, `tag = NULL`, `frame = nullptr`, and `m_bForceNumberDisplay = false`.
+
+### Static Factory
+
+```cpp
+static shared_ptr<ItemInstance> fromTag(CompoundTag *itemTag);
+```
+
+Creates an `ItemInstance` from NBT data. Returns `nullptr` if the loaded item doesn't exist in the registry.
+
+### Key Methods
+
+| Method | Purpose |
+|--------|---------|
+| `getItem()` | Returns `Item::items[id]`, the Item definition for this instance |
+| `remove(count)` | Splits off `count` items into a new instance, copies NBT tag. Clamps remaining count to 0. |
+| `copy()` | Creates a full deep copy including NBT tag |
+| `copy_not_shared()` | Same but returns raw pointer (used by recipe code) |
+| `save(compoundTag)` | Writes `id` (short), `Count` (byte), `Damage` (short), and `tag` to NBT |
+| `load(compoundTag)` | Reads back from NBT |
+| `hurt(i, owner)` | Applies durability damage. Checks Unbreaking enchantment. Skips damage in creative mode. Breaks the item if damage exceeds max. |
+| `enchant(enchantment, level)` | Adds an enchantment entry to the `ench` list tag |
+| `isEnchanted()` | Returns true if the `ench` tag exists |
+| `getEnchantmentTags()` | Returns the `ListTag<CompoundTag>` of enchantments |
+| `getHoverName()` | Returns custom display name from `tag.display.Name`, or falls back to `Item::getHoverName()` |
+| `setHoverName(name)` | Sets a custom name in `tag.display.Name` |
+| `hasCustomHoverName()` | Checks if `tag.display.Name` exists |
+| `getBaseRepairCost()` | Returns `tag.RepairCost` (int), or 0 if not set |
+| `setRepairCost(cost)` | Sets `tag.RepairCost` |
+| `isStackable()` | Returns `getMaxStackSize() > 1 && (!isDamageableItem() || !isDamaged())` |
+| `isDamageableItem()` | Returns true if `maxDamage > 0` |
+| `isDamaged()` | Returns true if damageable and `auxValue > 0` |
+| `getDamageValue()` | Returns `auxValue` |
+| `getAuxValue()` | Returns `auxValue` |
+| `setAuxValue(value)` | Sets `auxValue` |
+| `sameItem(b)` | Checks if `id` and `auxValue` match (ignores count) |
+| `sameItemWithTags(b)` | Checks `id`, `auxValue`, and NBT tag equality |
+| `matches(a, b)` | Static method: full equality check including count and tags |
+| `tagMatches(a, b)` | Static method: checks only NBT tag equality |
+| `equals(ii)` | Checks `id`, `count`, and `auxValue` (no tag check) |
+
+### Durability System (hurt method)
+
+The `hurt()` method is the core durability system:
+
+1. If the item isn't damageable (`maxDamage == 0`), do nothing.
+2. If damage amount > 0 and the owner is a player, check the Unbreaking enchantment via `EnchantmentHelper::getDigDurability()`. On client side, always assume no damage (prevents desync). On server, roll a random check.
+3. Skip damage in creative mode (`abilities.instabuild`).
+4. Add `i` to `auxValue`.
+5. If `auxValue > maxDamage`, call `owner->breakItem()`, set count to 0, reset auxValue to 0.
+
+### NBT Structure
+
+When saved, an `ItemInstance` writes:
+
+```
+{
+    id: short       // Item ID
+    Count: byte     // Stack size
+    Damage: short   // Aux/damage value
+    tag: {          // Optional NBT
+        ench: [     // Enchantment list
+            { id: short, lvl: short }
+        ]
+        display: {
+            Name: string    // Custom name
+            color: int      // Leather armor color
+        }
+        RepairCost: int     // Anvil repair cost
+        4jdata: int         // 4J-specific data
+    }
+}
+```
+
+### 4J-Specific Methods
+
+| Method | Purpose |
+|--------|---------|
+| `set4JData(data)` | Stores a custom int in `tag.4jdata` |
+| `get4JData()` | Reads `tag.4jdata`, returns 0 if not set |
+| `hasPotionStrengthBar()` | Returns true for potions (id == potion and auxValue != 0) |
+| `GetPotionStrength()` | Decodes potion strength from aux value bitmask |
+| `ForceNumberDisplay(bForce)` | Forces count display in trading menu |
+| `GetForceNumberDisplay()` | Returns the force display flag |
+| `isFramed()` | Returns `frame != NULL` |
+| `setFramed(frame)` | Sets the item frame reference |
+| `getFrame()` | Returns the item frame reference |
 
 ## Item Registration System
 
@@ -151,10 +333,17 @@ Item::sword_wood = (new WeaponItem(12, _Tier::WOOD))
 
 After `staticCtor()` runs, `Item::staticInit()` gets called separately (after other static constructors like Recipes) and builds item statistics through `Stats::buildItemStats()`.
 
+### Initialization Order
+
+1. `Item::staticCtor()` - creates all items, sets properties
+2. `Recipes::staticCtor()` - registers all crafting recipes (needs items to exist first)
+3. `FurnaceRecipes::staticCtor()` - registers smelting recipes
+4. `Item::staticInit()` - builds stats (must be after recipe constructors)
+
 ## Class Hierarchy
 
 ```
-Item (base class)
+Item (base class, extends enable_shared_from_this<Item>)
   |
   +-- WeaponItem          (swords)
   +-- DiggerItem           (base for mining tools)
@@ -208,7 +397,7 @@ Item (base class)
 
 ## Material and Type Classification
 
-The crafting menu uses two enums to sort items for filtering. These were added by 4J Studios for the console edition's crafting UI.
+The crafting menu uses two enums to sort items for filtering. These were added by 4J Studios for the console edition's crafting UI. Both are anonymous enums defined inside the `Item` class.
 
 ### eMaterial Enum
 
@@ -306,6 +495,8 @@ This groups items by what they actually do:
 | 35 | `rod` | Fishing rod, carrot on a stick |
 | 36 | `giltFruit` | Golden apple, speckled melon |
 | 37 | `carpet` | Carpets |
+
+The enum also has `eBaseItemType_MAXTYPES` as a sentinel value at the end.
 
 ## MinecraftConsoles differences
 

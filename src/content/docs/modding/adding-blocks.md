@@ -297,6 +297,8 @@ bool MyCustomTile::use(Level *level, int x, int y, int z,
 }
 ```
 
+Note: the `soundOnly` parameter is a 4J addition. When true, the game only wants you to play the interaction sound without actually doing anything. Check this flag if your `use()` has side effects.
+
 ### Player Attack (Left-Click)
 
 Override `attack()` for left-click behavior:
@@ -330,6 +332,18 @@ int MyCustomTile::getResourceCount(Random *random)
 }
 ```
 
+For blocks that also drop XP, override `spawnResources()`:
+
+```cpp
+void MyCustomTile::spawnResources(Level *level, int x, int y, int z,
+                                   int data, float odds, int playerBonus)
+{
+    Tile::spawnResources(level, x, y, z, data, odds, playerBonus);
+    int xpAmount = Mth::nextInt(level->random, 2, 5);
+    popExperience(level, x, y, z, xpAmount);
+}
+```
+
 ### Neighbor Updates
 
 React when an adjacent block changes:
@@ -353,6 +367,44 @@ void MyCustomTile::onPlace(Level *level, int x, int y, int z)
 void MyCustomTile::onRemove(Level *level, int x, int y, int z, int id, int data)
 {
     // Called when the block is removed from the world.
+    // 'id' and 'data' are what the block was before removal.
+}
+```
+
+### Entity Stepping
+
+Override `stepOn()` to react when an entity walks on the block:
+
+```cpp
+void MyCustomTile::stepOn(Level *level, int x, int y, int z, shared_ptr<Entity> entity)
+{
+    // E.g., FarmTile converts to dirt when stomped on
+}
+```
+
+### Placement Data
+
+Override `getPlacedOnFaceDataValue()` to set metadata based on how the block was placed:
+
+```cpp
+int MyCustomTile::getPlacedOnFaceDataValue(Level *level, int x, int y, int z,
+                                            int face, float clickX, float clickY,
+                                            float clickZ, int itemValue)
+{
+    // 'face' is which face of the adjacent block was clicked
+    // Return the data value for the placed block
+    return 0;
+}
+```
+
+### Placed-By Context
+
+Override `setPlacedBy()` to get the entity that placed the block:
+
+```cpp
+void MyCustomTile::setPlacedBy(Level *level, int x, int y, int z, shared_ptr<Mob> by)
+{
+    // Used by pistons, skulls, etc. to set facing based on player direction
 }
 ```
 
@@ -418,6 +470,388 @@ The `eBaseItemType` enum controls which tab the item appears on, and `eMaterial`
 | `eBaseItemType_pressureplate` | Pressure plates |
 | `eBaseItemType_piston` | Pistons |
 | `eBaseItemType_chest` | Chests |
+
+---
+
+## Block type recipes
+
+Below are guides for every major type of block you can add. Each one builds on the basic tile pattern from above.
+
+### Transparent blocks (TransparentTile)
+
+For blocks like glass, ice, or portals that let you see through them.
+
+```cpp
+#include "TransparentTile.h"
+
+class MyGlassTile : public TransparentTile
+{
+public:
+    MyGlassTile(int id)
+        : TransparentTile(id, Material::glass, false)
+        //                     ^material        ^allowSame
+    {
+    }
+};
+```
+
+`TransparentTile` extends `Tile` and gives you:
+
+- `allowSame` flag: When false, adjacent faces between two of the same block are hidden (like glass panes not rendering where they touch). When true, all faces render
+- `blocksLight()`: Returns false by default
+- `isSolidRender()`: Returns false
+- `shouldRenderFace()`: Checks the `allowSame` flag to decide
+
+The constructor's third parameter is `isSolidRender`, which defaults to `false`. The `allowSame` flag is passed as the third argument to the `TransparentTile` constructor (not the `Tile` one).
+
+### Overlay transparent blocks (HalfTransparentTile)
+
+For blocks with an overlay texture on top of a base texture (like stained glass or colored ice).
+
+```cpp
+#include "HalfTransparentTile.h"
+
+class MyOverlayTile : public HalfTransparentTile
+{
+public:
+    MyOverlayTile(int id)
+        : HalfTransparentTile(id, L"myOverlayTexture", Material::glass, false)
+        //                        ^overlay texture      ^material       ^allowSame
+    {
+    }
+};
+```
+
+`HalfTransparentTile` is a separate class from `TransparentTile`. Both extend `Tile` directly. The difference is the overlay `texture` field (a `wstring`) that gets registered through `registerIcons()`. `ChunkRebuildData` is a friend class so it can access the overlay texture during rendering.
+
+### Blocks with persistent data (EntityTile)
+
+For blocks that need to store data beyond the 4-bit metadata, like chests, furnaces, or signs.
+
+```cpp
+#include "EntityTile.h"
+#include "TileEntity.h"
+
+class MyStorageTile : public EntityTile
+{
+public:
+    MyStorageTile(int id)
+        : EntityTile(id, Material::wood)
+    {
+    }
+
+    // Required: create the TileEntity that holds your data
+    virtual shared_ptr<TileEntity> newTileEntity(Level *level)
+    {
+        return make_shared<MyStorageTileEntity>();
+    }
+};
+```
+
+`EntityTile` extends `Tile` and adds:
+
+- `newTileEntity(Level *)`: Pure virtual. You must return a `shared_ptr<TileEntity>`. This is called when the block is placed
+- `onPlace()`: Automatically registers the TileEntity with the level
+- `onRemove()`: Automatically unregisters the TileEntity
+- `triggerEvent()`: Forwards block events to the TileEntity
+
+Your `TileEntity` subclass must implement `clone()` (a pure virtual added by 4J). It also gets `load()` and `save()` for NBT serialization, and optionally `tick()` for per-tick updates.
+
+The `TileEntity` has a `RenderRemoveStage` enum (4J addition) for managing render state:
+- `e_RenderRemoveStageKeep`: Normal state
+- `e_RenderRemoveStageFlaggedAtChunk`: Marked for removal at chunk level
+- `e_RenderRemoveStageRemove`: Ready to be removed from render
+
+### Gravity-affected blocks (HeavyTile)
+
+For blocks that fall when unsupported, like sand and gravel.
+
+```cpp
+#include "HeavyTile.h"
+
+class MyFallingTile : public HeavyTile
+{
+public:
+    MyFallingTile(int id)
+        : HeavyTile(id)  // uses Material::sand by default
+    {
+    }
+
+    // Optional: do something when the block lands
+    virtual void onLand(Level *level, int xt, int yt, int zt, int data)
+    {
+        // e.g., anvils deal damage, concrete powder checks for water
+    }
+
+    // Optional: do something while falling
+    virtual void falling(shared_ptr<FallingTile> entity)
+    {
+        // Modify the falling entity (e.g., set damage values)
+    }
+};
+```
+
+`HeavyTile` extends `Tile` and provides:
+
+- `instaFall`: A static bool. When true, blocks fall instantly instead of spawning a `FallingTile` entity (used during world generation)
+- `checkSlide()`: Called from `onPlace()` and `neighborChanged()`. Checks if the space below is free and starts the fall
+- `isFree()`: Static method that checks if a position can be fallen through
+- `getTickDelay()`: Override this to control how fast the block starts falling after being unsupported
+- Two constructor overloads: one takes just an ID (defaults to `Material::sand`), the other takes an ID and explicit `Material`
+
+### Plant blocks (Bush)
+
+For blocks that sit on top of other blocks and break when unsupported, like flowers, saplings, and tall grass.
+
+```cpp
+#include "Bush.h"
+
+class MyPlantTile : public Bush
+{
+public:
+    MyPlantTile(int id)
+        : Bush(id)  // uses Material::plant by default
+    {
+    }
+
+    // Optional: control what blocks this can be placed on
+    virtual bool mayPlaceOn(int tile)
+    {
+        // Default only allows grass and dirt
+        return tile == Tile::grass_Id || tile == Tile::dirt_Id;
+    }
+};
+```
+
+`Bush` extends `Tile` and gives you:
+
+- `mayPlaceOn(tile)`: Virtual method for controlling valid support blocks. Default is grass/dirt
+- `mayPlace(level, x, y, z)`: Checks `mayPlaceOn()` for the block below
+- `canSurvive(level, x, y, z)`: Similar to `mayPlace` but used for ongoing checks
+- `checkAlive()`: Called from `neighborChanged()` and `tick()`. Drops the block if `canSurvive()` fails
+- `neighborChanged()`: Calls `checkAlive()` automatically
+- `getRenderShape()`: Returns `SHAPE_CROSS_TEXTURE` by default
+- `getAABB()`: Returns null (no collision box)
+- `isSolidRender()`: Returns false
+- `isCubeShaped()`: Returns false
+- `blocksLight()`: Returns false
+
+### Crop blocks (CropTile)
+
+For blocks that grow through stages, like wheat, carrots, and potatoes.
+
+```cpp
+#include "CropTile.h"
+
+class MyCustomCrop : public CropTile
+{
+public:
+    MyCustomCrop(int id) : CropTile(id) {}
+
+    // What seed item drops
+    virtual int getBaseSeedId() { return Item::mySeeds_Id; }
+
+    // What the grown plant drops
+    virtual int getBasePlantId() { return Item::myHarvest_Id; }
+};
+```
+
+`CropTile` extends `Bush` and adds:
+
+- `tick()`: Handles growth. Each tick has a chance to advance the growth stage based on `getGrowthSpeed()`
+- `getGrowthSpeed()`: Calculates growth rate based on farmland below, nearby water, and light level
+- `growCropsToMax()`: Instantly sets the crop to full growth (used by bone meal)
+- `getBaseSeedId()` / `getBasePlantId()`: Virtual methods controlling drops
+- `spawnResources()`: Drops seeds at any stage, plus the plant item only at full growth
+- `mayPlaceOn()`: Only allows farmland
+- `getRenderShape()`: Returns `SHAPE_CROSS_TEXTURE`
+
+Crop data values 0-7 represent growth stages, with 7 being fully grown.
+
+### Directional blocks (DirectionalTile)
+
+For blocks that face a direction, like beds, pumpkins, fence gates, and repeaters.
+
+```cpp
+#include "DirectionalTile.h"
+
+class MyDirectionalTile : public DirectionalTile
+{
+public:
+    MyDirectionalTile(int id)
+        : DirectionalTile(id, Material::wood)
+    {
+    }
+};
+```
+
+`DirectionalTile` extends `Tile` and provides:
+
+- `DIRECTION_MASK = 0x3`: Bottom 2 bits of metadata store the direction (0-3)
+- `DIRECTION_INV_MASK = 0xC`: Upper 2 bits, available for other data
+- `getDirection(data)`: Static method to extract the direction from metadata
+
+Blocks that use `DirectionalTile` include `BedTile`, `PumpkinTile`, `FenceGateTile`, `DiodeTile` (repeaters), and `CocoaTile`. You'll typically set the direction in `setPlacedBy()` based on the player's facing.
+
+### Stair blocks (StairTile)
+
+Stairs delegate almost everything to a base tile. This is an unusual pattern where the stair block wraps another block.
+
+```cpp
+#include "StairTile.h"
+
+// In Tile::staticCtor():
+Tile::myStairs = (new StairTile(161, Tile::myBaseTile, 0))
+    ->setDestroyTime(2.0f)
+    ->setSoundType(Tile::SOUND_STONE);
+```
+
+`StairTile` extends `Tile` and stores a pointer to a `base` tile and `basedata`. Nearly every method delegates to the base tile:
+
+- `getTexture()`, `getLightColor()`, `getBrightness()`, `getExplosionResistance()`, `getRenderLayer()`, `getTickDelay()` all call the base tile's version
+- `animateTick()`, `attack()`, `destroy()`, `handleEntityInside()`, `onPlace()`, `onRemove()`, `stepOn()`, `tick()`, `use()`, `wasExploded()`, `setPlacedBy()` all delegate too
+- The stair handles its own shape calculation through `setBaseShape()`, `setStepShape()`, and `setInnerPieceShape()`
+
+Key constants:
+- `UPSIDEDOWN_BIT = 4`: When set in metadata, the stair is upside-down
+- `DIR_EAST = 0`, `DIR_WEST = 1`, `DIR_SOUTH = 2`, `DIR_NORTH = 3`
+- `DEAD_SPACES[8][2]`: Array controlling which parts of the stair shape are "dead" (cut away)
+
+`Tile` is a friend class of `StairTile`.
+
+### Slab blocks (HalfSlabTile)
+
+Slabs have a special half/full system where two half-slabs combine into a full block.
+
+```cpp
+#include "HalfSlabTile.h"
+
+class MySlabTile : public HalfSlabTile
+{
+public:
+    MySlabTile(int id, bool fullSize)
+        : HalfSlabTile(id, fullSize, Material::stone)
+    {
+    }
+
+    // Required: return the name for each sub-type
+    virtual int getAuxName(int auxValue) { return IDS_TILE_MYSLAB; }
+};
+```
+
+`HalfSlabTile` extends `Tile` and provides:
+
+- `TYPE_MASK = 7`: Bottom 3 bits store the slab variant (up to 8 types)
+- `TOP_SLOT_BIT = 8`: When set, the slab is in the top half of the block
+- `fullSize`: When true, this is the double-slab variant
+- `getAuxName()`: Pure virtual. Returns a string ID for each sub-type
+- `getPlacedOnFaceDataValue()`: Sets `TOP_SLOT_BIT` when placed on the underside of a block
+- `getSpawnResourcesAuxValue()`: Strips the `TOP_SLOT_BIT` for drops
+- `isHalfSlab()`: Static method to check if a tile ID is a slab
+
+You need to register two tiles: the half slab and the full slab. Then register a `StoneSlabTileItem` (or similar) that handles combining halves.
+
+### Liquid blocks (LiquidTile)
+
+For blocks that flow, like water and lava. This is a complex system with two subclasses.
+
+```cpp
+#include "LiquidTileDynamic.h"
+#include "LiquidTileStatic.h"
+```
+
+`LiquidTile` extends `Tile` and provides the base for all liquid behavior:
+
+- `getFlow()`: Calculates flow direction as a `Vec3`
+- `getDepth()` / `getRenderedDepth()`: Liquid depth from metadata
+- `getHeight()`: Static method converting data to rendered height
+- `getSlopeAngle()`: Static method for the visual slope
+- `fizz()`: Plays the steam sound when lava meets water
+- `handleEntityInside()`: Pushes entities based on flow direction
+- `getTickDelay()`: Water ticks every 5, lava every 30 (in the Overworld)
+
+The liquid system has two concrete classes:
+
+**`LiquidTileDynamic`**: Active, flowing liquid. Handles spread logic:
+- `trySpreadTo()`: Tries to flow into an adjacent block
+- `getSlopeDistance()` / `getSpread()`: Pathfinding for flow direction
+- `canSpreadTo()` / `isWaterBlocking()`: Checks if flow is blocked
+- `setStatic()`: Converts to `LiquidTileStatic` when flow stabilizes
+- 4J addition: `iterativeTick()` with a `deque<LiquidTickData>` for iterative processing instead of recursive
+
+**`LiquidTileStatic`**: Stable liquid at rest:
+- `setDynamic()`: Converts back to `LiquidTileDynamic` when disturbed
+- `isFlammable()`: Checks if lava should ignite nearby blocks
+
+### Redstone blocks (RedStoneDustTile)
+
+For blocks that carry redstone signals.
+
+```cpp
+#include "RedStoneDustTile.h"
+```
+
+`RedStoneDustTile` extends `Tile` directly and provides:
+
+- `shouldSignal` flag: Temporarily disabled during power calculation to prevent feedback loops
+- `toUpdate` set: `unordered_set<TilePos>` tracking positions that need power recalculation
+- `updatePowerStrength()`: Two overloads. Propagates signal strength through the wire network
+- `checkCornerChangeAt()`: Handles vertical wire connections around block corners
+- `getSignal()` / `getDirectSignal()`: Returns signal strength for a given face
+- `isSignalSource()`: Returns true (this block is a signal source)
+- `shouldConnectTo()` / `shouldReceivePowerFrom()`: Static methods for determining wire connections
+
+Redstone connections use 4 texture variants: `TEXTURE_CROSS`, `TEXTURE_LINE`, `TEXTURE_CROSS_OVERLAY`, `TEXTURE_LINE_OVERLAY`.
+
+### Piston blocks (PistonBaseTile)
+
+Pistons are among the most complex blocks in the game.
+
+```cpp
+#include "PistonBaseTile.h"
+```
+
+`PistonBaseTile` extends `Tile` and has:
+
+- `MAX_PUSH_DEPTH = 12`: Maximum number of blocks a piston can push
+- `EXTENDED_BIT = 8`: Metadata flag for extended state
+- `isSticky`: Whether this is a sticky piston
+- `ignoreUpdate()`: Thread-local static (TLS) to prevent recursive neighbor updates
+- `checkIfExtend()`: Checks if the piston should extend based on redstone signals
+- `getNeighborSignal()`: Checks all faces except the piston face for signals
+- `canPush()`: Static method checking if the block chain can be pushed
+- `isPushable()`: Static method checking if a single block can be pushed
+- `createPush()`: Executes the push, moving up to 12 blocks
+- `stopSharingIfServer()`: 4J addition for multiplayer block sharing
+- `TRIGGER_EXTEND = 0`, `TRIGGER_CONTRACT = 1`: Block event types
+- `getFacing()` / `isExtended()`: Static helpers for reading metadata
+- `getNewFacing()`: Static method to calculate facing from player position
+
+### Redstone torch blocks (NotGateTile)
+
+The redstone torch has burnout prevention logic.
+
+Key details from the source:
+- `Toggle` inner class stores position + game time of each toggle
+- `recentToggles`: Static map tracking recent toggles per position
+- `RECENT_TOGGLE_TIMER = 60`: Ticks before a toggle record expires
+- `MAX_RECENT_TOGGLES = 8`: Maximum toggles before burnout
+
+### Tripwire blocks (TripWireSourceTile)
+
+- `WIRE_DIST_MAX = 42`: Maximum tripwire length in blocks
+- Uses bitmask constants: `MASK_DIR`, `MASK_ATTACHED`, `MASK_POWERED`
+- `calculateState()`: Scans the wire in both directions to update state
+
+### Rail blocks (RailTile)
+
+Rails have an inner `Rail` class that manages connections between rail segments:
+
+- `RAIL_DATA_BIT = 8`: Powered rail activation bit
+- `RAIL_DIRECTION_MASK = 7`: Bottom 3 bits store rail shape (straight, curve, slope)
+- The inner `Rail` class handles connection logic, checking neighbor rails and updating shapes
+
+---
 
 ## Complete Example: Adding a Ruby Ore
 
@@ -501,3 +935,5 @@ Add your new `.h` and `.cpp` files to `cmake/Sources.cmake`, rebuild, and the bl
 
 - [Getting Started](/lce-docs/modding/getting-started/) for environment setup and the staticCtor pattern
 - [Adding Items](/lce-docs/modding/adding-items/) to create matching items for your blocks
+- [Blocks Reference](/lce-docs/world/blocks/) for the full Tile class documentation
+- [Custom World Generation](/lce-docs/modding/custom-worldgen/) to make your blocks generate in the world

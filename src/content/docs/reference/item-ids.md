@@ -11,7 +11,7 @@ item IDs start at 256.
 The constructor argument (e.g., `new Item(9)`) is an **internal slot index**. The actual
 item ID is `256 + slot`, declared as `*_Id` constants in `Item.h`.
 
-## Item ID Table
+## Item ID Table (LCEMP)
 
 | ID | Field Name | Class | Texture Name |
 |----|-----------|-------|-------------|
@@ -173,9 +173,51 @@ item ID is `256 + slot`, declared as `*_Id` constants in `Item.h`.
 | 2267 | `record_08` | `RecordingItem` | record |
 
 :::note
-IDs 386-387, 395, 399, 401-402, 404 are unassigned in this build.
+In the LCEMP source, IDs 386-387, 395, 399, 401-402, 404 are unassigned.
 IDs 0-255 are reserved for block items (see the [Block ID Registry](/lce-docs/reference/block-ids/)).
 :::
+
+## Additional Items (MinecraftConsoles)
+
+The MinecraftConsoles repo adds these items not present in the LCEMP source:
+
+| ID | Field Name | Class | Texture Name |
+|----|-----------|-------|-------------|
+| 383 | `spawnEgg` | `SpawnEggItem` | monsterPlacer |
+| 395 | `emptyMap` | `EmptyMapItem` | map_empty |
+| 399 | `netherStar` | `SimpleFoiledItem` | nether_star |
+| 401 | `fireworks` | `FireworksItem` | fireworks |
+| 402 | `fireworksCharge` | `FireworksChargeItem` | fireworks_charge |
+| 404 | `comparator` | `TilePlanterItem` | comparator |
+| 407 | `minecart_tnt` | `MinecartItem` | minecart_tnt |
+| 408 | `minecart_hopper` | `MinecartItem` | minecart_hopper |
+| 417 | `horseArmorMetal` | `Item` | iron_horse_armor |
+| 418 | `horseArmorGold` | `Item` | gold_horse_armor |
+| 419 | `horseArmorDiamond` | `Item` | diamond_horse_armor |
+| 420 | `lead` | `LeashItem` | lead |
+| 421 | `nameTag` | `NameTagItem` | name_tag |
+
+:::note
+In the MinecraftConsoles source, `MonsterPlacerItem` was renamed to `SpawnEggItem` (ID 383).
+The `sulphur` field (ID 289) was renamed to `gunpowder` but keeps the same texture name
+`sulphur`. The `diode` item (ID 356) was renamed to `repeater`. The `milk` item (ID 335) was
+renamed to `bucket_milk`. Several items gained potion brewing formulas (gunpowder, redstone,
+glowstone dust, sugar, ghast tear, blaze powder, magma cream, spider eye, fermented spider eye,
+golden carrot, speckled melon, nether wart).
+:::
+
+## Renamed Items (MinecraftConsoles)
+
+| ID | LCEMP Field | MinecraftConsoles Field |
+|----|------------|------------------------|
+| 289 | `sulphur` | `gunpowder` |
+| 298 | `helmet_cloth` | `helmet_leather` |
+| 299 | `chestplate_cloth` | `chestplate_leather` |
+| 300 | `leggings_cloth` | `leggings_leather` |
+| 301 | `boots_cloth` | `boots_leather` |
+| 335 | `milk` | `bucket_milk` |
+| 356 | `diode` | `repeater` |
+| 372 | `netherStalkSeeds` | `netherwart_seeds` |
 
 ## Music Discs
 
@@ -213,7 +255,32 @@ enchantability:
 | DIAMOND | 3 | 1561 | 8 | 3 | 10 |
 | GOLD | 0 | 32 | 12 | 0 | 22 |
 
+## Armor Materials
+
+Armor pieces use an `ArmorMaterial` that sets durability multiplier and defense values:
+
+| Material | Render Index | Durability Factor | Defense Values (Head/Chest/Legs/Feet) |
+|----------|-------------|-------------------|---------------------------------------|
+| CLOTH (Leather) | 0 | Low | 1 / 3 / 2 / 1 |
+| CHAIN | 1 | Medium | 2 / 5 / 4 / 1 |
+| IRON | 2 | Medium-High | 2 / 6 / 5 / 2 |
+| DIAMOND | 3 | High | 3 / 8 / 6 / 3 |
+| GOLD | 4 | Low | 2 / 5 / 3 / 1 |
+
+## Food Values
+
+Food items have nutrition (hunger points restored) and saturation modifiers:
+
+| Saturation Level | Modifier | Used By |
+|-----------------|----------|---------|
+| POOR | Very low | Cookie, rotten flesh |
+| LOW | Low | Apple, raw pork, raw beef, raw chicken, raw fish, melon, potato |
+| NORMAL | Normal | Bread, cooked fish, cooked chicken, baked potato, carrots |
+| GOOD | Good | Cooked pork, cooked beef, spider eye |
+| SUPERNATURAL | Very high | Golden apple, golden carrot |
+
 ## Source Reference
 
-- Item IDs declared in: `Minecraft.World/Item.h` (lines 389-577)
-- Item registration in: `Minecraft.World/Item.cpp`, `Item::staticCtor()` (line 237)
+- LCEMP item IDs declared in: `Minecraft.World/Item.h` (lines 389-577)
+- LCEMP item registration in: `Minecraft.World/Item.cpp`, `Item::staticCtor()` (line 237)
+- MinecraftConsoles item registration in: `Minecraft.World/Item.cpp`, `Item::staticCtor()` (line 255)

@@ -400,14 +400,285 @@ ColourTable::ColourTable(ColourTable *defaultColours, PBYTE pbData, DWORD dwLeng
 
 So a texture pack only needs to include the colors it wants to change. Everything else falls back to the default.
 
+## The Full Rendering Pipeline
+
+The fog and sky colors don't just come from one place. They go through a multi-step blending process in `GameRenderer::setupClearColor()`. Here's the full flow, step by step:
+
+### Step 1: Get the base colors
+
+```cpp
+Vec3 *skyColor = level->getSkyColor(mc->cameraTargetPlayer, a);
+Vec3 *fogColor = level->getFogColor(a);
+```
+
+Sky color comes from the biome (temperature-based). Fog color comes from the dimension.
+
+### Step 2: Blend sunrise into the fog
+
+If the view distance is low enough (less than 2) and the player is looking toward the sun, the sunrise color gets blended in:
+
+```cpp
+float *c = level->dimension->getSunriseColor(level->getTimeOfDay(a), a);
+if (c != NULL) {
+    d *= c[3];  // scale by sunrise alpha/intensity
+    fr = fr * (1 - d) + c[0] * d;
+    fg = fg * (1 - d) + c[1] * d;
+    fb = fb * (1 - d) + c[2] * d;
+}
+```
+
+The `d` factor is the dot product between the player's view direction and the sun's position. So the sunrise effect is strongest when you look directly at it.
+
+### Step 3: Mix fog toward sky color
+
+The fog gets pulled toward the sky color based on the view distance setting. At shorter render distances, the fog is more distinct from the sky. At longer distances, they blend together:
+
+```cpp
+float whiteness = 1.0f / (4 - mc->options->viewDistance);
+whiteness = 1 - pow(whiteness, 0.25);
+
+fr += (sr - fr) * whiteness;
+fg += (sg - fg) * whiteness;
+fb += (sb - fb) * whiteness;
+```
+
+### Step 4: Rain and thunder darkening
+
+Rain reduces both fog and sky brightness. Thunder makes it even darker:
+
+```cpp
+float rainLevel = level->getRainLevel(a);
+if (rainLevel > 0) {
+    fr *= 1 - rainLevel * 0.5f;
+    fg *= 1 - rainLevel * 0.5f;
+    fb *= 1 - rainLevel * 0.4f;  // blue gets less reduction
+}
+
+float thunderLevel = level->getThunderLevel(a);
+if (thunderLevel > 0) {
+    float ba = 1 - thunderLevel * 0.5f;
+    fr *= ba;
+    fg *= ba;
+    fb *= ba;
+}
+```
+
+Notice that rain preserves a bit more blue than red/green (0.4 vs 0.5). This gives rainy skies a slightly blue-gray tint.
+
+### Step 5: Override for special camera positions
+
+If the camera is inside clouds, underwater, or in lava, the fog color gets completely replaced:
+
+```cpp
+if (isInClouds) {
+    Vec3 *cc = level->getCloudColor(a);
+    fr = cc->x;  fg = cc->y;  fb = cc->z;
+}
+else if (t == Material::water) {
+    // Use ColourTable eMinecraftColour_Under_Water_Clear_Colour
+}
+else if (t == Material::lava) {
+    // Use ColourTable eMinecraftColour_Under_Lava_Clear_Colour
+}
+```
+
+These are separate color table entries from the fog colors. The "clear color" entries control what the background looks like. The "fog color" entries (used in `setupFog`) control the distance fade.
+
+### Step 6: Height-based darkness
+
+The player's Y position gets scaled by `getClearColorScale()` (which returns 1/32 for the Overworld). This makes everything darker when you're deep underground:
+
+```cpp
+double yy = player->y * level->dimension->getClearColorScale();
+if (yy < 1) {
+    if (yy < 0) yy = 0;
+    yy = yy * yy;
+    fr *= yy;  fg *= yy;  fb *= yy;
+}
+```
+
+At y=0 (bedrock level), multiplied by 1/32, `yy` is 0, so the fog is completely black. At y=32, `yy` is 1 and there's no darkening. The squaring (`yy * yy`) makes the transition gradual.
+
+### Step 7: Blindness effect
+
+If the player has the blindness status effect, the fog dims to black over 20 ticks:
+
+```cpp
+if (player->hasEffect(MobEffect::blindness)) {
+    int duration = player->getEffect(MobEffect::blindness)->getDuration();
+    if (duration < 20)
+        yy = yy * (1.0f - duration / 20.0f);
+    else
+        yy = 0;
+}
+```
+
+### Step 8: Night vision effect
+
+Night vision does the opposite of blindness. It finds the brightest color channel and scales all channels up so the brightest one hits 1.0:
+
+```cpp
+if (player->hasEffect(MobEffect::nightVision)) {
+    float scale = getNightVisionScale(mc->player, a);
+    float dist = FLT_MAX;
+    if (fr > 0 && dist > 1.0f / fr) dist = 1.0f / fr;
+    if (fg > 0 && dist > 1.0f / fg) dist = 1.0f / fg;
+    if (fb > 0 && dist > 1.0f / fb) dist = 1.0f / fb;
+    fr = fr * (1 - scale) + (fr * dist) * scale;
+    fg = fg * (1 - scale) + (fg * dist) * scale;
+    fb = fb * (1 - scale) + (fb * dist) * scale;
+}
+```
+
+### Step 9: Anaglyph 3D
+
+If anaglyph 3D mode is enabled, the colors get remixed for red-cyan glasses. This is a console-era feature:
+
+```cpp
+if (mc->options->anaglyph3d) {
+    float frr = (fr * 30 + fg * 59 + fb * 11) / 100;
+    float fgg = (fr * 30 + fg * 70) / 100;
+    float fbb = (fr * 30 + fb * 70) / 100;
+    fr = frr;  fg = fgg;  fb = fbb;
+}
+```
+
+### Step 10: Apply
+
+Finally, `glClearColor(fr, fg, fb, 0.0f)` sets the background clear color that everything renders on top of.
+
+## setupFog: The Distance Settings
+
+After `setupClearColor` determines the color, `setupFog` determines how far away the fog starts and ends. The fog color is passed to OpenGL with `glFog(GL_FOG_COLOR, ...)`, then the mode and distance are set based on the camera situation.
+
+### Fog modes
+
+| Situation | Mode | Start | End/Density |
+|---|---|---|---|
+| Blindness | `GL_LINEAR` | distance * 0.25 | 5.0 (grows as effect wears off) |
+| In clouds | `GL_EXP` | n/a | density 0.1 |
+| Underwater | `GL_EXP` | n/a | density 0.1 (or 0.05 with Water Breathing) |
+| In lava | `GL_EXP` | n/a | density 2.0 (very thick) |
+| Normal | `GL_LINEAR` | distance * 0.25 | renderDistance |
+| Foggy biome (`isFoggyAt`) | `GL_LINEAR` | distance * 0.05 | min(distance, 192) * 0.5 |
+
+The `isFoggyAt` check comes from the dimension. The Nether returns `true` everywhere, which is why the Nether has that thick fog that cuts visibility short. The distance formula `min(distance, 16 * 16 * 0.75) * 0.5` caps at 96 blocks even on max render distance.
+
+### Cloud fog color
+
+Clouds use a separate color table entry:
+
+```cpp
+unsigned int colour = getColourTable()->getColor(
+    eMinecraftColour_In_Cloud_Fog_Colour);
+```
+
+This is why flying through clouds has a different tint than normal fog.
+
+### Underwater and lava fog colors
+
+These also come from the colour table:
+
+| Entry | Used for |
+|---|---|
+| `eMinecraftColour_Under_Water_Fog_Colour` | Underwater fog distance color |
+| `eMinecraftColour_Under_Water_Clear_Colour` | Underwater background clear color |
+| `eMinecraftColour_Under_Lava_Fog_Colour` | Lava fog distance color |
+| `eMinecraftColour_Under_Lava_Clear_Colour` | Lava background clear color |
+
+Notice there are separate entries for "fog" and "clear" for both water and lava. The fog entry is used in `setupFog` (distance-based fade), while the clear entry is used in `setupClearColor` (the background fill). They can be different colors in a texture pack.
+
+## The Full ColourTable
+
+The `ColourTable` has 307 named color entries. Here are all the ones relevant to fog and sky:
+
+### Per-biome colors
+
+Each biome gets four dedicated color entries:
+
+| Pattern | Example | Purpose |
+|---|---|---|
+| `Grass_{BiomeName}` | `Grass_Plains` | Grass block tint |
+| `Foliage_{BiomeName}` | `Foliage_Plains` | Leaf block tint |
+| `Water_{BiomeName}` | `Water_Plains` | Water tint |
+| `Sky_{BiomeName}` | `Sky_Plains` | Sky color |
+
+This covers all 23 biomes, giving you 92 color slots just for biome-specific tints.
+
+### Environment colors
+
+| Entry | Purpose |
+|---|---|
+| `Sky_Dawn_Dark` | Sunrise horizon color |
+| `Sky_Dawn_Bright` | Sunrise zenith color |
+| `Default_Fog_Colour` | Overworld fog base |
+| `Nether_Fog_Colour` | Nether fog (flat, constant) |
+| `End_Fog_Colour` | End fog (15% brightness) |
+| `Under_Water_Fog_Colour` | Underwater distance fog |
+| `Under_Water_Clear_Colour` | Underwater background |
+| `Under_Lava_Fog_Colour` | Lava distance fog |
+| `Under_Lava_Clear_Colour` | Lava background |
+| `In_Cloud_Fog_Colour` | Inside-cloud fog |
+
+### How texture packs override colors
+
+The `ColourTable` constructor supports layering. When a texture pack is loaded, it starts from the default colors and overwrites only the entries it includes:
+
+```cpp
+ColourTable::ColourTable(ColourTable *defaultColours,
+                         PBYTE pbData, DWORD dwLength) {
+    // Copy all defaults
+    XMemCpy(m_colourValues, defaultColours->m_colourValues,
+            sizeof(int) * eMinecraftColour_COUNT);
+    // Override with pack-specific data
+    loadColoursFromData(pbData, dwLength);
+}
+```
+
+The binary color data is a packed format that maps string names to ARGB values. A mashup pack only needs to include the colors it changes. Everything else stays at the default.
+
+## Time of Day Math
+
+The time-of-day value drives the brightness curve for fog, sky, and sunrise. Here's how it works in detail.
+
+The Overworld keeps a tick counter. One full day is `Level::TICKS_PER_DAY` ticks (24000). The float time is:
+
+```cpp
+float Dimension::getTimeOfDay(int64_t time, float a) const {
+    int dayStep = (int)(time % Level::TICKS_PER_DAY);
+    return (dayStep + a) / Level::TICKS_PER_DAY;
+}
+```
+
+This gives a 0.0 to 1.0 value that resets every day. The `a` parameter is a partial tick fraction for smooth animation.
+
+The brightness curve is:
+
+```cpp
+float br = Mth::cos(td * PI * 2) * 2 + 0.5f;
+if (br < 0.0f) br = 0.0f;
+if (br > 1.0f) br = 1.0f;
+```
+
+At `td = 0.0` (noon), `cos(0) = 1.0`, so `br = 2.5`, clamped to `1.0`. Full brightness.
+At `td = 0.25` (sunset), `cos(PI/2) = 0`, so `br = 0.5`. Half brightness.
+At `td = 0.5` (midnight), `cos(PI) = -1.0`, so `br = -1.5`, clamped to `0.0`. Complete darkness.
+At `td = 0.75` (sunrise), `cos(3PI/2) = 0`, so `br = 0.5`. Half brightness again.
+
+The End ignores all of this. It multiplies by `br * 0.0 + 0.15`, which is always 0.15 regardless of time. And its `getTimeOfDay()` always returns 0.0.
+
+The Nether doesn't use the brightness curve at all. It just reads the flat color from the table and divides by 256 (note: 256 not 255, which makes the colors slightly darker than you'd expect from the raw hex values).
+
 ## Key Files
 
 | File | What it does |
 |---|---|
-| `Dimension.h/.cpp` | Base fog/sky methods, Overworld sunrise |
-| `HellDimension.cpp` | Nether fog color and light ramp |
-| `TheEndDimension.cpp` | End fog color (fixed low brightness) |
-| `GameRenderer.cpp` | `setupFog()`, `setupClearColor()` |
-| `Level.cpp` | `getSkyColor()` (biome-based) |
-| `ColourTable.h/.cpp` | Data-driven color system |
-| `Biome.h/.cpp` | Per-biome sky colors |
+| `Dimension.h/.cpp` | Base fog/sky methods, Overworld sunrise, getClearColorScale() |
+| `HellDimension.cpp` | Nether fog color, light ramp, isFoggyAt() always true |
+| `TheEndDimension.cpp` | End fog color (fixed 15% brightness), fixed time of day |
+| `GameRenderer.cpp` | `setupClearColor()` (full color pipeline), `setupFog()` (distance settings) |
+| `Level.cpp` | `getSkyColor()` (biome-based, brightness-modulated) |
+| `ColourTable.h/.cpp` | Data-driven color system with 307 named entries |
+| `Biome.h/.cpp` | Per-biome sky colors via ColourTable lookups |
+| `NormalDimension.h` | Overworld dimension (inherits everything from Dimension) |
+| `AetherDimension.cpp` | Custom fog example: blue fog (0.62, 0.80, 1.0), permanent day |

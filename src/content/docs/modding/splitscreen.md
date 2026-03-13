@@ -3,7 +3,7 @@ title: Splitscreen
 description: How splitscreen rendering works in LCE, viewport layout, and modding considerations.
 ---
 
-Splitscreen is one of the signature features of Legacy Console Edition. Up to 4 local players can play on the same screen at once, each with their own viewport. This page explains how it's implemented and what to watch out for when modding.
+Splitscreen is one of the signature features of Legacy Console Edition. Up to 4 local players can play on the same screen at once, each with their own viewport. This page explains how it is implemented and what to watch out for when modding.
 
 ## Viewport Types
 
@@ -26,9 +26,81 @@ typedef enum
 
 Each local player gets assigned one of these types. The renderer calls `StateSetViewport()` before drawing each player's view, which sets the scissor rect and projection matrix for that portion of the screen.
 
+## Viewport Layouts
+
+Here is how each player count maps to viewport types:
+
+### 1 Player
+
+The entire screen. Uses `VIEWPORT_TYPE_FULLSCREEN`.
+
+```
+┌─────────────────────┐
+│                     │
+│      Player 1       │
+│    (Fullscreen)     │
+│                     │
+└─────────────────────┘
+```
+
+### 2 Players (Horizontal Split)
+
+The default mode. Player 1 gets the top half, player 2 gets the bottom half. Uses `VIEWPORT_TYPE_SPLIT_TOP` and `VIEWPORT_TYPE_SPLIT_BOTTOM`.
+
+```
+┌─────────────────────┐
+│      Player 1       │
+│     (Split Top)     │
+├─────────────────────┤
+│      Player 2       │
+│    (Split Bottom)   │
+└─────────────────────┘
+```
+
+### 2 Players (Vertical Split)
+
+An option the player can toggle. Uses `VIEWPORT_TYPE_SPLIT_LEFT` and `VIEWPORT_TYPE_SPLIT_RIGHT`. The primary player's `eGameSetting_SplitScreenVertical` setting controls which mode is used.
+
+```
+┌──────────┬──────────┐
+│          │          │
+│ Player 1 │ Player 2 │
+│  (Left)  │ (Right)  │
+│          │          │
+└──────────┴──────────┘
+```
+
+### 3 Players
+
+Uses all 4 quadrants, with one left empty. The `unoccupiedQuadrant` variable tracks which quadrant has no player.
+
+```
+┌──────────┬──────────┐
+│ Player 1 │ Player 2 │
+│ (Top L)  │ (Top R)  │
+├──────────┼──────────┤
+│ Player 3 │  Empty   │
+│ (Bot L)  │ (Bot R)  │
+└──────────┴──────────┘
+```
+
+### 4 Players
+
+All 4 quadrants filled. Uses `VIEWPORT_TYPE_QUADRANT_TOP_LEFT`, `VIEWPORT_TYPE_QUADRANT_TOP_RIGHT`, `VIEWPORT_TYPE_QUADRANT_BOTTOM_LEFT`, and `VIEWPORT_TYPE_QUADRANT_BOTTOM_RIGHT`.
+
+```
+┌──────────┬──────────┐
+│ Player 1 │ Player 2 │
+│ (Top L)  │ (Top R)  │
+├──────────┼──────────┤
+│ Player 3 │ Player 4 │
+│ (Bot L)  │ (Bot R)  │
+└──────────┴──────────┘
+```
+
 ## Viewport Assignment Logic
 
-The viewport assignment happens in `Minecraft::updatePlayerViewportAssignments()`. Here's the core logic:
+The viewport assignment happens in `Minecraft::updatePlayerViewportAssignments()`. Here is the actual code:
 
 ```cpp
 void Minecraft::updatePlayerViewportAssignments()
@@ -56,15 +128,87 @@ void Minecraft::updatePlayerViewportAssignments()
     }
     else if (viewportsRequired == 2)
     {
-        // Two players - split top/bottom (or left/right)
+        // Split screen - the primary player's settings decide the mode
         int found = 0;
-        // ... assigns SPLIT_TOP and SPLIT_BOTTOM ...
+        for (int i = 0; i < XUSER_MAX_COUNT; i++)
+        {
+            if (localplayers[i] != nullptr)
+            {
+                if (app.GetGameSettings(ProfileManager.GetPrimaryPad(),
+                        eGameSetting_SplitScreenVertical))
+                {
+                    // Vertical split: left/right
+                    localplayers[i]->m_iScreenSection =
+                        C4JRender::VIEWPORT_TYPE_SPLIT_LEFT + found;
+                }
+                else
+                {
+                    // Horizontal split: top/bottom (default)
+                    localplayers[i]->m_iScreenSection =
+                        C4JRender::VIEWPORT_TYPE_SPLIT_TOP + found;
+                }
+                found++;
+            }
+        }
     }
     else if (viewportsRequired >= 3)
     {
-        // Three or four players - quadrants
-        // Persists existing quadrant assignments so
-        // viewports don't jump around when a 4th player joins
+        // Quadrants - persists existing assignments so
+        // viewports don't jump around when players join/leave
+        bool quadrantsAllocated[4] = {false, false, false, false};
+
+        for (int i = 0; i < XUSER_MAX_COUNT; i++)
+        {
+            if (localplayers[i] != nullptr)
+            {
+                // If the game has started, keep existing quadrant assignments
+                if (app.GetGameStarted())
+                {
+                    if (localplayers[i]->m_iScreenSection >=
+                            C4JRender::VIEWPORT_TYPE_QUADRANT_TOP_LEFT &&
+                        localplayers[i]->m_iScreenSection <=
+                            C4JRender::VIEWPORT_TYPE_QUADRANT_BOTTOM_RIGHT)
+                    {
+                        quadrantsAllocated[
+                            localplayers[i]->m_iScreenSection -
+                            C4JRender::VIEWPORT_TYPE_QUADRANT_TOP_LEFT] = true;
+                    }
+                }
+                else
+                {
+                    // Before game starts, reset to fullscreen so they get
+                    // assigned fresh in the next loop
+                    localplayers[i]->m_iScreenSection =
+                        C4JRender::VIEWPORT_TYPE_FULLSCREEN;
+                }
+            }
+        }
+
+        // Assign any unassigned players to free quadrants
+        for (int i = 0; i < XUSER_MAX_COUNT; i++)
+        {
+            if (localplayers[i] != nullptr)
+            {
+                if (localplayers[i]->m_iScreenSection <
+                        C4JRender::VIEWPORT_TYPE_QUADRANT_TOP_LEFT ||
+                    localplayers[i]->m_iScreenSection >
+                        C4JRender::VIEWPORT_TYPE_QUADRANT_BOTTOM_RIGHT)
+                {
+                    for (int j = 0; j < 4; j++)
+                    {
+                        if (!quadrantsAllocated[j])
+                        {
+                            localplayers[i]->m_iScreenSection =
+                                C4JRender::VIEWPORT_TYPE_QUADRANT_TOP_LEFT + j;
+                            quadrantsAllocated[j] = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Track the empty quadrant for 3-player mode
         // ...
     }
 }
@@ -73,12 +217,13 @@ void Minecraft::updatePlayerViewportAssignments()
 A few things to note:
 
 - **3 players use 4 quadrants.** One quadrant is just empty. This avoids the awkward "one big, two small" layout that some games do.
-- **Quadrant assignments persist.** If player 1 is in the top-left and player 3 joins, the existing players don't get shuffled around. The new player gets an empty slot.
-- **The primary player controls chunk updates.** Only the primary player's viewport triggers chunk mesh rebuilds. Other players see whatever geometry is already loaded for their camera position.
+- **Quadrant assignments persist.** If player 1 is in the top-left and player 3 joins, the existing players don't get shuffled around. The new player gets an empty slot. This is gated by `app.GetGameStarted()` to avoid issues during initial setup.
+- **The primary player controls the split direction.** The `eGameSetting_SplitScreenVertical` setting on the primary player's pad decides whether 2-player mode uses horizontal or vertical split.
+- **Before the game starts, assignments reset.** There is a comment from 4J saying this "fixes an issue with the primary player being the 4th controller quadrant, but ending up in the 3rd viewport."
 
 ## The Aspect Ratio Problem
 
-When you split the screen, the aspect ratio changes. A fullscreen viewport might be 16:9, but a top/bottom split gives you 16:4.5 (roughly 3.5:1). The `getFovAndAspect()` function in `GameRenderer` handles this:
+When you split the screen, the aspect ratio changes. A fullscreen viewport might be 16:9, but a top/bottom split gives you roughly 3.5:1. The `getFovAndAspect()` function in `GameRenderer` handles this:
 
 ```cpp
 void GameRenderer::getFovAndAspect(float& fov, float& aspect,
@@ -89,8 +234,6 @@ This adjusts the FOV and aspect ratio based on the viewport dimensions so things
 
 ```cpp
 // glWrapper.cpp
-// For split-screen, getFovAndAspect adjusts the aspect
-// ratio to match the viewport dimensions.
 void gluPerspective(float fovy, float aspect, float zNear, float zFar)
 {
     RenderManager.MatrixPerspective(fovy, aspect, zNear, zFar);
@@ -107,7 +250,7 @@ Each local player gets their own rendering pass. The main render loop in `GameRe
 4. Renders the level from that perspective
 5. Renders the GUI/HUD overlay
 
-The light texture system also supports per-player rendering:
+The light texture system supports per-player rendering with separate textures:
 
 ```cpp
 // GameRenderer.h
@@ -124,18 +267,13 @@ float m_cachedGammaPerPlayer[NUM_LIGHT_TEXTURES];
 
 ## UI in Splitscreen
 
-UI scenes (menus, inventories, crafting) need to be aware of splitscreen. The XUI system handles this with `localPlayerIdx`, which tracks which local player opened the menu. Look at how inventory scenes reference this:
-
-```cpp
-// Most UI scenes have access to the local player index
-// and use it to know which viewport they belong to
-```
-
-If you're adding custom screens, make sure they:
+UI scenes (menus, inventories, crafting) need to be aware of splitscreen. The XUI system handles this with `localPlayerIdx`, which tracks which local player opened the menu. If you are adding custom screens, make sure they:
 
 - Use the correct player index when reading input
 - Render within the correct viewport bounds
 - Don't assume fullscreen dimensions for layout
+
+On Xbox, when a splitscreen player joins or leaves, the system broadcasts a `CustomMessage_Splitscreenplayer` through XUI so all scenes can respond to the layout change.
 
 ## Modding Considerations
 
@@ -145,15 +283,15 @@ Only the primary player's viewport drives chunk mesh updates. If your mod adds c
 
 ### Input Handling
 
-Each controller maps to a player index (0-3). When handling input in custom code, always check which player the input came from. Don't assume controller 0 is always the "main" player.
+Each controller maps to a player index (0-3). When handling input in custom code, always check which player the input came from. Don't assume controller 0 is always the "main" player. The primary pad is tracked by `ProfileManager.GetPrimaryPad()`.
 
 ### Performance
 
-Every extra viewport means roughly another full render pass. Going from 1 to 4 players doesn't quite 4x the render cost (because the viewports are smaller so there's less fill), but it's close. If your mod adds expensive rendering, be aware that it gets multiplied by the number of local players.
+Every extra viewport means roughly another full render pass. Going from 1 to 4 players doesn't quite 4x the render cost (because the viewports are smaller so there is less fill), but it is close. If your mod adds expensive rendering, be aware that it gets multiplied by the number of local players.
 
 ### HUD and Overlays
 
-The `setupGuiScreen()` function sets up 2D rendering coordinates for GUI elements. It has a `forceScale` parameter that's important for splitscreen:
+The `setupGuiScreen()` function sets up 2D rendering coordinates for GUI elements. It has a `forceScale` parameter that is important for splitscreen:
 
 ```cpp
 void GameRenderer::setupGuiScreen(int forceScale = -1);
@@ -171,14 +309,15 @@ uint32_t BuildPlayerViewports(D3D11_VIEWPORT* outViewports,
                                float* outGammas, UINT maxCount) const;
 ```
 
-If you add custom post-processing effects, you'll need to apply them per-viewport using similar logic.
+If you add custom post-processing effects, you will need to apply them per-viewport using similar logic.
 
 ## Key Files
 
 | File | What it does |
 |---|---|
 | `4J_Render.h` | Viewport type enum and `StateSetViewport()` |
-| `Minecraft.cpp` | `updatePlayerViewportAssignments()` |
-| `GameRenderer.h/.cpp` | Per-player rendering, fog, light textures |
+| `Minecraft.cpp` | `updatePlayerViewportAssignments()` with full layout logic |
+| `GameRenderer.h/.cpp` | Per-player rendering, fog, light textures, gamma caching |
 | `glWrapper.cpp` | Perspective projection with aspect ratio |
-| `Minecraft.h` | `localplayers[]` array and player management |
+| `Minecraft.h` | `localplayers[]` array, `unoccupiedQuadrant`, `XUSER_MAX_COUNT` |
+| `Consoles_App.cpp` | Also calls `updatePlayerViewportAssignments()` |

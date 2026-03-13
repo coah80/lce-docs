@@ -20,6 +20,9 @@ The Windows 64-bit port is the main development target for LCE. It lives in `Min
 | `4JLibs/inc/4J_Input.h` | `C_4JInput` class, gamepad/keyboard input |
 | `4JLibs/inc/4J_Storage.h` | `C4JStorage` class, filesystem save/load |
 | `4JLibs/inc/4J_Profile.h` | Profile management |
+| `KeyboardMouseInput.h/.cpp` | Full keyboard and mouse input class (MinecraftConsoles) |
+| `Windows64_Xuid.h` | Persistent player UID system with uid.dat (MinecraftConsoles) |
+| `PostProcesser.cpp` | Post-process implementation (MinecraftConsoles) |
 
 ## Application Class
 
@@ -132,3 +135,46 @@ Uses filesystem-based storage through `C4JStorage`. Save data is stored as local
 - **Post-process gamma**: Shader-based gamma correction since Windows doesn't provide system-level gamma like consoles do
 - **No DRM/commerce**: Simplified app class without storefront integration
 - **Command-line multiplayer**: Can specify host/join via command-line globals
+
+## MinecraftConsoles Additions
+
+The MinecraftConsoles codebase adds several files to the Windows 64 platform that were not in LCEMP.
+
+### KeyboardMouseInput Class
+
+`KeyboardMouseInput.h/.cpp` provides a full keyboard and mouse input system for PC-native controls. This runs alongside the gamepad input and supports:
+
+- **256 virtual key tracking** with per-frame press/release detection
+- **3 mouse buttons** (left, right, middle) with press/release detection
+- **Raw mouse delta** for low-latency mouse look via `ConsumeMouseDelta()`
+- **Mouse grab mode** for locking the cursor to the game window
+- **Text input buffering** with `OnChar()` / `ConsumeChar()` for keyboard scenes
+- **Mouse wheel accumulator** with consumption tracking
+- **KBM active flag** to switch between gamepad and keyboard/mouse mode
+- **WASD movement** with dedicated key constants (`KEY_FORWARD = 'W'`, `KEY_BACKWARD = 'S'`, `KEY_LEFT = 'A'`, `KEY_RIGHT = 'D'`)
+- **Standard PC bindings**: Space = jump, LShift = sneak, Ctrl = sprint, E = inventory, Q = drop, C/R = crafting, F5 = third person, F3 = debug info, F4 = debug menu
+
+### Persistent Player UID (Windows64_Xuid.h)
+
+MinecraftConsoles adds a persistent player identity system for Windows 64 via `Windows64_Xuid.h`. In LCEMP, player UIDs were ephemeral (based on a hardcoded base value plus the small ID). MinecraftConsoles generates a random UID and stores it in a `uid.dat` file next to the executable.
+
+Key functions:
+- `GetLegacyEmbeddedBaseXuid()` returns the old LCEMP base value (`0xe000d45248242f2e`)
+- `IsLegacyEmbeddedRange(xuid)` detects old-style non-persistent UIDs
+- `IsPersistedUidValid(xuid)` validates that a UID is not legacy and not invalid
+- `BuildUidFilePath()` constructs the path to `uid.dat` relative to the executable
+- `ReadUid()` / `WriteUid()` handle loading and saving the persistent UID
+- `GenerateRandomXuid()` creates a new random UID if none exists
+
+This means worlds saved on MinecraftConsoles can track player ownership across sessions, while LCEMP worlds could not.
+
+### Iggy and Third-Party Libraries
+
+MinecraftConsoles bundles the Iggy UI library source directly under `Windows64/Iggy/`:
+- `gdraw/gdraw_d3d.cpp/.h` (Direct3D 9 backend)
+- `gdraw/gdraw_d3d10.cpp/.h` (Direct3D 10 backend)
+- `gdraw/gdraw_d3d11.cpp/.h` (Direct3D 11 backend)
+- `gdraw/gdraw_wgl.h` (OpenGL WGL backend)
+- `include/iggy.h`, `include/gdraw.h`, `include/iggyexpruntime.h`, `include/iggyperfmon.h`, `include/rrCore.h`
+
+The Sentient telemetry SDK is also bundled under `Windows64/Sentient/` with configuration headers for analytics tracking.

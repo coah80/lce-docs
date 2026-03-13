@@ -42,28 +42,37 @@ The disc only gets inserted on the server side (`level->isClientSide` check). Th
 
 ### Tooltip
 
-The `appendHoverText` method formats the artist and track name as `"C418 - <recording>"` with the rare rarity color applied through HTML formatting:
+The `appendHoverText` method formats the artist and track name as `"C418 - <recording>"` with the rare rarity color applied through HTML formatting. The color comes from `getRarity()`, which always returns `Rarity::rare`:
 
 ```cpp
+eMinecraftColour rarityColour = getRarity(shared_ptr<ItemInstance>())->color;
+int colour = app.GetHTMLColour(rarityColour);
+wchar_t formatted[256];
 swprintf(formatted, 256, L"<font color=\"#%08x\">%ls</font>", colour, L"C418 - ", recording.c_str());
 ```
 
+The raw (unformatted) recording name is also pushed to the `unformattedStrings` vector for accessibility purposes.
+
 ## Complete Disc Registry
 
-| ID | Field Name | Track Name | Notes |
-|----|-----------|------------|-------|
-| 2256 | `"13"` | 13 | Ambient/cave sounds |
-| 2257 | `"cat"` | Cat | Upbeat synthesizer |
-| 2258 | `"blocks"` | Blocks | Upbeat electronic |
-| 2259 | `"chirp"` | Chirp | Retro chiptune |
-| 2260 | `"far"` | Far | Calm ambient |
-| 2261 | `"mall"` | Mall | Mellow retro |
-| 2262 | `"mellohi"` | Mellohi | Slow haunting melody |
-| 2263 | `"stal"` | Stal | Jazz piano |
-| 2264 | `"strad"` | Strad | Tropical/upbeat |
-| 2265 | `"ward"` | Ward | Starts with record noise, then upbeat |
-| 2266 | `"11"` | 11 | Broken/corrupted recording |
-| 2267 | `"where are we now"` | Where Are We Now | LCE-exclusive disc |
+| ID | Static Field | Recording String | Internal Index | Notes |
+|----|-------------|-----------------|----------------|-------|
+| 2256 | `record_01` | `"13"` | 2000 | Ambient/cave sounds |
+| 2257 | `record_02` | `"cat"` | 2001 | Upbeat synthesizer |
+| 2258 | `record_03` | `"blocks"` | 2002 | Upbeat electronic |
+| 2259 | `record_04` | `"chirp"` | 2003 | Retro chiptune |
+| 2260 | `record_05` | `"far"` | 2004 | Calm ambient |
+| 2261 | `record_06` | `"mall"` | 2005 | Mellow retro |
+| 2262 | `record_07` | `"mellohi"` | 2006 | Slow haunting melody |
+| 2263 | `record_09` | `"stal"` | 2007 | Jazz piano |
+| 2264 | `record_10` | `"strad"` | 2008 | Tropical/upbeat |
+| 2265 | `record_11` | `"ward"` | 2009 | Starts with record noise, then upbeat |
+| 2266 | `record_12` | `"11"` | 2010 | Broken/corrupted recording |
+| 2267 | `record_08` | `"where are we now"` | 2011 | LCE-exclusive disc |
+
+The "Internal Index" column shows the constructor argument passed to `RecordingItem`. This is the internal numbering, not the item ID. The item IDs in the `Item.h` constants (`record_01_Id` through `record_12_Id`) map to the standard 2256-2267 range.
+
+Note the quirky naming: the static field `record_08` holds the "where are we now" disc (ID 2267), while `record_09` through `record_12` hold "stal" through "11". This is because the LCE-exclusive disc was added after the others and got the `_08` slot, pushing the numbering out of order.
 
 The disc with ID 2267 (`"where are we now"`) is noted in the source as *"not playable in the PC game, but is fine in ours"*. This is a Legacy Console Edition exclusive music disc.
 
@@ -82,8 +91,8 @@ So the texture files are named `record_13`, `record_cat`, `record_blocks`, etc.
 
 ## MinecraftConsoles differences
 
-The music disc system (`RecordingItem`) is the same between LCEMP and MinecraftConsoles. Same 12 disc IDs (2256-2267), same recording names, same jukebox interaction through `RecordPlayerTile`, same tooltip formatting.
+The music disc system (`RecordingItem`) is the same between LCEMP and MinecraftConsoles. Same 12 disc IDs (2256-2267), same recording names, same constructor index values (2000-2011), same jukebox interaction through `RecordPlayerTile`, same tooltip formatting.
 
-The LCE-exclusive disc "where are we now" (ID 2267) is present in both codebases.
+The LCE-exclusive disc "where are we now" (ID 2267) is present in both codebases. The quirky `record_08`/`record_09` field naming is also the same.
 
-MinecraftConsoles does rename `JukeboxTile` as a separate header (it gets its own `JukeboxTile.h` file), but the functionality is the same `RecordPlayerTile` system that LCEMP uses.
+MinecraftConsoles does rename `JukeboxTile` as a separate header (it gets its own `JukeboxTile.h` file), but the functionality is the same `RecordPlayerTile` system that LCEMP uses. The only API difference is that `setTextureName` is renamed to `setIconName` in MinecraftConsoles, but this is a codebase-wide rename, not specific to music discs.

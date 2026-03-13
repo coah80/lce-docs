@@ -5,11 +5,13 @@ description: Index of all source files in both LCE modules.
 
 LCE has two modules: **Minecraft.World** (game logic, networking, world simulation) and **Minecraft.Client** (rendering, UI, platform integration, server hosting). This page lists every `.cpp` and `.h` source file in both.
 
-**Totals: 1,567 files in Minecraft.World, 1,392 files in Minecraft.Client, 2,959 files overall.**
+**LCEMP totals: 1,564 files in Minecraft.World, 1,392 files in Minecraft.Client, 2,956 files overall.**
+
+**MinecraftConsoles totals: 1,837 files in Minecraft.World, ~2,150 source files in Minecraft.Client, ~3,987 source files overall.** (MinecraftConsoles also bundles media assets, DLC data, and third-party libraries that push the raw file count much higher.)
 
 ---
 
-## Minecraft.World (1,567 files)
+## Minecraft.World (LCEMP: 1,564 files)
 
 All files live in a flat directory (`Minecraft.World/`) except for 7 headers in `x64headers/`.
 
@@ -203,7 +205,81 @@ Platform-specific headers for Xbox 360 / x64: `extraX64.h`, `qnet.h`, `xmcore.h`
 
 ---
 
-## Minecraft.Client (1,392 files)
+## Additional Files in MinecraftConsoles Minecraft.World
+
+MinecraftConsoles adds about 275 new files to `Minecraft.World/`. These fall into several categories.
+
+### New Tile / Block Classes
+
+BeaconTile, BeaconTileEntity, BaseEntityTile, BasePressurePlateTile, BaseRailTile, ColoredTile, ComparatorTile, ComparatorTileEntity, DaylightDetectorTile, DaylightDetectorTileEntity, DropperTile, DropperTileEntity, GlowstoneTile, HayBlockTile, HopperTile, HopperTileEntity, JukeboxTile, NetherrackTile, NetherWartTile, NoteBlockTile, PoweredMetalTile, PoweredRailTile, RepeaterTile, RotatedPillarTile, SoulSandTile, StainedGlassBlock, StainedGlassPaneBlock, StoneButtonTile, WeightedPressurePlateTile, WoodButtonTile, CommandBlockEntity
+
+### New Item Classes
+
+EmptyMapItem, FireworksItem, FireworksChargeItem, LeashItem, NameTagItem, SimpleFoiledItem, SnowItem, SpawnEggItem, WrittenBookItem, WoolTileItem
+
+### New Entity Classes
+
+AmbientCreature, Bat, EntityHorse, FireworksRocketEntity, LargeFireball, LeashFenceKnotEntity, LivingEntity, MinecartChest, MinecartContainer, MinecartFurnace, MinecartHopper, MinecartRideable, MinecartSpawner, MinecartTNT, MultiEntityMob, MultiEntityMobPart, Ocelot, Witch, WitherBoss, WitherSkull
+
+### New Entity AI
+
+OcelotAttackGoal (renamed from OzelotAttackGoal), RangedAttackGoal, RunAroundLikeCrazyGoal
+
+### New Packet Classes
+
+LevelParticlesPacket, SetDisplayObjectivePacket, SetEntityLinkPacket, SetObjectivePacket, SetPlayerTeamPacket, SetScorePacket, TileEditorOpenPacket, UpdateAttributesPacket
+
+### Attribute System (new)
+
+Attribute, AttributeInstance, AttributeModifier, BaseAttribute, BaseAttributeMap, ModifiableAttributeInstance, RangedAttribute, ServersideAttributeMap, SharedMonsterAttributes
+
+### Scoreboard System (new)
+
+DummyCriteria, HealthCriteria, Objective, ObjectiveCriteria, PlayerTeam, Score, Scoreboard, ScoreboardSaveData, ScoreHolder, Team
+
+### New Command Classes
+
+CommandBlock, CommandBlockEntity, EffectCommand, GameDifficultyCommand, GameRuleCommand, PlaySoundCommand, SetPlayerTimeoutCommand, ShowSeedCommand, SpreadPlayersCommand, WeatherCommand
+
+### New Container / Menu Classes
+
+AnvilMenu, BeaconMenu, FireworksMenu, HopperMenu, HorseInventoryMenu, MinecartContainer, WorldlyContainer
+
+### New World Generation Files
+
+FlatGeneratorInfo, FlatLayerInfo, StructureFeatureIO, StructureFeatureSavedData
+
+### Game Rules System (new)
+
+GameRules
+
+### Dispenser Behavior System (new)
+
+AbstractProjectileDispenseBehavior, Behavior, BehaviorRegistry, DefaultDispenseItemBehavior, DispenseItemBehavior, ItemDispenseBehaviors
+
+### New Mob Effects
+
+AbsoptionMobEffect, AttackDamageMobEffect, HealthBoostMobEffect
+
+### New Crafting
+
+FireworksRecipe, MapCloningRecipe, MapExtendingRecipe
+
+### Entity Selectors and Misc
+
+BlockSource, BlockSourceImpl, Calendar, CombatEntry, CombatTracker, EntitySelector, FacingEnum, HtmlString, LocatableSource, Location, MobGroupData, OwnableEntity, PlayerSelector, Position, PositionImpl, Projectile, RangedAttackMob, Redstone, Source
+
+### New Aggregate Headers
+
+`net.minecraft.core.h`, `net.minecraft.world.entity.ai.attributes.h`, `net.minecraft.world.entity.ambient.h`, `net.minecraft.world.level.levelgen.flat.h`, `net.minecraft.world.level.redstone.h`, `net.minecraft.world.scores.criteria.h`, `net.minecraft.world.scores.h`
+
+:::note
+MinecraftConsoles also renamed several LCEMP files (the class stayed the same, but the code name changed). For example, `HellSandTile` became `SoulSandTile`, `HellStoneTile` became `NetherrackTile`, `MusicTile` became `NoteBlockTile`, `NetherStalkTile` became `NetherWartTile`, `LightGemTile` became `GlowstoneTile`, `DiodeTile` became `RepeaterTile`, and `RecordPlayerTile` became `JukeboxTile`. Both old and new versions exist in the MinecraftConsoles source since the old names are still referenced in some places.
+:::
+
+---
+
+## Minecraft.Client (LCEMP: 1,392 files)
 
 The Client module has a deeper directory structure with platform-specific subdirectories.
 
@@ -523,3 +599,80 @@ Xbox UI (XUI) scene and control implementations. Includes SlotProgressControl, X
 ### Root Build Support (4 files)
 
 `stdafx.cpp`, `stdafx.h`, `stubs.cpp`, `stubs.h`
+
+---
+
+## Additional Files in MinecraftConsoles Minecraft.Client
+
+MinecraftConsoles adds a lot to the Client module. Here's what's new beyond the LCEMP baseline.
+
+### New Renderers and Models
+
+**Renderers:** BatRenderer, BeaconRenderer, CaveSpiderRenderer, HorseRenderer, LeashKnotRenderer, LivingEntityRenderer, MinecartSpawnerRenderer, OcelotRenderer (replaces OzelotRenderer), SkeletonRenderer, TntMinecartRenderer, WitchRenderer, WitherBossRenderer, WitherSkullRenderer
+
+**Models:** BatModel, LeashKnotModel, ModelHorse, OcelotModel, SkiModel, WitchModel, WitherBossModel
+
+**Particles:** FireworksParticles
+
+**Other:** BossMobGuiInfo, ServerScoreboard, TextureAtlas, ResourceLocation, DispenserBootstrap
+
+### New UI Files (Common/UI/)
+
+**Scenes:** UIScene_BeaconMenu, UIScene_FireworksMenu, UIScene_HopperMenu, UIScene_HorseInventoryMenu, UIScene_LanguageSelector, UIScene_NewUpdateMessage
+
+**Controls:** UIControl_BeaconEffectButton, UIControl_MinecraftHorse
+
+**IUI interfaces:** IUIScene_BeaconMenu, IUIScene_CommandBlockMenu, IUIScene_FireworksMenu, IUIScene_HopperMenu, IUIScene_HorseInventoryMenu, IUIScene_HUD
+
+**Utility:** UISplitScreenHelpers, UIString
+
+### New Tutorial Files
+
+HorseChoiceTask, RideEntityTask
+
+### New Common Files
+
+`Common/DummyTexturePack/`, `Common/PostProcesser.h`
+
+### Sony Shared Network Layer (Common/Network/Sony/)
+
+MinecraftConsoles refactored the Sony networking code into a shared directory used by all three Sony platforms (PS3, PS4, Vita). These files contain the base implementations:
+
+| File | Purpose |
+|------|---------|
+| `SQRNetworkManager.h/.cpp` | Base NP Matching2 network manager |
+| `SQRNetworkPlayer.h/.cpp` | Base Sony network player |
+| `PlatformNetworkManagerSony.h/.cpp` | Base `CPlatformNetworkManager` for Sony |
+| `NetworkPlayerSony.h/.cpp` | Base network player for Sony |
+| `SonyCommerce.h/.cpp` | Shared PlayStation Store integration |
+| `SonyHttp.h/.cpp` | Shared HTTP client |
+| `SonyRemoteStorage.h/.cpp` | Shared cloud save / remote storage |
+| `sceRemoteStorage/` | Platform-specific remote storage headers (ps3, ps4, psvita subdirectories) |
+
+Platform-specific files (e.g., `SQRNetworkManager_PS3.cpp`, `SQRNetworkManager_Orbis.cpp`) extend these shared base classes with platform-specific details.
+
+### Per-Platform Additions in MinecraftConsoles
+
+Each platform directory gained several new subdirectories in MinecraftConsoles:
+
+**All platforms:** `4JLibs/inc/` (4J_Render.h, 4J_Input.h, 4J_Profile.h, 4J_Storage.h), `Iggy/` (gdraw and include), `Miles/include/` (Miles Sound System), `Sentient/` (telemetry)
+
+**Xbox 360 extras:** `Audio/` (SoundEngine), `Font/` (XUI_Font, XUI_FontData, XUI_FontRenderer), `Network/extra.h`, `Sentient/Include/` (full Sentient SDK headers)
+
+**PS3 extras:** `Media/` (all xuiscene_*.h layout headers, 480/small/normal variants), `SPU_Tasks/` (full Cell SPU job sources with subdirectories for ChunkUpdate, CompressedTile, LevelRenderer, PerlinNoise, Texture_blit, and more), `PS3Extras/boost_1_53_0/` (Boost library subset), `PS3Extras/DirectX/` (DirectX math compatibility headers), `PS3Extras/HeapInspector/` (memory debugging tool), `Passphrase/` (NP conf), `4JLibs/STO_TitleSmallStorage` (small save data)
+
+**PS4 extras:** `GameConfig/Minecraft.spa.h` (not in LCEMP)
+
+**Windows 64 extras:** `KeyboardMouseInput.h/.cpp` (full keyboard/mouse input class), `PostProcesser.cpp`, `Windows64_Xuid.h` (persistent player UID system with uid.dat file)
+
+### Platform Media Directories
+
+MinecraftConsoles includes media/asset directories for each platform that were not in LCEMP:
+
+- `DurangoMedia/` with DLC, localization, media assets, and sound
+- `OrbisMedia/` with DLC, localization, and media assets
+- `PS3Media/` with DLC, localization, and media assets
+- `PSVitaMedia/` with DLC, localization, media, tutorial, and a compiled .self binary
+- `Windows64Media/` (referenced as `redist64/`) with DLC, localization, media, sound, and tutorial
+
+Additional top-level directories: `music/`, `TROPDIR/` (PlayStation trophy data), `PS3_GAME/`, `PS4_GAME/`, `sce_sys/` (PlayStation system metadata)

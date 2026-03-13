@@ -47,70 +47,97 @@ The `w` and `h` values are in pixels, not blocks. So a 1x1 block painting is `16
 
 The `uo` and `vo` values tell the renderer where to find this painting's image on the 256x256 texture atlas (`art/kz.png`).
 
-## All Vanilla Motives
+## All 26 Vanilla Motives
 
-Here's every motive registered in the `Motive::values[]` array (`Minecraft.World/Painting.cpp`):
+There are exactly 26 motives registered in the `Motive::values[]` array. The `MotiveEnum` in `Painting.h` lists them all with a `LAST_VALUE` sentinel at the end.
 
 ### 1x1 Paintings (16x16 pixels)
 
-| Name | UV Offset (uo, vo) |
-|------|-------------------|
-| `Kebab` | 0, 0 |
-| `Aztec` | 16, 0 |
-| `Alban` | 32, 0 |
-| `Aztec2` | 48, 0 |
-| `Bomb` | 64, 0 |
-| `Plant` | 80, 0 |
-| `Wasteland` | 96, 0 |
+7 paintings that fit in a single block space.
+
+| Name | UV Offset (uo, vo) | Atlas Position |
+|------|-------------------|----------------|
+| `Kebab` | 0, 0 | Row 0, column 0 |
+| `Aztec` | 16, 0 | Row 0, column 1 |
+| `Alban` | 32, 0 | Row 0, column 2 |
+| `Aztec2` | 48, 0 | Row 0, column 3 |
+| `Bomb` | 64, 0 | Row 0, column 4 |
+| `Plant` | 80, 0 | Row 0, column 5 |
+| `Wasteland` | 96, 0 | Row 0, column 6 |
 
 ### 2x1 Paintings (32x16 pixels)
 
-| Name | UV Offset (uo, vo) |
-|------|-------------------|
-| `Pool` | 0, 32 |
-| `Courbet` | 32, 32 |
-| `Sea` | 64, 32 |
-| `Sunset` | 96, 32 |
-| `Creebet` | 128, 32 |
+5 paintings that are 2 blocks wide and 1 block tall.
+
+| Name | UV Offset (uo, vo) | Atlas Position |
+|------|-------------------|----------------|
+| `Pool` | 0, 32 | Row 2, column 0 |
+| `Courbet` | 32, 32 | Row 2, column 2 |
+| `Sea` | 64, 32 | Row 2, column 4 |
+| `Sunset` | 96, 32 | Row 2, column 6 |
+| `Creebet` | 128, 32 | Row 2, column 8 |
 
 ### 1x2 Paintings (16x32 pixels)
 
-| Name | UV Offset (uo, vo) |
-|------|-------------------|
-| `Wanderer` | 0, 64 |
-| `Graham` | 16, 64 |
+2 paintings that are 1 block wide and 2 blocks tall.
+
+| Name | UV Offset (uo, vo) | Atlas Position |
+|------|-------------------|----------------|
+| `Wanderer` | 0, 64 | Row 4, column 0 |
+| `Graham` | 16, 64 | Row 4, column 1 |
 
 ### 2x2 Paintings (32x32 pixels)
 
-| Name | UV Offset (uo, vo) |
-|------|-------------------|
-| `Match` | 0, 128 |
-| `Bust` | 32, 128 |
-| `Stage` | 64, 128 |
-| `Void` | 96, 128 |
-| `SkullAndRoses` | 128, 128 |
-| `Wither` | 160, 128 |
+6 paintings that fit in a 2x2 block space.
+
+| Name | UV Offset (uo, vo) | Atlas Position |
+|------|-------------------|----------------|
+| `Match` | 0, 128 | Row 8, column 0 |
+| `Bust` | 32, 128 | Row 8, column 2 |
+| `Stage` | 64, 128 | Row 8, column 4 |
+| `Void` | 96, 128 | Row 8, column 6 |
+| `SkullAndRoses` | 128, 128 | Row 8, column 8 |
+| `Wither` | 160, 128 | Row 8, column 10 |
 
 ### 4x2 Paintings (64x32 pixels)
 
-| Name | UV Offset (uo, vo) |
-|------|-------------------|
-| `Fighters` | 0, 96 |
+1 painting that is 4 blocks wide and 2 blocks tall.
 
-### 4x4 Paintings (64x64 pixels)
-
-| Name | UV Offset (uo, vo) |
-|------|-------------------|
-| `Pointer` | 0, 192 |
-| `Pigscene` | 64, 192 |
-| `BurningSkull` | 128, 192 |
+| Name | UV Offset (uo, vo) | Atlas Position |
+|------|-------------------|----------------|
+| `Fighters` | 0, 96 | Row 6, column 0 |
 
 ### 4x3 Paintings (64x48 pixels)
 
-| Name | UV Offset (uo, vo) |
-|------|-------------------|
-| `Skeleton` | 192, 64 |
-| `DonkeyKong` | 192, 112 |
+2 console-exclusive paintings that are 4 blocks wide and 3 blocks tall.
+
+| Name | UV Offset (uo, vo) | Atlas Position |
+|------|-------------------|----------------|
+| `Skeleton` | 192, 64 | Row 4, column 12 |
+| `DonkeyKong` | 192, 112 | Row 7, column 12 |
+
+### 4x4 Paintings (64x64 pixels)
+
+3 paintings that fit in a 4x4 block space.
+
+| Name | UV Offset (uo, vo) | Atlas Position |
+|------|-------------------|----------------|
+| `Pointer` | 0, 192 | Row 12, column 0 |
+| `Pigscene` | 64, 192 | Row 12, column 4 |
+| `BurningSkull` | 128, 192 | Row 12, column 8 |
+
+### Size Summary
+
+| Size (blocks) | Size (pixels) | Count | Paintings |
+|---|---|---|---|
+| 1x1 | 16x16 | 7 | Kebab, Aztec, Alban, Aztec2, Bomb, Plant, Wasteland |
+| 2x1 | 32x16 | 5 | Pool, Courbet, Sea, Sunset, Creebet |
+| 1x2 | 16x32 | 2 | Wanderer, Graham |
+| 2x2 | 32x32 | 6 | Match, Bust, Stage, Void, SkullAndRoses, Wither |
+| 4x2 | 64x32 | 1 | Fighters |
+| 4x3 | 64x48 | 2 | Skeleton, DonkeyKong |
+| 4x4 | 64x64 | 3 | Pointer, Pigscene, BurningSkull |
+| **Total** | | **26** | |
 
 ## How Placement Picks a Motive
 
@@ -139,7 +166,7 @@ void Painting::PaintingPostConstructor(int dir)
 }
 ```
 
-It loops through every motive, temporarily assigns it, calls `setDir()` to calculate the bounding box at that size, and then calls `survives()` to check if the painting actually fits. Every motive that fits gets added to a list, and then one is picked at random.
+It loops through every motive (all 26 of them, from index 0 up to `LAST_VALUE`), temporarily assigns it, calls `setDir()` to calculate the bounding box at that size, and then calls `survives()` to check if the painting actually fits. Every motive that fits gets added to a list, and then one is picked at random.
 
 ### The Survives Check
 
@@ -185,7 +212,24 @@ float fv0 = (vo + h - (ys) * 16) / 256.0f;
 float fv1 = (vo + h - (ys + 1) * 16) / 256.0f;
 ```
 
-The back side of every painting uses a fixed texture region at pixel column 192 (12 * 16) on the atlas. That's the brown "back of canvas" look.
+The back side of every painting uses a fixed texture region at pixel column 192 (12 * 16) on the atlas. That is the brown "back of canvas" look.
+
+### Atlas Layout Map
+
+Here is what the 256x256 atlas looks like, by row:
+
+```
+Row 0   (vo=0):    7 small 1x1 paintings (columns 0-6)
+                   Column 12 (x=192): back-of-painting texture (RESERVED)
+Row 2   (vo=32):   5 wide 2x1 paintings (columns 0-8)
+Row 4   (vo=64):   2 tall 1x2 paintings (columns 0-1)
+                   + 2 console-exclusive 4x3s at x=192 (Skeleton, DonkeyKong)
+Row 6   (vo=96):   1 wide 4x2 painting (Fighters, columns 0-3)
+Row 8   (vo=128):  6 medium 2x2 paintings (columns 0-10)
+Row 12  (vo=192):  3 large 4x4 paintings (columns 0-11)
+```
+
+Column 192 (x=192) row 0 is reserved for the back-of-painting texture. Don't put art there.
 
 ## Adding a New Painting
 
@@ -243,22 +287,9 @@ This is used by `AddPaintingPacket` when reading the motive name from the networ
 
 Edit the `art/kz.png` texture atlas and draw your painting at the UV offset you picked. For a 2x2 painting (32x32 pixels), you need a 32x32 pixel region at your chosen offset.
 
-The atlas is 256x256. Here's a rough layout of what's used:
-
-```
-Row 0   (vo=0):    7 small 1x1 paintings
-Row 2   (vo=32):   5 wide 2x1 paintings
-Row 4   (vo=64):   2 tall 1x2 paintings + 2 console-exclusive 4x3s at x=192
-Row 6   (vo=96):   1 wide 4x2 painting (Fighters)
-Row 8   (vo=128):  6 medium 2x2 paintings
-Row 12  (vo=192):  3 large 4x4 paintings
-```
-
-Column 192 (x=192) row 0 is reserved for the back-of-painting texture. Don't put art there.
-
 ### Step 5: Build and Test
 
-Place a painting on a wall that's at least 2x2 blocks. Keep breaking and replacing it until the game randomly picks your motive. Since selection is random from all motives that fit, you might need a few tries.
+Place a painting on a wall that is at least 2x2 blocks. Keep breaking and replacing it until the game randomly picks your motive. Since selection is random from all motives that fit, you might need a few tries.
 
 ## The Painting Entity
 
@@ -337,7 +368,20 @@ You don't need to touch this when adding new motives. Entity registration is for
 
 ## Tips
 
-- **Odd sizes work** - You're not limited to power-of-two sizes. The console-exclusive `Skeleton` and `DonkeyKong` paintings are 64x48 (4x3 blocks). You could make a 48x16 (3x1) painting if you wanted.
+- **Odd sizes work** - You are not limited to power-of-two sizes. The console-exclusive `Skeleton` and `DonkeyKong` paintings are 64x48 (4x3 blocks). You could make a 48x16 (3x1) painting if you wanted.
 - **The 256px atlas limit** - The atlas is 256x256 and the UV math divides by 256.0. If you need more space than the atlas has, you'd need to either change the atlas size and update the UV divisor in `PaintingRenderer`, or replace existing paintings you don't want.
 - **Motive names must be unique** - The name is used for NBT save/load and network sync. Duplicate names will cause the wrong painting to show up.
 - **Random selection is uniform** - Every motive that fits has an equal chance of being picked. If you add 20 custom 1x1 paintings, the vanilla 1x1s become much rarer on small walls.
+- **The MAX_MOTIVE_NAME_LENGTH matters** - The `AddPaintingPacket` uses this as a buffer size when reading motive names over the network. If your name exceeds it, the name gets truncated and the client won't find the motive.
+
+## Key Files
+
+| File | What it does |
+|---|---|
+| `Minecraft.World/Painting.h` | Motive class, MotiveEnum (26 entries + LAST_VALUE), Painting entity |
+| `Minecraft.World/Painting.cpp` | Motive::values[] array, PaintingPostConstructor, save/load |
+| `Minecraft.World/HangingEntity.cpp` | survives() check for wall solidity and entity overlap |
+| `Minecraft.World/HangingEntityItem.cpp` | Placement logic when player right-clicks wall |
+| `Minecraft.Client/PaintingRenderer.cpp` | Renders paintings using the kz.png atlas |
+| `Minecraft.World/AddPaintingPacket.h/.cpp` | Network packet for syncing paintings to clients |
+| `art/kz.png` | The 256x256 texture atlas containing all painting images |

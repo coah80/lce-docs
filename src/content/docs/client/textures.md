@@ -48,6 +48,8 @@ All built-in textures are registered through the `TEXTURE_NAME` enum, which give
 
 The total count is `TN_COUNT`.
 
+Each `TEXTURE_NAME` entry maps to a string path in the `preLoaded[]` array in `Textures.cpp`. During `loadIndexedTextures()`, the engine walks this array and loads every texture. The path gets a `.png` extension appended, and the texture is loaded through the active texture pack's `getImageResource()`.
+
 ### Key methods
 
 | Method | Purpose |
@@ -64,6 +66,39 @@ The total count is `TN_COUNT`.
 | `reloadAll()` | Reload all textures (after texture pack change) |
 | `stitch()` | Rebuild the stitched terrain/item atlases |
 | `getMissingIcon(int type)` | Get the purple/black missing texture icon |
+| `readImage(TEXTURE_NAME, const wstring&)` | Load image through the active texture pack with fallback |
+
+### How readImage works
+
+`readImage()` is where the pack selection actually matters. It checks if the currently selected texture pack has the requested texture, and if so, loads from that pack. Otherwise it falls through to the default:
+
+```cpp
+BufferedImage* Textures::readImage(TEXTURE_NAME texId, const wstring& name)
+{
+    if (!skins->isUsingDefaultSkin() &&
+        skins->getSelected()->hasFile(L"res/" + name, false))
+    {
+        img = skins->getSelected()->getImageResource(name, ...);
+    }
+    else
+    {
+        img = skins->getDefault()->getImageResource(name, ...);
+    }
+    return img;
+}
+```
+
+Notice the `L"res/"` prefix check. Texture files in packs are expected to be under a `res/` directory.
+
+### How reloadAll works
+
+When the game loads or reloads textures (after a texture pack change, for example), this is the sequence:
+
+1. `reloadAll()` gets called
+2. All existing GPU texture IDs get released
+3. The ID map and pixel cache are cleared
+4. `loadIndexedTextures()` re-loads every entry in the `preLoaded[]` array (mob textures, environment, GUI, particles, etc.)
+5. `stitch()` rebuilds both the terrain and items atlases
 
 ### HTTP and memory textures
 
@@ -91,7 +126,48 @@ When stereoscopic 3D is enabled, `Textures::anaglyph()` converts pixel data to t
 
 ### Title update textures
 
-`Textures::IsTUImage()` and `Textures::IsOriginalImage()` figure out whether a texture should be loaded from the title update drive or the original game disc. This is what lets texture replacements work through patches.
+`Textures::IsTUImage()` and `Textures::IsOriginalImage()` figure out whether a texture should be loaded from the title update drive or the original game disc. This is what lets texture replacements work through patches. The engine checks the title update path first (for patched textures), then falls back to the base path.
+
+### Texture format and mipmapping
+
+The static member `Textures::TEXTURE_FORMAT` controls the GPU texture format. Format selection via `setTextureFormat()` adapts to whatever the platform supports. Some textures use compressed 8-bit formats to save memory:
+
+```cpp
+// Clouds use a reduced format on Xbox
+if (resourceName == L"environment/clouds.png")
+    TEXTURE_FORMAT = C4JRender::TEXTURE_FORMAT_R1G1B1Ax;
+// Pumpkin blur has no color, just alpha
+else if (resourceName == L"%blur%/misc/pumpkinblur.png")
+    TEXTURE_FORMAT = C4JRender::TEXTURE_FORMAT_R0G0B0Ax;
+```
+
+Mipmapping is controlled by `Textures::MIPMAP`. Most textures use mipmapping, but some are excluded:
+
+- `environment/clouds.png`
+- `%clamp%misc/shadow.png`
+- `gui/icons.png`
+- `gui/gui.png`
+- `misc/footprint.png`
+
+Cross-texture plants (flowers, saplings) also disable mipmapping with `->disableMipmap()` because mip chains make them look blurry.
+
+### Pixel format
+
+The pixel byte order depends on the platform:
+
+```cpp
+// Xbox: ARGB byte order
+newPixels[i * 4 + 0] = (byte) a;
+newPixels[i * 4 + 1] = (byte) r;
+newPixels[i * 4 + 2] = (byte) g;
+newPixels[i * 4 + 3] = (byte) b;
+
+// Other platforms: RGBA byte order
+newPixels[i * 4 + 0] = (byte) r;
+newPixels[i * 4 + 1] = (byte) g;
+newPixels[i * 4 + 2] = (byte) b;
+newPixels[i * 4 + 3] = (byte) a;
+```
 
 ## TextureManager
 
@@ -112,9 +188,126 @@ class TextureManager {
 };
 ```
 
-It provides the link between named resources and GPU texture handles, and creates `Stitcher` instances for atlas building.
+It provides the link between named resources and GPU texture handles. `createTextureID()` allocates a new OpenGL texture name. `createStitcher()` creates a `Stitcher` instance for atlas building.
 
-## Texture stitching
+The `createTextures()` method checks for animation definitions. If a `.txt` sidecar file exists for the texture, it treats the image as a vertical strip of animation frames.
+
+## Pre-stitched texture atlases
+
+This is where LCE really diverges from Java Edition. Java builds its texture atlas at runtime by stitching individual tile images together. LCE ships pre-stitched atlases and uses `PreStitchedTextureMap` instead:
+
+```cpp
+// 4J Added this class to stop having to do texture stitching at runtime
+class PreStitchedTextureMap : public IconRegister
+{
+    stringIconMap texturesByName;
+    BufferedImage* missingTexture;
+    StitchedTexture* missingPosition;
+    Texture* stitchResult;
+    vector<StitchedTexture*> animatedTextures;
+    vector<pair<wstring, wstring>> texturesToAnimate;
+
+    void loadUVs();
+
+public:
+    void stitch();
+    StitchedTexture* getTexture(const wstring& name);
+    void cycleAnimationFrames();
+    Texture* getStitchedTexture();
+    Icon* registerIcon(const wstring& name);
+    Icon* getMissingIcon();
+    int getFlags() const;
+};
+```
+
+`Textures` owns two `PreStitchedTextureMap` instances:
+
+```cpp
+terrain = new PreStitchedTextureMap(Icon::TYPE_TERRAIN, L"terrain", L"textures/blocks/", missingNo, true);
+items = new PreStitchedTextureMap(Icon::TYPE_ITEM, L"items", L"textures/items/", missingNo, true);
+```
+
+The `true` at the end enables mipmapping for the atlas.
+
+### How loadUVs works
+
+All UV coordinates are hardcoded in `loadUVs()`. Each texture slot is mapped to a position on a 16x16 grid:
+
+```cpp
+float slotSize = 1.0f / 16.0f;
+texturesByName.insert(stringIconMap::value_type(
+    L"grass_top",
+    new SimpleIcon(L"grass_top", slotSize*0, slotSize*0, slotSize*1, slotSize*1)
+));
+```
+
+The four float parameters to `SimpleIcon` are `U0, V0, U1, V1`, which map to the top-left and bottom-right corners of the texture in UV space (0.0 to 1.0).
+
+Some textures take up more than one slot. Flowing water and lava use 2x2 slots:
+
+```cpp
+texturesByName.insert(stringIconMap::value_type(
+    L"water_flow",
+    new SimpleIcon(L"water_flow", slotW*14, slotH*12, slotW*(14+2), slotH*(12+2))
+));
+```
+
+### Icon registration
+
+When a tile class calls `iconRegister->registerIcon(L"stone")`, the `PreStitchedTextureMap` looks up `"stone"` in its `texturesByName` map and returns the matching `Icon*` with its UV coordinates. If the name isn't found, you get the `missingNo` purple-black checkerboard and a `__debugbreak()` in debug builds.
+
+### Animated atlas textures
+
+Animated textures in the atlas (water, lava, fire, portal) work like this:
+
+1. During `loadUVs()`, animated textures are registered in the `texturesToAnimate` list alongside their normal UV entry
+2. The actual animation frames are loaded from separate image files (strips of frames stacked vertically)
+3. Every tick, `cycleAnimationFrames()` advances each animated texture to its next frame by blitting the frame data onto the atlas
+
+```cpp
+// Registering an animated texture in loadUVs()
+texturesByName.insert(stringIconMap::value_type(
+    L"lava", new SimpleIcon(L"lava", slotW*13, slotH*14, slotW*14, slotH*15)
+));
+texturesToAnimate.push_back(pair<wstring, wstring>(L"lava", L"lava"));
+```
+
+The second value in the pair is the filename of the animation strip (loaded from `textures/blocks/lava.png`).
+
+`StitchedTexture::cycleFrames()` supports two modes:
+
+**Simple mode:** frames advance one at a time, looping back:
+
+```cpp
+frame = (frame + 1) % frames->size();
+if (oldFrame != frame)
+    source->blit(x, y, frames->at(frame), rotated);
+```
+
+**Override mode:** a custom frame sequence with per-frame durations, defined with `*` syntax (e.g., `4*10` means "frame 4 for 10 ticks"):
+
+```
+0,1,2,3,
+4*10,5*10,
+4*10,3,2,1,
+0
+```
+
+The animated textures that ship with vanilla LCE:
+
+| Texture Name | Description |
+|---|---|
+| `water` | Still water surface |
+| `water_flow` | Flowing water (2x2 slots) |
+| `lava` | Still lava surface |
+| `lava_flow` | Flowing lava (2x2 slots) |
+| `fire_0` | Fire layer 1 |
+| `fire_1` | Fire layer 2 |
+| `portal` | Nether portal effect |
+
+Fire uses two separate animated layers that get composited by the renderer.
+
+## Texture stitching classes
 
 The texture atlas system combines many small textures into large atlases for efficient rendering:
 
@@ -122,11 +315,39 @@ The texture atlas system combines many small textures into large atlases for eff
 |---|---|
 | `Stitcher` | Packs textures into an atlas using a bin-packing algorithm |
 | `StitchSlot` | Represents a slot within the stitched atlas |
-| `StitchedTexture` | An individual texture within a stitched atlas |
-| `PreStitchedTextureMap` | Pre-built terrain and item texture maps |
-| `TextureMap` | Runtime texture atlas management |
+| `StitchedTexture` | An individual texture within a stitched atlas, stores UV coordinates and animation state |
+| `PreStitchedTextureMap` | Pre-built terrain and item texture maps with hardcoded UVs |
+| `TextureMap` | Runtime texture atlas management (used less in LCE than Java) |
 
-`Textures` owns two `PreStitchedTextureMap` instances: `terrain` (block faces) and `items` (item sprites).
+## The Icon system
+
+`Icon` is the interface that provides UV coordinates for rendering:
+
+```cpp
+class Icon {
+public:
+    static const int TYPE_TERRAIN = 0;
+    static const int TYPE_ITEM = 1;
+
+    virtual float getU0(bool adjust = false) const = 0;
+    virtual float getU1(bool adjust = false) const = 0;
+    virtual float getV0(bool adjust = false) const = 0;
+    virtual float getV1(bool adjust = false) const = 0;
+    virtual int getWidth() const = 0;
+    virtual int getHeight() const = 0;
+};
+```
+
+The concrete implementation `StitchedTexture` stores the pixel position within the atlas and computes UVs:
+
+```cpp
+this->u0 = x / (float)source->getWidth();
+this->u1 = (x + width) / (float)source->getWidth();
+this->v0 = y / (float)source->getHeight();
+this->v1 = (y + height) / (float)source->getHeight();
+```
+
+`SimpleIcon` is a simpler implementation that takes UV values directly. It also supports flags like `IS_GRASS_TOP` that tell the renderer to apply biome-dependent color tinting.
 
 ## Dynamic textures
 
@@ -134,14 +355,18 @@ Some textures animate each tick:
 
 | Class | Purpose |
 |---|---|
-| `ClockTexture` | Clock item face rotation |
-| `CompassTexture` | Compass needle direction |
+| `ClockTexture` | Clock item face rotation based on time of day |
+| `CompassTexture` | Compass needle direction based on spawn point angle |
 
-These get updated during `Textures::tick()` when `tickDynamics` is true.
+These get updated during `Textures::tick()` when `tickDynamics` is true. They compute new pixel data each frame and upload it to the GPU via `replaceTexture()`.
 
 ## BufferedImage
 
-`BufferedImage` is the CPU-side image container used for loading and working with texture data before uploading to the GPU. It stores pixel data as integer arrays.
+`BufferedImage` is the CPU-side image container used for loading and working with texture data before uploading to the GPU. It stores pixel data as integer arrays. It can load from:
+
+- File paths (PNG from disk)
+- DLC packs (via `DLCPack` pointer and path)
+- Raw pixel data (integer array with width/height)
 
 ## TexturePack hierarchy
 
@@ -167,11 +392,27 @@ class TexturePack {
 
 | Class | Source | Notes |
 |---|---|---|
-| `DefaultTexturePack` | Built-in game resources | Fallback for all packs |
-| `AbstractTexturePack` | Base for custom packs | Shared implementation |
-| `FileTexturePack` | Single archive file | `.zip` or custom format |
-| `FolderTexturePack` | Directory of loose files | Development/testing |
-| `DLCTexturePack` | DLC content package | Mash-up packs, texture packs |
+| `DefaultTexturePack` | Built-in game resources | Always exists, always ID 0. Fallback for all packs. Reads from `res/TitleUpdate/res` path. |
+| `AbstractTexturePack` | Base for custom packs | Adds fallback logic, colour table support, icon loading. `getResource()` checks this pack first, falls through to fallback if missing. |
+| `FolderTexturePack` | Directory of loose files | Debug/development. Reads from `DummyTexturePack/res/` folder. Easiest way to test texture replacements. |
+| `FileTexturePack` | Single archive file | `.zip` or custom format. Mostly stubbed on console. |
+| `DLCTexturePack` | DLC content package | The real deal for shipping texture packs. Uses `.pck` format with `DLCManager`. Has two `DLCPack` objects: `m_dlcInfoPack` (metadata) and `m_dlcDataPack` (textures, loaded on demand). Supports async DLC mounting. |
+
+### The fallback chain
+
+Every non-default pack gets `DefaultTexturePack` as its fallback. When `getResource()` is called, it first checks the current pack. If the file isn't found, it asks the fallback:
+
+```cpp
+InputStream* AbstractTexturePack::getResource(const wstring& name, bool allowFallback)
+{
+    InputStream* is = getResourceImplementation(name);
+    if (is == NULL && fallback != NULL && allowFallback)
+        is = fallback->getResource(name, true);
+    return is;
+}
+```
+
+You only need to include the textures you want to change. Everything else falls through to vanilla.
 
 ### TexturePackRepository
 
@@ -192,6 +433,8 @@ class TexturePackRepository {
     void clearInvalidTexturePacks();
 };
 ```
+
+When you select a new pack, `selectTexturePackById()` looks it up in an ID cache and triggers `eAppAction_ReloadTexturePack`, which eventually calls `Textures::reloadAll()`.
 
 It supports texture pack selection by ID (`selectTexturePackById()`), web skins (`selectWebSkin()`, `isUsingWebSkin()`), and DLC packs (`addTexturePackFromDLC()`).
 
@@ -241,13 +484,45 @@ Each DLC pack under `TitleUpdate/DLC/` has a `Data/` subdirectory with pack-spec
 
 DLC packs are managed through `DLCManager` and `DLCPack` in `Common/DLC/`, with file types defined in headers like `DLCTextureFile.h`, `DLCColourTableFile.h`, `DLCAudioFile.h`, `DLCSkinFile.h`, and `DLCUIDataFile.h`.
 
+DLC packs can include:
+- Textures (terrain atlas, mob textures, GUI)
+- Colour tables (`colours.col`)
+- UI skins (`TexturePack.xzp` on Xbox, `skin.swf` + `media.arc` on other platforms)
+- Audio banks
+- Game rules (for mashup packs)
+
+### DLC mounting
+
+DLC texture packs need async mounting from the console's storage before their data can be accessed:
+
+```cpp
+void DLCTexturePack::loadData()
+{
+    int mountIndex = m_dlcInfoPack->GetDLCMountIndex();
+    if (mountIndex > -1)
+        StorageManager.MountInstalledDLC(
+            ProfileManager.GetPrimaryPad(),
+            mountIndex,
+            &DLCTexturePack::packMounted, this, "TPACK");
+}
+```
+
+On Xbox, the DLC stays mounted if it has streaming audio; otherwise it gets unmounted after loading to free up mount points.
+
 ## Colour tables
 
 `ColourTable` (in `Common/Colours/`) provides biome-specific color lookup for foliage, grass, water, and sky colors. Each texture pack can supply its own colour table via `TexturePack::loadColourTable()` and `TexturePack::getColourTable()`. The `eMinecraftColour` enum in `App_enums.h` defines all colour IDs.
 
-## Texture format
+Particles, grass, foliage, and water all pull their tint colors from the active colour table, which is why mashup packs can restyle everything.
 
-The static member `Textures::TEXTURE_FORMAT` controls the GPU texture format. Mipmapping is controlled by `Textures::MIPMAP`. Format selection via `setTextureFormat()` adapts to whatever the platform supports.
+## Network texture packets
+
+In multiplayer, the host sends texture pack info to joining clients:
+
+- **`TexturePacket`** (ID 154) sends the full texture pack name and data bytes to a client
+- **`TextureChangePacket`** (ID 157) tells clients about skin or cape changes during gameplay
+
+If a client doesn't have the DLC pack installed, it falls back to the default.
 
 ## MinecraftConsoles differences
 

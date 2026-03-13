@@ -9,19 +9,19 @@ LCE generates several types of structures during world creation: villages, stron
 
 ```
 LargeFeature (base for chunk-spanning features)
-├── LargeCaveFeature      – Overworld cave carving
-├── LargeHellCaveFeature  – Nether cave carving
-├── CanyonFeature         – ravine/canyon carving
-├── DungeonFeature        – alternate cave/tunnel generation
-└── StructureFeature      – base for all placed structures
+├── LargeCaveFeature      - Overworld cave carving
+├── LargeHellCaveFeature  - Nether cave carving
+├── CanyonFeature         - ravine/canyon carving
+├── DungeonFeature        - alternate cave/tunnel generation
+└── StructureFeature      - base for all placed structures
     ├── VillageFeature
     ├── StrongholdFeature
     ├── MineShaftFeature
     ├── NetherBridgeFeature
     └── RandomScatteredLargeFeature  (desert pyramids, jungle temples)
 
-StructureStart            – holds the list of pieces for one structure instance
-StructurePiece            – a single room/corridor/building within a structure
+StructureStart            - holds the list of pieces for one structure instance
+StructurePiece            - a single room/corridor/building within a structure
 ```
 
 ### Key source files
@@ -80,16 +80,81 @@ This enum maps to values in the game rules XML and is used by `LevelGenerationOp
 
 ### StructurePiece
 
-`StructurePiece` is the base class for individual rooms, corridors, and buildings. It manages:
+`StructurePiece` is the base class for individual rooms, corridors, and buildings. Here is the full breakdown of what it handles.
 
-- **Orientation**: Translates local coordinates (x, y, z) to world coordinates based on a `Direction`-style `orientation` field
-- **Block placement**: `placeBlock()`, `generateBox()`, `generateAirBox()`, `fillColumnDown()`, and `generateUpperHalfSphere()` all clip to the chunk bounding box to prevent infinite chunk generation loops
-- **Chest generation**: `createChest()` places a chest with weighted random loot
-- **Dispenser generation**: `createDispenser()` places a dispenser with items
-- **Collision detection**: `findCollisionPiece()` checks if a new piece's bounding box overlaps existing pieces
-- **`BlockSelector`**: An inner class that allows per-block randomization (e.g., mossy stone bricks in strongholds)
+#### Orientation and coordinate translation
 
-The `genDepth` field tracks recursion depth during piece generation, with each structure type defining a `MAX_DEPTH` constant.
+Each piece has an `orientation` field (from the `Direction` system) and a `BoundingBox` in world coordinates. The piece converts local coordinates (x, y, z) to world coordinates based on the orientation:
+
+- **UNDEFINED**: No translation at all
+- **NORTH**: `(0, 0, 0)` maps to `(boundingBox.x0, boundingBox.y0, boundingBox.z1)`, so Z runs backward
+- **SOUTH**: Same X, but Z is flipped the other way
+- **EAST/WEST**: Local X and Z swap, so corridors can face different directions without duplicate code
+
+The comment in the source is worth noting: "When-ever a structure piece is placing blocks, it is VERY IMPORTANT to always make sure that all getTile and setTile calls are within the chunk's bounding box. Failing to check this will cause the level generator to create new chunks, leading to infinite loops."
+
+#### Coordinate helper methods
+
+| Method | What it does |
+|--------|-------------|
+| `getWorldX(x, z)` | Converts local X/Z to world X, accounting for orientation |
+| `getWorldY(y)` | Converts local Y to world Y (adds `boundingBox.y0`) |
+| `getWorldZ(x, z)` | Converts local X/Z to world Z, accounting for orientation |
+| `getOrientationData(tile, data)` | Rotates block metadata (like stair facing) to match piece orientation |
+
+4J made these public (they are protected in Java) so that game rules can access them.
+
+#### Block placement methods
+
+| Method | What it does |
+|--------|-------------|
+| `placeBlock(level, block, data, x, y, z, chunkBB)` | Places a single block, clipped to chunk bounds |
+| `getBlock(level, x, y, z, chunkBB)` | Gets a block safely (returns 0 if out of bounds to prevent chunk generation) |
+| `generateBox(...)` | Fills a box with edge/fill tiles. Has 6 overloads for different use cases |
+| `generateAirBox(...)` | Fills a box with air |
+| `generateMaybeBox(...)` | Fills a box with a random probability per block |
+| `maybeGenerateBlock(...)` | Places a single block with a random probability |
+| `generateUpperHalfSphere(...)` | Carves or fills a half-sphere shape (used in rooms) |
+| `generateAirColumnUp(...)` | Clears a column of blocks upward |
+| `fillColumnDown(...)` | Fills a column downward until hitting a solid block |
+
+The `generateBox()` method alone has 6 overloads:
+
+1. Basic edge/fill tiles (no data values)
+2. Edge/fill tiles with explicit data values
+3. Box-to-box version (takes a `BoundingBox` instead of coordinates)
+4. BlockSelector version (per-block randomization)
+5. BlockSelector with BoundingBox input
+6. Random probability version (`generateMaybeBox`)
+
+#### Chest and dispenser generation
+
+| Method | What it does |
+|--------|-------------|
+| `createChest(level, chunkBB, random, x, y, z, treasure, numRolls)` | Places a chest with weighted random loot |
+| `createDispenser(level, chunkBB, random, x, y, z, facing, items, numRolls)` | Places a dispenser with items and a facing direction |
+| `createDoor(level, chunkBB, random, x, y, z, orientation)` | Places a door with the right orientation |
+
+#### Collision detection
+
+`findCollisionPiece()` is a static method that checks if a new piece's bounding box overlaps any existing pieces in the list. This prevents rooms from clipping into each other.
+
+#### BlockSelector inner class
+
+`BlockSelector` is an inner class that lets you randomize blocks during box generation. It has three virtual methods:
+
+- `next(random, worldX, worldY, worldZ, isEdge)`: Called per block, sets `nextId` and `nextData`
+- `getNextId()`: Returns the block ID to use
+- `getNextData()`: Returns the data value to use
+
+Strongholds use `SmoothStoneSelector` to mix stone brick variants. Jungle temples use `MossStoneSelector` for mossy/cracked stone. Both are good examples of this pattern.
+
+#### Other fields
+
+- `genDepth`: Tracks recursion depth during piece generation. Each structure type defines a MAX_DEPTH constant
+- `edgesLiquid()`: Checks if any edge of the bounding box touches liquid (used to avoid awkward placements)
+- `isInChunk()`: Checks if the piece overlaps a given chunk position
+- `getLocatorPosition()`: Returns the "center" position of the piece (used for map features)
 
 ---
 
@@ -117,29 +182,82 @@ The `StartPiece` tracks:
 
 - `isDesertVillage`: whether to use sandstone materials
 - `villageSize`: controls piece set generation
-- `pieceSet`: weighted list of building types
+- `pieceSet`: weighted list of building types (a `list<PieceWeight *>`)
 - `pendingHouses` / `pendingRoads`: queues processed in random order
+- `biomeSource`: for biome lookups during generation
+- `isLibraryAdded`: prevents duplicate libraries
+- `previousPiece`: tracks the last piece weight used
+- `m_level`: 4J addition, pointer to the Level
+
+### Village size constants
+
+Villages have three size categories defined in `VillagePieces`:
+
+| Constant | Value | Usage |
+|----------|-------|-------|
+| `SIZE_SMALL` | 0 | Small village variant |
+| `SIZE_BIG` | 1 | Medium village variant |
+| `SIZE_BIGGEST` | 2 | Large village variant |
+
+### Village piece weight system
+
+The `PieceWeight` class controls which buildings appear and how often:
+
+- `pieceClass`: An `EPieceClass` enum value (4J replaced Java's `Class<?>` reflection)
+- `weight`: How likely this piece is to be selected
+- `placeCount`: How many times this piece has been placed so far
+- `maxPlaceCount`: Maximum number of this piece type allowed (0 means unlimited)
+- `doPlace(depth)`: Returns true if this piece can still be placed
+- `isValid()`: Returns true if `maxPlaceCount` hasn't been reached
+
+`createPieceSet()` builds the weighted list based on `villageSize`. `updatePieceWeight()` recalculates total weight after each placement.
+
+### Village piece hierarchy
+
+All village pieces extend `VillagePiece`, which extends `StructurePiece`. `VillagePiece` adds:
+
+- `spawnedVillagerCount`: tracks how many villagers this piece has spawned
+- `startPiece`: pointer back to the `StartPiece` for accessing shared state
+- `getAverageGroundHeight()`: samples terrain to set the building's Y level
+- `spawnVillagers()`: places villager entities inside the building
+- `getVillagerProfession()`: virtual method for piece-specific professions
+- `biomeBlock()` / `biomeData()`: virtual methods that swap materials for desert villages (cobblestone becomes sandstone, wood becomes smooth sandstone, etc.)
+- Overrides of `placeBlock()`, `generateBox()`, and `fillColumnDown()` to route through `biomeBlock()`/`biomeData()`
+- `isOkBox()`: 4J added a `startRoom` parameter to check bounds against the world edge
+
+Road pieces extend `VillageRoadPiece`, which is a simple passthrough subclass of `VillagePiece`.
 
 ### Village piece types
 
 | Piece Class | Enum | Dimensions (WxHxD) | Description |
 |-------------|------|---------------------|-------------|
 | `Well` | -- | 6x15x6 | Central well, always the start piece |
-| `SimpleHouse` | `EPieceClass_SimpleHouse` | 5x6x5 | Basic one-room house with optional terrace |
-| `SmallTemple` | `EPieceClass_SmallTemple` | 5x12x9 | Village church |
-| `BookHouse` | `EPieceClass_BookHouse` | 9x9x6 | Library building |
-| `SmallHut` | `EPieceClass_SmallHut` | 4x6x5 | Tiny house with optional low ceiling |
-| `PigHouse` | `EPieceClass_PigHouse` | 9x7x11 | Butcher shop |
-| `Smithy` | `EPieceClass_Smithy` | 10x6x7 | Blacksmith with loot chest |
-| `Farmland` | `EPieceClass_Farmland` | 7x4x9 | Small farm with 2 crop types |
-| `DoubleFarmland` | `EPieceClass_DoubleFarmland` | 13x4x9 | Large farm with 4 crop types |
+| `SimpleHouse` | `EPieceClass_SimpleHouse` | 5x6x5 | Basic one-room house with optional terrace (`hasTerrace` flag) |
+| `SmallTemple` | `EPieceClass_SmallTemple` | 5x12x9 | Village church. Overrides `getVillagerProfession()` for priest |
+| `BookHouse` | `EPieceClass_BookHouse` | 9x9x6 | Library building. Overrides `getVillagerProfession()` for librarian |
+| `SmallHut` | `EPieceClass_SmallHut` | 4x6x5 | Tiny house with `lowCeiling` and `tablePlacement` random flags |
+| `PigHouse` | `EPieceClass_PigHouse` | 9x7x11 | Butcher shop. Overrides `getVillagerProfession()` for butcher |
+| `Smithy` | `EPieceClass_Smithy` | 10x6x7 | Blacksmith with loot chest. Has `staticCtor()` for treasure items |
+| `Farmland` | `EPieceClass_Farmland` | 7x4x9 | Small farm with 2 crop types (`cropsA`, `cropsB` from `selectCrops()`) |
+| `DoubleFarmland` | `EPieceClass_DoubleFarmland` | 13x4x9 | Large farm with 4 crop types (`cropsA` through `cropsD`) |
 | `TwoRoomHouse` | `EPieceClass_TwoRoomHouse` | 9x7x12 | Two-room dwelling |
 | `StraightRoad` | -- | 3xNx-- | Variable-length road segment |
 | `LightPost` | -- | 3x4x2 | Torch lamp post |
 
+### Piece generation flow
+
+Pieces connect through doorways. The generation functions follow this pattern:
+
+1. `generateAndAddPiece()` / `generateAndAddRoadPiece()`: Top-level functions that pick a direction and depth
+2. `generatePieceFromSmallDoor()`: Picks a weighted random piece from the piece set
+3. `findAndCreatePieceFactory()`: Creates the actual piece instance from the `EPieceClass` enum
+4. Each piece's static `createPiece()` / `findPieceBox()`: Checks if the bounding box fits without collisions
+
+Roads and houses use separate generation queues (`pendingRoads` and `pendingHouses`). Roads are processed first, then houses fill in the gaps.
+
 ### Village loot
 
-The **Smithy** has a chest with weighted treasure items (defined in `Smithy::treasureItems`). Desert villages swap cobblestone/wood for sandstone variants through `biomeBlock()` and `biomeData()` overrides.
+The **Smithy** has a chest with weighted treasure items (defined in `Smithy::treasureItems`, initialized in `Smithy::staticCtor()`). Desert villages swap cobblestone/wood for sandstone variants through `biomeBlock()` and `biomeData()` overrides.
 
 ### Village constants
 
@@ -176,38 +294,74 @@ The `createStructureStart()` method keeps regenerating the stronghold until the 
 
 `StrongholdStart` creates a `StartPiece` (which extends `StairsDown`) and recursively generates rooms from a `pendingChildren` queue. After generation, the whole structure is moved below sea level (offset 10).
 
+The `StartPiece` tracks:
+
+- `isLibraryAdded`: prevents duplicate libraries
+- `previousPiece`: the last `PieceWeight` used
+- `portalRoomPiece`: pointer to the portal room (checked to confirm it was placed)
+- `pendingChildren`: queue of pieces waiting to add their children
+- `m_level`: 4J addition
+
+### Stronghold piece weight system
+
+The stronghold uses a weight system similar to villages but with depth-gated pieces:
+
+- `PieceWeight`: Base class with `pieceClass`, `weight`, `placeCount`, `maxPlaceCount`
+- `PieceWeight_Library`: Subclass that overrides `doPlace()` to require `depth > 4`
+- `PieceWeight_PortalRoom`: Subclass that overrides `doPlace()` to require `depth > 5`
+
+The `imposedPiece` static field can force a specific piece type to be placed next. `totalWeight` tracks the sum of all available piece weights and `currentPieces` holds the active weight list. `resetPieces()` reinitializes everything for a new stronghold.
+
+### Stronghold piece hierarchy
+
+All stronghold pieces extend `StrongholdPiece`, which extends `StructurePiece`. `StrongholdPiece` adds:
+
+- `SmallDoorType` enum: `OPENING`, `WOOD_DOOR`, `GRATES`, `IRON_DOOR`
+- `generateSmallDoor()`: Places a door of the given type at a position
+- `randomSmallDoor()`: Picks a random door type
+- `generateSmallDoorChildForward/Left/Right()`: Creates child pieces off each exit
+
+Pieces connect through these "small door" exits. Each piece stores its own `entryDoor` type, randomly picked at creation time.
+
 ### Stronghold piece types
 
 | Piece Class | Enum | Dimensions (WxHxD) | Description |
 |-------------|------|---------------------|-------------|
-| `StairsDown` | `EPieceClass_StairsDown` | 5x11x5 | Spiral staircase (also the start piece) |
-| `Straight` | `EPieceClass_Straight` | 5x5x7 | Corridor with optional side branches |
+| `StairsDown` | `EPieceClass_StairsDown` | 5x11x5 | Spiral staircase (also the start piece). Has `isSource` flag for the first instance |
+| `Straight` | `EPieceClass_Straight` | 5x5x7 | Corridor with optional `leftChild` and `rightChild` branches |
 | `LeftTurn` | `EPieceClass_LeftTurn` | 5x5x5 | Left-turning corridor |
-| `RightTurn` | `EPieceClass_RightTurn` | 5x5x5 | Right-turning corridor (extends LeftTurn) |
+| `RightTurn` | `EPieceClass_RightTurn` | 5x5x5 | Right-turning corridor (extends `LeftTurn`, overrides `addChildren` and `postProcess`) |
 | `PrisonHall` | `EPieceClass_PrisonHall` | 9x5x11 | Prison cells corridor |
-| `RoomCrossing` | `EPieceClass_RoomCrossing` | 11x7x11 | Large room with random interior type |
+| `RoomCrossing` | `EPieceClass_RoomCrossing` | 11x7x11 | Large room with random interior `type` (fountain, pillar, etc.) |
 | `StraightStairsDown` | `EPieceClass_StraightStairsDown` | 5x11x8 | Straight descending staircase |
-| `FiveCrossing` | `EPieceClass_FiveCrossing` | 10x9x11 | Five-way intersection |
-| `ChestCorridor` | `EPieceClass_ChestCorridor` | 5x5x7 | Corridor with loot chest |
-| `Library` | `EPieceClass_Library` | 14x6(or 11)x15 | Library (single or double-height) |
-| `PortalRoom` | `EPieceClass_PortalRoom` | 11x8x16 | End portal room with silverfish spawner |
-| `FillerCorridor` | -- | variable | Connects unfinished ends |
+| `FiveCrossing` | `EPieceClass_FiveCrossing` | 10x9x11 | Five-way intersection with `leftLow`, `leftHigh`, `rightLow`, `rightHigh` exit flags |
+| `ChestCorridor` | `EPieceClass_ChestCorridor` | 5x5x7 | Corridor with loot chest. 14 weighted treasure item types |
+| `Library` | `EPieceClass_Library` | 14x6(or 11)x15 | Library with `isTall` flag for double-height variant (`tallHeight = 11`). 4 library-specific treasure items |
+| `PortalRoom` | `EPieceClass_PortalRoom` | 11x8x16 | End portal room with silverfish spawner (`hasPlacedMobSpawner` flag) |
+| `FillerCorridor` | -- | variable | Connects unfinished ends. Takes a `steps` count for length |
 
 ### Stronghold piece weight rules
 
-- **Library**: Only placed when `depth > 4`
-- **PortalRoom**: Only placed when `depth > 5`
+- **Library**: Only placed when `depth > 4` (via `PieceWeight_Library` subclass)
+- **PortalRoom**: Only placed when `depth > 5` (via `PieceWeight_PortalRoom` subclass)
 - Door types: `OPENING`, `WOOD_DOOR`, `GRATES`, `IRON_DOOR` (randomly picked per piece)
 
 ### Stronghold loot
 
-- `ChestCorridor`: 14 weighted treasure item types
-- `RoomCrossing`: 7 small treasure item types
-- `Library`: 4 library-specific treasure item types
+- `ChestCorridor`: 14 weighted treasure item types (`TREASURE_ITEMS_COUNT = 14`)
+- `RoomCrossing`: 7 small treasure item types (`SMALL_TREASURE_ITEMS_COUNT = 7`, 4J addition)
+- `Library`: 4 library-specific treasure item types (`LIBRARY_TREASURE_ITEMS_COUNT = 4`, 4J addition)
 
 ### Block selector
 
-`SmoothStoneSelector` randomizes between stone brick variants (normal, mossy, cracked) for stronghold walls.
+`SmoothStoneSelector` randomizes between stone brick variants (normal, mossy, cracked) for stronghold walls. It is a static const instance shared across all stronghold pieces.
+
+### Stronghold constants
+
+- `MAX_DEPTH = 50`
+- `LOWEST_Y_POSITION = 10`
+- `SMALL_DOOR_WIDTH = 3`, `SMALL_DOOR_HEIGHT = 3`
+- `CHECK_AIR`: Static bool used during generation
 
 ---
 
@@ -229,24 +383,28 @@ This means mineshafts become more common the further you get from the world orig
 
 `MineShaftStart` creates a `MineShaftRoom` as the starting piece and recursively generates corridors, crossings, and stairs.
 
+The piece selection is handled by `createRandomShaftPiece()`, which picks between corridors, crossings, and stairs based on random rolls. `generateAndAddPiece()` creates child pieces from existing ones.
+
 ### Mineshaft piece types
 
 | Piece Class | Description |
 |-------------|-------------|
-| `MineShaftRoom` | Large open room that serves as the hub |
-| `MineShaftCorridor` | Standard corridor with optional rails and spider webs (cave spider spawner) |
-| `MineShaftCrossing` | Intersection point, optionally two-floored |
-| `MineShaftStairs` | Descending/ascending staircase |
+| `MineShaftRoom` | Large open room that serves as the hub. Maintains a `childEntranceBoxes` list tracking where corridors connect |
+| `MineShaftCorridor` | Standard corridor with optional rails and spider webs. Tracks `hasRails`, `spiderCorridor`, `hasPlacedSpider`, and `numSections` |
+| `MineShaftCrossing` | Intersection point with a `direction` field and optional `isTwoFloored` flag for double-height crossings |
+| `MineShaftStairs` | Descending/ascending staircase connecting different levels |
 
 ### Mineshaft constants
 
 - `DEFAULT_SHAFT_WIDTH = 3`, `DEFAULT_SHAFT_HEIGHT = 3`, `DEFAULT_SHAFT_LENGTH = 5`
 - `MAX_DEPTH = 8` (changed in 1.2.3)
-- Loot defined in `MineShaftPieces::smallTreasureItems`
+- Loot defined in `MineShaftPieces::smallTreasureItems` (initialized in `MineShaftPieces::staticCtor()`)
 
 ### Spider corridors
 
-`MineShaftCorridor` has `hasRails` and `spiderCorridor` flags. Spider corridors have cave spider spawners and cobweb blocks.
+`MineShaftCorridor` has `hasRails` and `spiderCorridor` flags. Spider corridors have cave spider spawners (`hasPlacedSpider` prevents double-placement) and cobweb blocks. Regular corridors can have minecart rails.
+
+Each corridor has a `numSections` field controlling its length. The static `findCorridorSize()` method checks if a corridor of the desired length fits without hitting another piece.
 
 ---
 
@@ -267,6 +425,55 @@ Force placement through game rules is also supported.
 
 `NetherBridgeStart` creates a `StartPiece` (which extends `BridgeCrossing`) and recursively generates pieces. After generation, the structure is kept within Y range 48-70 through `moveInsideHeights()`.
 
+The `StartPiece` tracks:
+
+- `isLibraryAdded`: reused field name from the stronghold pattern
+- `previousPiece`: the last `PieceWeight` used
+- `availableBridgePieces`: list of available bridge piece weights
+- `availableCastlePieces`: list of available castle piece weights
+- `pendingChildren`: queue of pieces waiting to add their children
+- `m_level`: 4J addition
+
+### Fortress piece hierarchy
+
+All fortress pieces extend `NetherBridgePiece`, which extends `StructurePiece`. `NetherBridgePiece` adds:
+
+- `updatePieceWeight()`: Recalculates total weight for the available piece list
+- `generatePiece()`: Picks a weighted random piece from bridge or castle lists
+- `generateAndAddPiece()`: Creates a child piece with an `isCastle` flag that determines which piece list to use
+- `generateChildForward/Left/Right()`: Creates child pieces off each exit, with the `isCastle` flag passed through
+- `generateLightPost()` / `generateLightPostFacing*()`: Places the soul sand + nether brick fence light posts that decorate fortress corridors
+- `isOkBox()`: 4J added `startRoom` parameter for world edge checking
+
+### Two piece categories
+
+The fortress has two separate piece categories, each with their own weight array:
+
+**Bridge pieces** (`BRIDGE_PIECEWEIGHTS_COUNT = 6`):
+
+| Piece Class | Enum | Dimensions (WxHxD) | Description |
+|-------------|------|---------------------|-------------|
+| `BridgeStraight` | `EPieceClass_BridgeStraight` | 5x10x19 | Straight bridge segment |
+| `BridgeEndFiller` | `EPieceClass_BridgeEndFiller` | 5x10x8 | Bridge dead-end cap. Has a `selfSeed` for deterministic generation |
+| `BridgeCrossing` | `EPieceClass_BridgeCrossing` | 19x10x19 | Large bridge intersection (also the start piece) |
+| `RoomCrossing` | `EPieceClass_RoomCrossing` | 7x9x7 | Small room at bridge junctions |
+| `StairsRoom` | `EPieceClass_StairsRoom` | 7x11x7 | Room with staircase |
+| `MonsterThrone` | `EPieceClass_MonsterThrone` | 7x8x9 | Blaze spawner room (`hasPlacedMobSpawner` flag) |
+
+**Castle pieces** (`CASTLE_PIECEWEIGHTS_COUNT = 7`):
+
+| Piece Class | Enum | Dimensions (WxHxD) | Description |
+|-------------|------|---------------------|-------------|
+| `CastleEntrance` | `EPieceClass_CastleEntrance` | 13x14x13 | Grand entrance hall |
+| `CastleStalkRoom` | `EPieceClass_CastleStalkRoom` | 13x14x13 | Nether wart farm room |
+| `CastleSmallCorridorPiece` | `EPieceClass_CastleSmallCorridorPiece` | 5x7x5 | Narrow corridor |
+| `CastleSmallCorridorCrossingPiece` | `EPieceClass_CastleSmallCorridorCrossingPiece` | 5x7x5 | Small corridor intersection |
+| `CastleSmallCorridorRightTurnPiece` | `EPieceClass_CastleSmallCorridorRightTurnPiece` | 5x7x5 | Right turn corridor |
+| `CastleSmallCorridorLeftTurnPiece` | `EPieceClass_CastleSmallCorridorLeftTurnPiece` | 5x7x5 | Left turn corridor |
+| `CastleCorridorStairsPiece` | `EPieceClass_CastleCorridorStairsPiece` | 5x14x10 | Corridor with stairs |
+
+Note: `CastleCorridorTBalconyPiece` (9x7x9, T-shaped balcony corridor) also exists in the enum (`EPieceClass_CastleCorridorTBalconyPiece`) but is not counted in the castle weights array. It still generates as a special case.
+
 ### Fortress mob spawns
 
 The fortress defines its own enemy spawn list, separate from the Hell biome:
@@ -279,33 +486,16 @@ The fortress defines its own enemy spawn list, separate from the Hell biome:
 
 These come from `getBridgeEnemies()` and are used for spawning within fortress bounds.
 
-### Fortress piece types
+### PieceWeight system
 
-The fortress has two categories of pieces: **bridge** pieces and **castle** pieces, each with their own weight lists.
+The fortress `PieceWeight` has an extra `allowInRow` flag not present in village or stronghold weights:
 
-**Bridge pieces** (6 types):
+```cpp
+PieceWeight(EPieceClass pieceClass, int weight, int maxPlaceCount, bool allowInRow);
+PieceWeight(EPieceClass pieceClass, int weight, int maxPlaceCount);
+```
 
-| Piece Class | Dimensions | Description |
-|-------------|-----------|-------------|
-| `BridgeStraight` | 5x10x19 | Straight bridge segment |
-| `BridgeEndFiller` | 5x10x8 | Bridge dead-end cap |
-| `BridgeCrossing` | 19x10x19 | Large bridge intersection (also the start piece) |
-| `RoomCrossing` | 7x9x7 | Small room at bridge junctions |
-| `StairsRoom` | 7x11x7 | Room with staircase |
-| `MonsterThrone` | 7x8x9 | Blaze spawner room |
-
-**Castle pieces** (8 types):
-
-| Piece Class | Dimensions | Description |
-|-------------|-----------|-------------|
-| `CastleEntrance` | 13x14x13 | Grand entrance hall |
-| `CastleStalkRoom` | 13x14x13 | Nether wart farm room |
-| `CastleSmallCorridorPiece` | 5x7x5 | Narrow corridor |
-| `CastleSmallCorridorCrossingPiece` | 5x7x5 | Small corridor intersection |
-| `CastleSmallCorridorRightTurnPiece` | 5x7x5 | Right turn corridor |
-| `CastleSmallCorridorLeftTurnPiece` | 5x7x5 | Left turn corridor |
-| `CastleCorridorStairsPiece` | 5x14x10 | Corridor with stairs |
-| `CastleCorridorTBalconyPiece` | 9x7x9 | T-shaped balcony corridor |
+When `allowInRow` is false, the same piece type can't be placed twice in a row. This prevents repetitive fortress layouts.
 
 ### Fortress constants
 
@@ -333,12 +523,26 @@ Which structure you get depends on the biome at the chunk center:
 - **Jungle biome** -> `JunglePyramidPiece`
 - **Otherwise** (desert/desert hills) -> `DesertPyramidPiece`
 
+### ScatteredFeaturePiece base
+
+Both pyramid types inherit from `ScatteredFeaturePiece`, which extends `StructurePiece` and provides:
+
+- `width`, `height`, `depth` dimension fields
+- `heightPosition` for vertical placement
+- `updateAverageGroundHeight(level, chunkBB, offset)` to sample terrain and set the Y level
+
+The constructor takes the full set of dimensions:
+
+```cpp
+ScatteredFeaturePiece(Random *random, int west, int floor, int north, int width, int height, int depth);
+```
+
 ### Desert Pyramid
 
 `DesertPyramidPiece` extends `ScatteredFeaturePiece`. It has:
 
 - 4 loot chests (tracked by `hasPlacedChest[4]`)
-- 6 weighted treasure item types
+- 6 weighted treasure item types (`TREASURE_ITEMS_COUNT = 6`)
 - TNT trap below the treasure room
 
 ### Jungle Temple
@@ -347,21 +551,14 @@ Which structure you get depends on the biome at the chunk center:
 
 - Main chest and hidden chest (tracked by `placedMainChest`, `placedHiddenChest`)
 - 2 arrow dispenser traps (`placedTrap1`, `placedTrap2`)
-- 6 weighted treasure item types
-- 1 dispenser item type (arrows)
-- `MossStoneSelector` for randomized mossy/cracked stone brick walls
-
-### ScatteredFeaturePiece base
-
-Both pyramid types inherit from `ScatteredFeaturePiece`, which provides:
-
-- Width, height, and depth dimensions
-- `heightPosition` for vertical placement
-- `updateAverageGroundHeight()` to adapt to terrain
+- 6 weighted treasure item types (`TREASURE_ITEMS_COUNT = 6`)
+- 1 dispenser item type (`DISPENSER_ITEMS_COUNT = 1`, arrows)
+- `MossStoneSelector` inner class for randomized mossy/cracked stone brick walls (uses the `BlockSelector` pattern)
+- `stoneSelector` static instance of `MossStoneSelector`
 
 ---
 
-## Caves (DungeonFeature / LargeCaveFeature)
+## Caves (LargeCaveFeature / DungeonFeature)
 
 **Source**: `LargeCaveFeature.h`, `LargeCaveFeature.cpp`, `DungeonFeature.h`, `DungeonFeature.cpp`
 
@@ -396,7 +593,7 @@ Several 4J Studios changes affect structure generation:
 
 ### World boundary checks
 
-- **Villages**: Bounding box checked against `[-XZSize/2, XZSize/2]`; invalid if extending past the edge
+- **Villages**: Bounding box checked against `[-XZSize/2, XZSize/2]`; invalid if extending past the edge. The `isOkBox()` method on `VillagePiece` takes a `startRoom` parameter (4J addition) for this check
 - **Strongholds**: Distance formula adjusted to keep structures within console world limits
 - **Nether fortress**: Forced placement in a small 7x7 chunk area to fit the limited nether size
 
@@ -412,6 +609,14 @@ All structure types support forced placement through `LevelGenerationOptions::is
 ### Feature position tracking
 
 Each structure type calls `app.AddTerrainFeaturePosition()` when created, registering positions as `eTerrainFeature_Village`, `eTerrainFeature_Stronghold`, `eTerrainFeature_Mineshaft`, etc. This is used for the in-game map and Eye of Ender functionality.
+
+### Level pointer addition
+
+Every `StartPiece` class (village, stronghold, fortress) has an `m_level` field that 4J added. In Java, the level was accessed through other means, but the console version passes it directly to the start piece constructor.
+
+### isOkBox world edge checks
+
+4J added a `startRoom` parameter to `isOkBox()` in `VillagePiece`, `StrongholdPiece`, and `NetherBridgePiece`. This lets pieces check their bounding box against the world boundaries during generation, preventing structures from extending past the world edge.
 
 ## MinecraftConsoles Differences
 

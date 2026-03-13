@@ -37,11 +37,11 @@ The `FireworksItem` class defines the NBT tag names used throughout the firework
 
 **Source files:** `FireworksItem.h/cpp`
 
-The firework rocket item handles placement and tooltip display.
+The firework rocket item handles placement and tooltip display. Extends `Item`.
 
 ### Placement
 
-`useOn()` spawns a `FireworksRocketEntity` at the clicked position (offset by `clickX/Y/Z` within the block face). The source item instance is passed to the entity for NBT reading. In survival mode, the item count is decremented.
+`useOn()` spawns a `FireworksRocketEntity` at the clicked position (offset by `clickX/Y/Z` within the block face). The source item instance is passed to the entity for NBT reading. In survival mode, the item count is decremented. Has a `bTestUseOnOnly` parameter for tooltip prediction without side effects.
 
 ### Tooltip
 
@@ -54,7 +54,7 @@ The firework rocket item handles placement and tooltip display.
 
 **Source files:** `FireworksChargeItem.h/cpp`
 
-The firework charge (star) item represents a single explosion configuration.
+The firework charge (star) item represents a single explosion configuration. Extends `Item`.
 
 ### Sprite rendering
 
@@ -87,7 +87,7 @@ The static `appendHoverText(CompoundTag*, ...)` method builds the tooltip for an
 
 **Source files:** `FireworksRocketEntity.h/cpp`
 
-The rocket entity handles the flight, explosion trigger, and save/load of firework rockets.
+The rocket entity handles the flight, explosion trigger, and save/load of firework rockets. Extends `Entity` directly (not a `Mob` or `Projectile`). Entity type: `eTYPE_FIREWORKS_ROCKET`.
 
 ### Properties
 
@@ -111,7 +111,7 @@ When created with a source item:
 lifetime = (TICKS_PER_SECOND / 2) * flightCount + random(6) + random(7)
 ```
 
-With default `flightCount = 1` (no gunpowder bonus), this gives roughly 10 to 23 ticks. Each additional gunpowder adds half a second.
+With default `flightCount = 1` (no gunpowder bonus), this gives roughly 10 to 23 ticks. Each additional gunpowder adds half a second (10 ticks).
 
 4. Initial velocity: tiny random X/Z drift (`nextGaussian * 0.001`) and upward Y velocity of `0.05`.
 
@@ -141,6 +141,10 @@ When `life > lifetime` on the server:
 
 `handleEntityEvent()` on the client reads the source item's `"Fireworks"` compound and calls `level->createFireworks()` to spawn the particle effects.
 
+### Brightness
+
+Custom `getBrightness()` and `getLightColor()` methods provide a glow effect on the rocket.
+
 ### NBT serialization
 
 | Tag | Type | Purpose |
@@ -157,7 +161,7 @@ The firework recipe is a special shapeless recipe that handles three different c
 
 ### Thread safety
 
-The recipe uses thread-local storage (`TlsAlloc`/`TlsSetValue`) to store the result item. Each thread that uses the recipe system needs to call `CreateNewThreadStorage()` or `UseDefaultThreadStorage()`. This is a 4J addition to support multi-threaded recipe checking.
+The recipe uses thread-local storage (`TlsAlloc`/`TlsSetValue`) to store the result item. Each thread that uses the recipe system needs to call `CreateNewThreadStorage()` or `UseDefaultThreadStorage()`. This is a 4J addition to support multi-threaded recipe checking on consoles.
 
 ### Recipe 1: Firework rocket
 
@@ -328,3 +332,4 @@ The overlay renders as a single quad using a fixed texture region (32x32 pixels 
 ## Related pages
 
 - [Redstone Mechanics](/lce-docs/mc/redstone/) for redstone activation of dispensers for firework launching
+- [Behavior System](/lce-docs/mc/behaviors/) for `FireworksDispenseBehavior` details

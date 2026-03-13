@@ -3,29 +3,47 @@ title: Adding Entities
 description: Step-by-step guide to adding new entities to LCE.
 ---
 
-This guide walks you through creating a new mob entity in LCE. We'll cover the class hierarchy, registration, AI goals, synched data, spawning rules, and client-side rendering.
+This guide walks you through creating new entities in LCE. We cover every type: hostile mobs, passive mobs, projectiles, vehicles, and item entities. Each follows the same basic pipeline of defining the class, registering it with `EntityIO`, and hooking up rendering.
 
 ## Entity Class Hierarchy
 
-Every entity in LCE inherits from `Entity` (`Minecraft.World/Entity.h`). Here's the full mob hierarchy:
+Every entity in LCE inherits from `Entity` (`Minecraft.World/Entity.h`). Here's the full hierarchy:
 
 ```
 Entity
-└── Mob                    # Health, AI, effects, equipment
-    └── PathfinderMob      # Pathfinding, attack targets
-        ├── Monster        # Hostile mobs (burns in daylight, dark spawn checks)
-        │   ├── Zombie
-        │   ├── Skeleton
-        │   ├── Creeper
-        │   └── ...
-        └── AgableMob      # Baby/adult system, breeding
-            └── Animal     # Passive mobs (food, love mode, despawn protection)
-                ├── Cow
-                ├── Pig
-                ├── Sheep
-                └── TamableAnimal  # Taming, sitting, owner
-                    ├── Wolf
-                    └── Ozelot
+├── Mob                    # Health, AI, effects, equipment
+│   └── PathfinderMob      # Pathfinding, attack targets
+│       ├── Monster        # Hostile mobs (burns in daylight, dark spawn checks)
+│       │   ├── Zombie
+│       │   ├── Skeleton
+│       │   ├── Creeper
+│       │   └── ...
+│       └── AgableMob      # Baby/adult system, breeding
+│           └── Animal     # Passive mobs (food, love mode, despawn protection)
+│               ├── Cow
+│               ├── Pig
+│               ├── Sheep
+│               └── TamableAnimal  # Taming, sitting, owner
+│                   ├── Wolf
+│                   └── Ozelot
+├── Arrow                  # Arrow projectile
+├── Snowball               # Snowball projectile
+├── Fireball               # Ghast fireball
+├── SmallFireball           # Blaze fireball
+├── ThrownEnderpearl       # Ender pearl projectile
+├── ThrownPotion           # Splash potion projectile
+├── ThrownExpBottle        # Experience bottle projectile
+├── EyeOfEnderSignal       # Eye of ender (flies toward stronghold)
+├── DragonFireball          # Dragon fireball
+├── Boat                   # Rideable boat
+├── Minecart               # Minecart (rideable, chest, furnace variants)
+├── ItemEntity             # Dropped items
+├── ExperienceOrb          # XP orbs
+├── Painting               # Hanging paintings
+├── ItemFrame              # Item frames
+├── PrimedTnt              # Lit TNT block
+├── FallingTile            # Falling sand/gravel
+└── EnderCrystal           # End crystal
 ```
 
 Pick whichever base class matches the behavior you want:
@@ -37,6 +55,7 @@ Pick whichever base class matches the behavior you want:
 | `TamableAnimal` | Animal that can be tamed and owned by a player |
 | `PathfinderMob` | Neutral mob with pathfinding but no breeding/hostility |
 | `Mob` | Non-pathfinding mob (e.g., water creatures) |
+| `Entity` | Non-living entity (projectile, vehicle, dropped item, decoration) |
 
 ## Step 1: Add an eINSTANCEOF Type
 
@@ -53,11 +72,15 @@ Every entity class overrides `GetType()` to return its enum value. This is how t
 eINSTANCEOF GetType() { return eTYPE_MY_MOB; }
 ```
 
-## Step 2: Create the Mob Class
+## Step 2: Create the Entity Class
+
+The pattern differs depending on what kind of entity you're making.
+
+### Hostile mob
 
 Here's a hostile mob example based on how `Zombie` is set up:
 
-### Header (`Minecraft.World/MyMob.h`)
+#### Header (`Minecraft.World/MyMob.h`)
 
 ```cpp
 #pragma once
@@ -92,7 +115,7 @@ A couple important things here:
 - The static `create` function is a **factory** that `EntityIO` uses to create mobs from save data or network packets.
 - `useNewAi()` needs to return `true` to turn on the `GoalSelector`-based AI system.
 
-### Implementation (`Minecraft.World/MyMob.cpp`)
+#### Implementation (`Minecraft.World/MyMob.cpp`)
 
 Here's the constructor pattern that `Cow` and `Zombie` both follow:
 
@@ -141,7 +164,9 @@ MyMob::MyMob(Level *level) : Monster(level)
 }
 ```
 
-For a **passive mob** (like a Cow), extend `Animal` and use passive goals instead:
+### Passive mob
+
+For a passive mob (like a Cow), extend `Animal` and use passive goals instead:
 
 ```cpp
 MyCow::MyCow(Level *level) : Animal(level)
@@ -162,6 +187,126 @@ MyCow::MyCow(Level *level) : Animal(level)
     goalSelector.addGoal(7, new RandomLookAroundGoal(this));
 }
 ```
+
+Passive mobs need no `targetSelector` goals since they don't attack. They also need `getBreedOffspring()` and `isFood()` overrides for breeding.
+
+### Tamable mob
+
+For a tamable pet, extend `TamableAnimal`. This gives you owner tracking, sitting, and the whole taming flow:
+
+```cpp
+MyPet::MyPet(Level *level) : TamableAnimal(level)
+{
+    this->defineSynchedData();
+    health = getMaxHealth();
+    this->setSize(0.6f, 0.8f);
+
+    // Store the sit goal so we can reference it from interaction code
+    sitGoal = new SitGoal(this);
+
+    goalSelector.addGoal(1, new FloatGoal(this));
+    goalSelector.addGoal(2, sitGoal, false);  // false = don't delete, we manage this
+    goalSelector.addGoal(3, new LeapAtTargetGoal(this, 0.4f));
+    goalSelector.addGoal(4, new MeleeAttackGoal(this, 1.0f, true));
+    goalSelector.addGoal(5, new FollowOwnerGoal(this, 1.0f, 10.0f, 2.0f));
+    goalSelector.addGoal(6, new BreedGoal(this, 1.0f));
+    goalSelector.addGoal(7, new RandomStrollGoal(this, 1.0f));
+    goalSelector.addGoal(8, new LookAtPlayerGoal(this, typeid(Player), 8.0f));
+    goalSelector.addGoal(9, new RandomLookAroundGoal(this));
+
+    targetSelector.addGoal(1, new OwnerHurtByTargetGoal(this));
+    targetSelector.addGoal(2, new OwnerHurtTargetGoal(this));
+    targetSelector.addGoal(3, new HurtByTargetGoal(this, true));
+}
+```
+
+Notice the `sitGoal` is stored as a member variable with `canDeletePointer = false` in `addGoal`. That's because the mob needs to call `sitGoal->wantToSit(true/false)` from its `interact()` method when the player right-clicks to toggle sitting.
+
+### Projectile entity
+
+Projectiles inherit directly from `Entity`. They don't use the AI system at all. Instead they override `tick()` to handle their own movement, collision, and damage.
+
+Here's the basic pattern based on `Arrow`:
+
+```cpp
+#pragma once
+#include "Entity.h"
+
+class MyProjectile : public Entity
+{
+public:
+    eINSTANCEOF GetType() { return eTYPE_MY_PROJECTILE; }
+    static Entity *create(Level *level) { return new MyProjectile(level); }
+
+    shared_ptr<Entity> owner;
+
+    MyProjectile(Level *level);
+    MyProjectile(Level *level, shared_ptr<Mob> shooter, float power);
+    MyProjectile(Level *level, double x, double y, double z);
+
+    void shoot(double xd, double yd, double zd, float pow, float uncertainty);
+
+    virtual void tick();  // Handle movement, block/entity collision
+    virtual void defineSynchedData();
+    virtual void addAdditonalSaveData(CompoundTag *tag);
+    virtual void readAdditionalSaveData(CompoundTag *tag);
+};
+```
+
+The `tick()` override is where all the action happens. A typical projectile tick does:
+
+1. Apply gravity to `yd` (unless it's a fireball)
+2. Move by `(xd, yd, zd)` with collision checks
+3. Check for block hits (tile collision), switch to embedded/stuck state
+4. Check for entity hits using `level->getEntities()` and `AABB` intersection
+5. Apply damage using `DamageSource::arrow()` or a custom damage source
+6. Apply velocity drag (multiply by ~0.99 each tick in air, ~0.6 in water)
+7. Handle removal after hitting something or after a lifetime timer
+
+The `Arrow` class is a great reference. It has three constructors: one for save loading (just level), one for mob shooting (level + mob + power), and one for placement at a position. All arrows store their `owner` so the game can give kill credit.
+
+### Vehicle entity
+
+Vehicles like `Boat` and `Minecart` also extend `Entity` directly. They support riders through the entity riding system.
+
+Key things a vehicle needs:
+
+```cpp
+// Let entities collide with it
+virtual AABB *getCollideAgainstBox(shared_ptr<Entity> entity);
+virtual AABB *getCollideBox();
+virtual bool isPushable();
+
+// Riding
+virtual double getRideHeight();  // Y offset for the rider
+virtual bool interact(shared_ptr<Player> player);  // Mount on right-click
+
+// Network interpolation
+virtual void lerpTo(double x, double y, double z, float yRot, float xRot, int steps);
+virtual void lerpMotion(double xd, double yd, double zd);
+```
+
+The `Boat` uses synch data IDs 17-19 for hurt state, hurt direction, and damage. The `Minecart` has three types: `RIDEABLE` (0), `CHEST` (1), and `FURNACE` (2), selected via a `type` field. The chest variant also implements `Container` for inventory storage.
+
+### Item entity
+
+`ItemEntity` represents dropped items in the world. If you need a custom dropped item behavior, you could extend it:
+
+```cpp
+class MySpecialItem : public ItemEntity
+{
+public:
+    eINSTANCEOF GetType() { return eTYPE_MY_SPECIAL_ITEM; }
+    static Entity *create(Level *level) { return new MySpecialItem(level); }
+
+    MySpecialItem(Level *level, double x, double y, double z,
+                  shared_ptr<ItemInstance> item);
+
+    virtual void tick();  // Custom behavior on top of normal item physics
+};
+```
+
+`ItemEntity` already handles merging with nearby identical items, despawning after 5 minutes (`LIFETIME = 6000 ticks`), bobbing animation, and pickup by players. Synch data ID 10 stores the `ItemInstance` so clients know what to render.
 
 ## Step 3: The GoalSelector AI System
 
@@ -221,9 +366,11 @@ The `newGoalRate` field controls how often new goals are checked (set via `setNe
 | `HurtByTargetGoal` | Target whoever hurt this mob |
 | `NearestAttackableTargetGoal` | Target nearest entity of a type |
 
+See the [AI & Goals](/world/ai-goals/) page for the full reference on every goal, including constructor parameters, control flags, and behavior details.
+
 ## Step 4: Synched Entity Data
 
-`SynchedEntityData` keeps mob state in sync between server and client. Data items are defined with typed IDs:
+`SynchedEntityData` keeps entity state in sync between server and client. Data items are defined with typed IDs:
 
 ```cpp
 // In your header, declare synch data IDs as static constants:
@@ -260,7 +407,7 @@ The base classes already use these IDs, so don't reuse them:
 | 12 | `AgableMob` | Age |
 | 13 | `Animal` | In-love state |
 
-`Zombie` uses IDs 12-14 (baby, villager, converting). `Creeper` uses 16-17 (swell direction, powered). `Wolf` uses 18-20 (health, interested, collar color). Pick IDs that don't collide with your parent class chain.
+`Zombie` uses IDs 12-14 (baby, villager, converting). `Creeper` uses 16-17 (swell direction, powered). `Wolf` uses 18-20 (health, interested, collar color). `Arrow` uses ID 16 (crit flag). `Boat` uses 17-19 (hurt, hurt direction, damage). `Minecart` uses 16-19 (fuel, hurt, hurt direction, damage). Pick IDs that don't collide with your parent class chain.
 
 ### Supported Data Types
 
@@ -276,9 +423,11 @@ The base classes already use these IDs, so don't reuse them:
 | `TYPE_ITEMINSTANCE` (5) | `shared_ptr<ItemInstance>` |
 | `TYPE_POS` (6) | `Pos *` |
 
+The wire format packs each item as a single byte with 5 bits for the ID and 3 bits for the type, followed by the value bytes. `MAX_ID_VALUE` is 31, so you can have at most 32 synched data items per entity. The stream ends with an `EOF_MARKER` byte (0x7F). Strings are capped at `MAX_STRING_DATA_LENGTH` (64 characters).
+
 ## Step 5: Register with EntityIO
 
-In `Minecraft.World/EntityIO.cpp`, add your mob to `EntityIO::staticCtor()`:
+In `Minecraft.World/EntityIO.cpp`, add your entity to `EntityIO::staticCtor()`:
 
 ```cpp
 void EntityIO::staticCtor()
@@ -296,7 +445,7 @@ void EntityIO::staticCtor()
 }
 ```
 
-The `setId` function registers your mob in five maps at once:
+The `setId` function registers your entity in five maps at once:
 
 | Map | Key | Value |
 |-----|-----|-------|
@@ -306,7 +455,26 @@ The `setId` function registers your mob in five maps at once:
 | `numClassMap` | Numeric ID | `eINSTANCEOF` |
 | `classNumMap` | `eINSTANCEOF` | Numeric ID |
 
-The six-argument version also adds the mob to `idsSpawnableInCreative` for the spawn egg UI. Numeric IDs follow vanilla conventions: monsters are 50-63, animals are 90-99.
+The six-argument version also adds the mob to `idsSpawnableInCreative` for the spawn egg UI.
+
+### Numeric ID Conventions
+
+The existing IDs follow a pattern:
+
+| ID Range | Entity Type |
+|----------|------------|
+| 1-2 | Item entities (ItemEntity=1, XPOrb=2) |
+| 9-18 | Projectiles and decorations (Painting=9, Arrow=10, Snowball=11, etc.) |
+| 20-21 | Physics entities (PrimedTnt=20, FallingTile=21) |
+| 40-41 | Vehicles (Minecart=40, Boat=41) |
+| 48-49 | Base mob types (Mob=48, Monster=49) |
+| 50-63 | Hostile mobs (Creeper=50 through EnderDragon=63) |
+| 90-99 | Passive mobs (Pig=90 through VillagerGolem=99) |
+| 120 | Villager |
+| 200 | EnderCrystal |
+| 1000 | DragonFireball |
+
+For non-mob entities (projectiles, vehicles, etc.), the same `setId` call works. Every entity type that can be saved/loaded or sent over the network needs a registration here.
 
 ## Step 6: Add Spawning Rules
 
@@ -357,6 +525,8 @@ LCE has console-specific spawn limits defined in `MobCategory.h`:
 | `creature_wolf` | 8 | 16 | 26 |
 | `creature_mushroomcow` | 2 | 22 | 30 |
 
+Console editions have separate categories for wolves, chickens, and mooshrooms because those mobs have special gameplay purposes (taming, egg farms, mushroom stew). This prevents them from filling up the general creature cap.
+
 ### canSpawn() Override
 
 Hostile mobs (`Monster`) check light level and sky access through `isDarkEnoughToSpawn()` and `canSpawn()`. Passive mobs (`Animal`) look for grass blocks and light level. Override `canSpawn()` if you want custom spawn conditions:
@@ -368,6 +538,10 @@ bool MyMob::canSpawn()
     return y > 60 && Monster::canSpawn();
 }
 ```
+
+### Animal Despawn Protection
+
+Passive mobs have a special despawn protection system. `Animal` tracks how far the mob has wandered from its spawn point using `MAX_WANDER_DISTANCE` (20 blocks). If the animal wanders beyond this distance, `RandomStrollGoal` records extra wander data. The `isDespawnProtected()` check considers whether the animal has been interacted with by a player (bred, tempted, or named).
 
 ## Step 7: Save and Load Data
 
@@ -388,6 +562,8 @@ void MyMob::readAdditionalSaveData(CompoundTag *tag)
     if (tag->getBoolean(L"MyFlag")) setMyFlag(true);
 }
 ```
+
+Non-mob entities work the same way. `Arrow` saves its position, motion, damage, and pickup state. `Boat` and `Minecart` save their type and damage. `ItemEntity` saves the item stack and age. Always call the parent class first.
 
 ## Step 8: Add a Renderer
 
@@ -422,9 +598,11 @@ The `EntityRenderDispatcher` maps `eINSTANCEOF` values directly to `EntityRender
 | Wolf | `WolfRenderer` | `WolfModel` |
 | Spider | `SpiderRenderer` | `SpiderModel` |
 
+Non-mob entities also need renderers. Projectiles typically use a simple sprite renderer. Boats and minecarts have their own model-based renderers.
+
 ### Texture Registration
 
-Set `textureIdx` in your mob's constructor to a texture name constant (defined in `Textures.h`). Add your texture constant and load the actual texture in the client's texture system.
+Set `textureIdx` in your entity's constructor to a texture name constant (defined in `Textures.h`). Add your texture constant and load the actual texture in the client's texture system.
 
 ## Step 9: Implement Required Overrides
 
@@ -447,6 +625,33 @@ MobType getMobType();                    // UNDEFINED, UNDEAD, or ARTHROPOD
 ```cpp
 shared_ptr<AgableMob> getBreedOffspring(shared_ptr<AgableMob> target);
 bool isFood(shared_ptr<ItemInstance> item);  // What item triggers love mode
+```
+
+### For Tamable Animals (additionally)
+
+```cpp
+virtual bool interact(shared_ptr<Player> player);  // Handle taming + sit toggle
+```
+
+### For Projectiles
+
+```cpp
+virtual void tick();                         // Movement, collision, damage
+virtual void defineSynchedData();            // Synch data for client rendering
+virtual void addAdditonalSaveData(CompoundTag *tag);
+virtual void readAdditionalSaveData(CompoundTag *tag);
+```
+
+### For Vehicles
+
+```cpp
+virtual AABB *getCollideAgainstBox(shared_ptr<Entity> entity);
+virtual AABB *getCollideBox();
+virtual bool isPushable();
+virtual double getRideHeight();
+virtual bool interact(shared_ptr<Player> player);  // Mount/dismount
+virtual void tick();                                // Physics, rail logic, etc.
+virtual void positionRider();                       // Position the rider each tick
 ```
 
 ### MobType
@@ -474,3 +679,62 @@ Check out the real `Cow` implementation:
 - `Minecraft.World/Cow.cpp` has passive AI goals, milking interaction, and loot drops
 - `Minecraft.World/EntityIO.cpp` for registration at ID 92 with spawn egg colors
 - `Minecraft.Client/EntityRenderDispatcher.cpp` has `CowRenderer` with `CowModel`
+
+## Complete Example: Projectile
+
+Check out the `Arrow` implementation:
+- `Minecraft.World/Arrow.h` extends `Entity` directly, has three constructors (save load, mob shot, position)
+- `Minecraft.World/Arrow.cpp` has full `tick()` with movement, block collision, entity collision, and pickup
+- `Minecraft.World/EntityIO.cpp` for registration at ID 10 (no spawn egg since it's not a mob)
+
+## All Registered Entity IDs
+
+Here is every entity registered in `EntityIO::staticCtor()`:
+
+| ID | String ID | eINSTANCEOF | Has Spawn Egg |
+|---|---|---|---|
+| 1 | `Item` | `eTYPE_ITEMENTITY` | No |
+| 2 | `XPOrb` | `eTYPE_EXPERIENCEORB` | No |
+| 9 | `Painting` | `eTYPE_PAINTING` | No |
+| 10 | `Arrow` | `eTYPE_ARROW` | No |
+| 11 | `Snowball` | `eTYPE_SNOWBALL` | No |
+| 12 | `Fireball` | `eTYPE_FIREBALL` | No |
+| 13 | `SmallFireball` | `eTYPE_SMALL_FIREBALL` | No |
+| 14 | `ThrownEnderpearl` | `eTYPE_THROWNENDERPEARL` | No |
+| 15 | `EyeOfEnderSignal` | `eTYPE_EYEOFENDERSIGNAL` | No |
+| 16 | `ThrownPotion` | `eTYPE_THROWNPOTION` | No |
+| 17 | `ThrownExpBottle` | `eTYPE_THROWNEXPBOTTLE` | No |
+| 18 | `ItemFrame` | `eTYPE_ITEM_FRAME` | No |
+| 20 | `PrimedTnt` | `eTYPE_PRIMEDTNT` | No |
+| 21 | `FallingSand` | `eTYPE_FALLINGTILE` | No |
+| 40 | `Minecart` | `eTYPE_MINECART` | No |
+| 41 | `Boat` | `eTYPE_BOAT` | No |
+| 48 | `Mob` | `eTYPE_MOB` | No |
+| 49 | `Monster` | `eTYPE_MONSTER` | No |
+| 50 | `Creeper` | `eTYPE_CREEPER` | Yes |
+| 51 | `Skeleton` | `eTYPE_SKELETON` | Yes |
+| 52 | `Spider` | `eTYPE_SPIDER` | Yes |
+| 53 | `Giant` | `eTYPE_GIANT` | No |
+| 54 | `Zombie` | `eTYPE_ZOMBIE` | Yes |
+| 55 | `Slime` | `eTYPE_SLIME` | Yes |
+| 56 | `Ghast` | `eTYPE_GHAST` | Yes |
+| 57 | `PigZombie` | `eTYPE_PIGZOMBIE` | Yes |
+| 58 | `Enderman` | `eTYPE_ENDERMAN` | Yes |
+| 59 | `CaveSpider` | `eTYPE_CAVESPIDER` | Yes |
+| 60 | `Silverfish` | `eTYPE_SILVERFISH` | Yes |
+| 61 | `Blaze` | `eTYPE_BLAZE` | Yes |
+| 62 | `LavaSlime` | `eTYPE_LAVASLIME` | Yes |
+| 63 | `EnderDragon` | `eTYPE_ENDERDRAGON` | No |
+| 90 | `Pig` | `eTYPE_PIG` | Yes |
+| 91 | `Sheep` | `eTYPE_SHEEP` | Yes |
+| 92 | `Cow` | `eTYPE_COW` | Yes |
+| 93 | `Chicken` | `eTYPE_CHICKEN` | Yes |
+| 94 | `Squid` | `eTYPE_SQUID` | Yes |
+| 95 | `Wolf` | `eTYPE_WOLF` | Yes |
+| 96 | `MushroomCow` | `eTYPE_MUSHROOMCOW` | Yes |
+| 97 | `SnowMan` | `eTYPE_SNOWMAN` | No |
+| 98 | `Ozelot` | `eTYPE_OZELOT` | Yes |
+| 99 | `VillagerGolem` | `eTYPE_VILLAGERGOLEM` | No |
+| 120 | `Villager` | `eTYPE_VILLAGER` | Yes |
+| 200 | `EnderCrystal` | `eTYPE_ENDER_CRYSTAL` | No |
+| 1000 | `DragonFireball` | `eTYPE_DRAGON_FIREBALL` | No |

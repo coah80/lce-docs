@@ -3,9 +3,13 @@ title: Custom Potions & Brewing
 description: How LCE's potion system works, and how to add new effects, ingredients, and brewing recipes.
 ---
 
-This guide covers the LCE potion and brewing system end to end: how `MobEffect` defines status effects, how `MobEffectInstance` tracks duration and amplifier on a mob, how the bitfield-based brewing chain works, how splash potions apply area damage, and how to add your own custom effects and ingredients.
+import { Aside } from '@astrojs/starlight/components';
 
-## Key Files
+This guide covers the LCE potion and brewing system end to end: how `MobEffect` defines status effects, how `MobEffectInstance` tracks duration and amplifier on a mob, how the bitfield-based brewing chain works, how splash potions apply area damage, how effects render on screen, and how to add your own custom effects and ingredients.
+
+For the world-facing reference (all effect stats, tick intervals, brewing tables), see [Effects (Potions)](/lce-docs/world/effects/).
+
+## Key files
 
 | File | Purpose |
 |------|---------|
@@ -18,8 +22,9 @@ This guide covers the LCE potion and brewing system end to end: how `MobEffect` 
 | `BrewingStandTileEntity.h` / `.cpp` | The brewing stand block: ticking, applying ingredients |
 | `Mob.h` / `.cpp` | Effect storage on entities, tick loop, speed/jump modifiers |
 | `Item.h` / `.cpp` | `setPotionBrewingFormula()` on ingredient items |
+| `GameRenderer.cpp` | Screen effects: blindness fog, night vision, nausea |
 
-## How MobEffect Works
+## How MobEffect works
 
 `MobEffect` is the base class for all status effects. Each effect gets a numeric ID, a color, and a harmful/beneficial flag. The class stores all effects in a static array:
 
@@ -50,7 +55,7 @@ MobEffect::MobEffect(int id, bool isHarmful, eMinecraftColour color)
 
 Notice that harmful effects default to half duration modifier. This means potions with harmful effects last shorter by default.
 
-### The Effect Registry
+### The effect registry
 
 All 19 vanilla effects are created as static globals in `MobEffect.cpp`. Each one chains together setters in a builder pattern:
 
@@ -69,7 +74,7 @@ MobEffect *MobEffect::poison =
         ->setIcon(MobEffect::e_MobEffectIcon_Poison);
 ```
 
-### Complete Effect Table
+### Complete effect table
 
 | ID | Static Name | Harmful | Duration Modifier | Notes |
 |----|-------------|---------|-------------------|-------|
@@ -96,7 +101,7 @@ MobEffect *MobEffect::poison =
 
 The reserved slots (20-31) are already there waiting for you. You just need to fill them in.
 
-## MobEffectInstance: Effects on Entities
+## MobEffectInstance: effects on entities
 
 `MobEffectInstance` is the runtime container for an active effect on a mob. It holds three things:
 
@@ -104,7 +109,7 @@ The reserved slots (20-31) are already there waiting for you. You just need to f
 - **duration** (short): Ticks remaining
 - **amplifier** (byte): Potency level (0 = level I, 1 = level II, etc.)
 
-### The Tick Loop
+### The tick loop
 
 Every game tick, `Mob::tickEffects()` iterates through `activeEffects` (an `unordered_map<int, MobEffectInstance *>`). For each effect, it calls `MobEffectInstance::tick()`:
 
@@ -125,7 +130,7 @@ bool MobEffectInstance::tick(shared_ptr<Mob> target)
 
 When `tick()` returns false (duration ran out), the effect gets removed from the mob.
 
-### isDurationEffectTick: When Effects Fire
+### isDurationEffectTick: when effects fire
 
 Not every effect runs every tick. `isDurationEffectTick()` controls the interval:
 
@@ -150,7 +155,11 @@ bool MobEffect::isDurationEffectTick(int remainingDuration, int amplification)
 
 So Regeneration I heals every 25 ticks (1.25 seconds), Regeneration II heals every 12 ticks, and so on. Poison works the same way. Hunger fires every tick.
 
-### applyEffectTick: What Effects Actually Do
+<Aside type="tip">
+Most effects (Speed, Jump Boost, Resistance, etc.) never return `true` from `isDurationEffectTick()`. They don't fire periodic ticks at all. Instead, other parts of the code check `hasEffect()` directly. Only Regeneration, Poison, and Hunger actually tick on a schedule.
+</Aside>
+
+### applyEffectTick: what effects actually do
 
 This is where the real work happens:
 
@@ -187,7 +196,7 @@ void MobEffect::applyEffectTick(shared_ptr<Mob> mob, int amplification)
 
 Notice the `isInvertedHealAndHarm()` check. Undead mobs return true for this, which makes Heal damage them and Harm heal them. Classic Minecraft behavior.
 
-### Updating an Existing Effect
+### Updating an existing effect
 
 When a mob already has an effect and gets the same one again, `MobEffectInstance::update()` picks the better one:
 
@@ -209,11 +218,11 @@ void MobEffectInstance::update(MobEffectInstance *takeOver)
 
 Higher amplifier always wins. Same amplifier, longer duration wins.
 
-## The Brewing System (Bitfield Magic)
+## The brewing system (bitfield magic)
 
 This is the most interesting part. LCE uses a **simplified** bitfield-based brewing system (4J's version, not the original Notch bit-twiddling madness). Every potion is represented by a 15-bit integer. Ingredients work by flipping specific bits in that integer according to a formula string.
 
-### The Potion Bitfield
+### The potion bitfield
 
 The 15-bit brew value encodes everything about a potion:
 
@@ -227,7 +236,7 @@ The 15-bit brew value encodes everything about a potion:
 | 13 | Functional potion marker |
 | 14 | Throwable bit (set by Gunpowder, makes it a splash potion) |
 
-### Brewing Formulas
+### Brewing formulas
 
 Each ingredient item has a formula string that says which bits to set or clear. The formula language works like this:
 
@@ -256,11 +265,103 @@ const wstring PotionBrewing::MOD_GLOWSTONE       = L"+5-6-7";
 const wstring PotionBrewing::MOD_GUNPOWDER       = L"+14";
 ```
 
-Let's trace through an example. Start with a Water Bottle (brew value 0). Add Nether Wart (`+4&!13`): this sets bit 4 if bit 13 is clear. Bit 13 is clear on a water bottle, so now brew = `0b10000` = 16. This is an Awkward Potion.
+### The formula parser
 
-Now add Sugar (`-0+1-2-3&4-4+13`): requires bit 4 (`&4`), clears bits 0/2/3, sets bit 1, clears bit 4, sets bit 13. Result: `0b10000000000010` = 8194. That's a Potion of Swiftness.
+The `applyBrew()` function walks through the formula string character by character. It's not complicated, but seeing exactly how it works clears up a lot of confusion:
 
-### How Formulas Map to Effects
+```cpp
+int PotionBrewing::applyBrew(int brew, const wstring &formula)
+{
+    int result = brew;
+    int index = 0;
+    int len = formula.length();
+
+    while (index < len)
+    {
+        wchar_t c = formula[index];
+
+        if (c == '+')
+        {
+            // Set a bit
+            index++;
+            int bit = parseBitNumber(formula, index);
+            result = applyBrewBit(result, bit, true);
+        }
+        else if (c == '-')
+        {
+            // Clear a bit
+            index++;
+            int bit = parseBitNumber(formula, index);
+            result = applyBrewBit(result, bit, false);
+        }
+        else if (c == '!')
+        {
+            // Toggle a bit
+            index++;
+            int bit = parseBitNumber(formula, index);
+            result ^= (1 << bit);
+        }
+        else if (c == '&')
+        {
+            // Requirement check
+            index++;
+            bool wantClear = false;
+            if (index < len && formula[index] == '!')
+            {
+                wantClear = true;
+                index++;
+            }
+            int bit = parseBitNumber(formula, index);
+            bool bitIsSet = (brew & (1 << bit)) != 0;
+
+            if (wantClear && bitIsSet) return 0;   // Fail: bit should be clear
+            if (!wantClear && !bitIsSet) return 0;  // Fail: bit should be set
+        }
+        else
+        {
+            index++;
+        }
+    }
+    return result;
+}
+```
+
+The key thing to notice: when a requirement (`&`) fails, the function returns 0. That means the brew value becomes 0 (a Water Bottle), which effectively means "nothing happened." The brewing stand then checks the result against the original, and if they match, the brew doesn't go through.
+
+<Aside type="note">
+`applyBrewBit()` is a simple helper that either sets or clears a single bit: `result | (1 << bit)` or `result & ~(1 << bit)`.
+</Aside>
+
+### Tracing through a brew: step by step
+
+Let's walk through making a Potion of Swiftness from scratch.
+
+**Water Bottle to Awkward Potion:** Start with brew value `0` (all bits zero). Add Nether Wart, formula `+4&!13`:
+
+1. `+4`: Set bit 4. Result: `0b10000` = 16
+2. `&!13`: Require bit 13 to be clear. It is (we started at 0). Passes.
+
+Final result: **16** (Awkward Potion).
+
+**Awkward Potion to Swiftness:** Brew value is 16 (`0b10000`). Add Sugar, formula `-0+1-2-3&4-4+13`:
+
+1. `-0`: Clear bit 0 (already clear). Still 16.
+2. `+1`: Set bit 1. Result: `0b10010` = 18.
+3. `-2`: Clear bit 2. Still 18.
+4. `-3`: Clear bit 3. Still 18.
+5. `&4`: Require bit 4 to be set. It is. Passes.
+6. `-4`: Clear bit 4. Result: `0b00010` = 2.
+7. `+13`: Set bit 13. Result: `0b10000000000010` = 8194.
+
+Final result: **8194** (Potion of Swiftness).
+
+**Making it a splash potion:** Brew value is 8194. Add Gunpowder, formula `+14`:
+
+1. `+14`: Set bit 14. Result: `0b110000000000010` = 24578.
+
+Final result: **24578** (Splash Potion of Swiftness).
+
+### How formulas map to effects
 
 The `PotionBrewing::staticCtor()` method sets up two maps: `potionEffectDuration` and `potionEffectAmplifier`. These map effect IDs to formula strings that get evaluated against the brew value to determine if the effect is present, and how strong it is:
 
@@ -288,7 +389,11 @@ potionEffectAmplifier[heal->getId()]             = L"5";
 // ... and more
 ```
 
-The duration formula is what `getEffects()` evaluates. If the parsed result is greater than 0, the effect is active on this potion. The duration in ticks is then computed:
+The duration formula is what `getEffects()` evaluates. If the parsed result is greater than 0, the effect is active on this potion. The format `0+6` means "bit 0 plus bit 6": the parser adds the values together. If bit 6 is set (Redstone was added), the duration value is higher, which produces a longer-lasting potion.
+
+### Duration calculation
+
+Once `getEffects()` determines an effect is present, it computes the duration in ticks:
 
 ```cpp
 // 3, 8, 13, 18.. minutes
@@ -302,9 +407,14 @@ if ((brew & THROWABLE_MASK) != 0)
 }
 ```
 
-Splash potions get 75% duration compared to drinkable ones.
+Breaking this down:
 
-### Items and Their Formulas
+- **Base formula:** `(20 * 60) * (d * 3 + (d - 1) * 2)` where `d` is the raw duration value from the formula. For `d=1` that's 3 minutes (3600 ticks). For `d=2` that's 8 minutes (9600 ticks).
+- **Amplifier halving:** `duration >>= amplifier`. Level II halves the duration. Level III quarters it.
+- **Duration modifier:** Multiplied by the effect's `durationModifier` field. Poison's is 0.25, so a 3-minute base becomes 45 seconds.
+- **Splash penalty:** Splash potions get 75% of the drinkable duration.
+
+### Items and their formulas
 
 Each ingredient item has its formula set during item registration in `Item.cpp`:
 
@@ -318,11 +428,11 @@ Item::blazePowder = (new Item(121))->setPotionBrewingFormula(PotionBrewing::MOD_
 
 The brewing stand checks `item->hasPotionBrewingFormula()` to decide if something can be used as an ingredient.
 
-## The Brewing Stand
+## The brewing stand
 
 `BrewingStandTileEntity` handles the actual brewing process. It has 4 slots: 3 potion slots (bottom) and 1 ingredient slot (top).
 
-### The Tick Loop
+### The tick loop
 
 Every tick, if `isBrewable()` returns true, a 20-second countdown starts:
 
@@ -350,7 +460,9 @@ void BrewingStandTileEntity::tick()
 }
 ```
 
-### Applying an Ingredient
+The `isBrewable()` check validates that there is an ingredient with a formula and at least one potion slot has an item that would actually change after applying the formula. If removing the ingredient mid-brew wouldn't matter (because the `ingredientId` is cached), the code still resets because `isBrewable()` rechecks the slot contents.
+
+### Applying an ingredient
 
 When brewing completes, `doBrew()` calls `applyIngredient()` on each potion slot:
 
@@ -368,13 +480,13 @@ int BrewingStandTileEntity::applyIngredient(
 }
 ```
 
-The `applyBrew()` function parses the formula string and flips bits accordingly. If a requirement (`&`) fails, the brew value returns 0 (no change).
+The `doBrew()` method loops through all 3 potion slots. For each one that has a water bottle or existing potion, it reads the current aux value (the brew integer), runs `applyIngredient()`, and writes the result back as the new aux value. It also consumes one of the ingredient item.
 
-## Drinkable vs Splash Potions
+## Drinkable vs splash potions
 
 The throwable bit (bit 14) is the only difference between drinkable and splash potions. Gunpowder's formula is simply `+14`, which sets that bit.
 
-### Drinking a Potion
+### Drinking a potion
 
 When you drink a potion, `PotionItem::useTimeDepleted()` runs:
 
@@ -409,9 +521,9 @@ shared_ptr<ItemInstance> PotionItem::useTimeDepleted(
 }
 ```
 
-The drink animation takes 32 ticks (1.6 seconds).
+The drink animation takes 32 ticks (1.6 seconds), stored as `DRINK_DURATION`.
 
-### Throwing a Splash Potion
+### Throwing a splash potion
 
 When `PotionItem::use()` detects the throwable bit, it spawns a `ThrownPotion` projectile instead of starting the drink animation:
 
@@ -427,7 +539,9 @@ if (isThrowable(instance->getAuxValue()))
 }
 ```
 
-### Splash Potion Hit
+The thrown potion uses gravity of `0.05`, throw power of `0.5`, and an upward angle offset of `-20` degrees (thrown slightly upward).
+
+### Splash potion hit
 
 When a `ThrownPotion` hits something, `onHit()` applies effects to all mobs in a 4-block radius:
 
@@ -461,7 +575,7 @@ void ThrownPotion::onHit(HitResult *res)
                         int id = effect->getId();
                         if (MobEffect::effects[id]->isInstantenous())
                         {
-                            // Instant effects scale by distance
+                            // Instant effects scale potency by distance
                             MobEffect::effects[id]->applyInstantenousEffect(
                                 this->owner, e, effect->getAmplifier(), scale);
                         }
@@ -484,9 +598,19 @@ void ThrownPotion::onHit(HitResult *res)
 }
 ```
 
-The key detail: effects at distance get reduced duration (scaled linearly by distance from impact). Instant effects get reduced potency instead. A direct hit always gets full strength.
+The scaling works like this:
 
-## Particle System
+- **Distance scaling:** `scale = 1.0 - (distance / 4.0)`. At the center, scale is 1.0. At 2 blocks away, scale is 0.5. At 4 blocks, scale is 0 (no effect).
+- **Direct hit:** Always gets `scale = 1.0` regardless of distance.
+- **Instant effects** (Heal, Harm): The scale multiplies the potency. A half-strength Instant Health II heals less.
+- **Duration effects** (everything else): The scale multiplies the remaining duration. If the base duration is 3600 ticks and scale is 0.5, you get 1800 ticks.
+- **Minimum threshold:** Effects with a scaled duration of 20 ticks (1 second) or less don't get applied at all.
+
+<Aside type="note">
+The area of effect box is `SPLASH_RANGE` (4.0) in X and Z, but only `SPLASH_RANGE / 2` (2.0) in the Y axis. This means the vertical reach is shorter than the horizontal reach.
+</Aside>
+
+## Particle system
 
 Mobs with active effects emit colored particles. In `Mob::tickEffects()`, every other tick (50% chance), a `mobSpell` particle gets spawned with the blended color of all active effects:
 
@@ -511,13 +635,65 @@ if (random->nextBoolean())
 
 The color is computed by `PotionBrewing::getColorValue()`, which blends colors from all active effects weighted by amplifier level (higher amplifier = that color counts more toward the blend).
 
-Each `MobEffect` has a color set via `eMinecraftColour` in its constructor. When the `effectsDirty` flag is set (after adding or removing effects), the combined color gets recalculated and synced to clients through entity data.
+Each `MobEffect` has a color set via `eMinecraftColour` in its constructor. When the `effectsDirty` flag is set (after adding or removing effects), the combined color gets recalculated and synced to clients through entity data at index `DATA_EFFECT_COLOR_ID` (8).
 
-## How Effects Modify Gameplay
+## Screen effects
+
+Some effects change how the game renders. These are handled in `GameRenderer.cpp` and `LocalPlayer.cpp`.
+
+### Blindness
+
+Blindness replaces the normal fog with a very close black fog at 5 blocks distance. The implementation fades in over the last 20 ticks of the effect:
+
+```cpp
+// GameRenderer.cpp
+if (mob->hasEffect(MobEffect::blindness))
+{
+    int blindDuration = mob->getEffect(MobEffect::blindness)->getDuration();
+    float fogEnd = 5.0f;
+    if (blindDuration < 20)
+        fogEnd = 5.0f + (farPlaneDistance - 5.0f)
+                 * (1.0f - (float)blindDuration / 20.0f);
+    // Set fog start/end to fogEnd
+}
+```
+
+Blindness also prevents sprinting. In `LocalPlayer.cpp`, the sprint check includes `hasEffect(MobEffect::blindness)` as a blocker.
+
+### Night vision
+
+Night vision brightens the entire lightmap so everything renders at full brightness. In `GameRenderer.cpp`, the game calculates a brightness factor:
+
+- While active: full brightness (factor 1.0)
+- In the last 10 seconds (200 ticks): the factor oscillates using a sine wave, creating a "flickering" effect that warns you the potion is about to wear off
+
+```cpp
+// Simplified from GameRenderer.cpp
+if (player->hasEffect(MobEffect::nightVision))
+{
+    int duration = player->getEffect(MobEffect::nightVision)->getDuration();
+    if (duration > 200)
+        brightness = 1.0f;
+    else
+        brightness = 0.7f + sin((float)(duration) * PI * 0.2f) * 0.3f;
+    // Apply brightness to lightmap
+}
+```
+
+### Nausea
+
+Nausea uses the same visual effect as the Nether portal, but with different parameters. When you have Nausea active, `LocalPlayer.cpp` increments the portal time counter (the same one used when you stand in a portal). The twist is that in `GameRenderer.cpp`, the rotation multiplier changes:
+
+- Normal portal: multiplier of **20** (slow, subtle warping)
+- Nausea: multiplier of **7** (fast, aggressive warping)
+
+The `Gui` class also suppresses the purple portal overlay texture when the warping is caused by Nausea instead of an actual portal.
+
+## How effects modify gameplay
 
 Several parts of `Mob` check for active effects and change behavior:
 
-### Movement Speed
+### Movement speed
 
 ```cpp
 float Mob::getWalkingSpeedModifier()
@@ -533,7 +709,7 @@ float Mob::getWalkingSpeedModifier()
 
 Speed I gives +20% speed per amplifier level. Slowness gives -15% per level.
 
-### Jump Boost
+### Jump boost
 
 ```cpp
 void Mob::jumpFromGround()
@@ -544,9 +720,9 @@ void Mob::jumpFromGround()
 }
 ```
 
-Each jump boost level adds 0.1 to the base Y velocity.
+Each jump boost level adds 0.1 to the base Y velocity of 0.42.
 
-### Damage Resistance
+### Damage resistance
 
 In `Mob::getDamageAfterMagicAbsorb()`, resistance reduces incoming damage:
 
@@ -560,26 +736,58 @@ if (hasEffect(MobEffect::damageResistance))
 }
 ```
 
-### Other Checks
+Each level of Resistance removes 20% of incoming damage (5/25 per level). Resistance V makes you immune to all non-bypass damage.
+
+### Other checks
 
 - **Fire Resistance**: Blocks fire/lava damage entirely in `Mob::hurt()`
 - **Water Breathing**: Prevents drowning in `Mob::aiStep()`
 - **Invisibility**: Sets the mob's invisible flag
 - **Weakness**: Sets the mob's weakened flag
 
-## Creating a Custom MobEffect
+## MC (MinecraftConsoles) differences
+
+The MinecraftConsoles build adds 4 new effects and changes how some existing effects work:
+
+### New effects (IDs 20-23)
+
+| ID | Name | Harmful | Tick interval | Notes |
+|----|------|---------|---------------|-------|
+| 20 | Wither | Yes | `40 >> amplifier` (40, 20, 10...) | Like Poison but can kill |
+| 21 | Health Boost | No | Passive | Adds max health via attribute modifier |
+| 22 | Absorption | No | Passive | Adds temporary absorption hearts |
+| 23 | Saturation | No | Every tick | Restores hunger/saturation |
+
+Wither works like Poison (deals 1 damage per interval) but with a 40-tick base interval instead of 25, and it can kill you (no `health > 1` check).
+
+### Attribute modifier system
+
+In the MC build, several effects switch from direct gameplay checks to attribute modifiers:
+
+- **Strength** becomes `AttackDamageMobEffect`, adding `+3 * (amplifier + 1)` attack damage via an attribute modifier
+- **Weakness** becomes `AttackDamageMobEffect`, subtracting `-4 * (amplifier + 1)` attack damage
+- **Slowness** adds a movement speed modifier of `-0.15 * (amplifier + 1)`
+- **Health Boost** adds a max health modifier of `+4 * (amplifier + 1)` (extra hearts)
+
+These modifiers get applied in `onEffectAdded()` and removed in `onEffectRemoved()`. The attribute system means other mods can interact with these values more cleanly than the old direct-check approach.
+
+<Aside type="caution">
+If you're targeting the LCEMP build, the attribute modifier system isn't present. Stick with the direct gameplay checks shown in the earlier sections.
+</Aside>
+
+## Creating a custom MobEffect
 
 ### Step 1: Pick an ID
 
-IDs 20-31 are reserved and set to NULL. Pick one of those.
+IDs 20-31 are reserved and set to NULL in the LCEMP build. If targeting MC, IDs 20-23 are taken, so use 24-31. Pick one of those.
 
-### Step 2: Add the Effect
+### Step 2: Add the effect
 
 In `MobEffect.cpp`, replace one of the reserved slots:
 
 ```cpp
-MobEffect *MobEffect::reserved_20 =
-    (new MobEffect(20, false, eMinecraftColour_Effect_MovementSpeed))
+MobEffect *MobEffect::reserved_24 =
+    (new MobEffect(24, false, eMinecraftColour_Effect_MovementSpeed))
         ->setDescriptionId(IDS_POTION_MY_EFFECT)
         ->setPostfixDescriptionId(IDS_POTION_MY_EFFECT_POSTFIX)
         ->setIcon(MobEffect::e_MobEffectIcon_Speed);
@@ -589,7 +797,7 @@ You will also want to rename the static pointer in `MobEffect.h`:
 
 ```cpp
 // Change this:
-static MobEffect *reserved_20;
+static MobEffect *reserved_24;
 
 // To this:
 static MobEffect *myCustomEffect;
@@ -597,11 +805,11 @@ static MobEffect *myCustomEffect;
 
 And update the `.cpp` file to match.
 
-### Step 3: Add a Color
+### Step 3: Add a color
 
-If you want a unique particle color, you will need to add a new `eMinecraftColour` constant for your effect. Use that in the constructor instead of borrowing an existing color.
+If you want a unique particle color, you will need to add a new `eMinecraftColour` constant for your effect. Use that in the constructor instead of borrowing an existing color. The color shows up in two places: the swirling particles around the mob, and the color blend when multiple effects are active.
 
-### Step 4: Implement the Effect Logic
+### Step 4: Implement the effect logic
 
 Add your effect's behavior to `applyEffectTick()`:
 
@@ -640,7 +848,7 @@ bool MobEffect::isDurationEffectTick(int remainingDuration, int amplification)
 
 If your effect should be active constantly (like speed or jump boost), you don't need to touch `isDurationEffectTick()` at all. Just check for it directly in the relevant gameplay code (like `getWalkingSpeedModifier()`).
 
-### Step 5: For Instant Effects
+### Step 5: For instant effects
 
 If you want an instant effect (like Heal or Harm), subclass `InstantenousMobEffect` instead:
 
@@ -658,17 +866,54 @@ public:
 };
 ```
 
-`InstantenousMobEffect` just returns true from `isInstantenous()` and true from `isDurationEffectTick()`. For instant effects, implement your logic in `applyInstantenousEffect()` instead of `applyEffectTick()`.
+`InstantenousMobEffect` just returns true from `isInstantenous()` and true from `isDurationEffectTick()`. For instant effects, implement your logic in `applyInstantenousEffect()` instead of `applyEffectTick()`. The `applyInstantenousEffect()` method also receives a `scale` parameter, which splash potions use to reduce potency at range.
 
-## Adding a New Brewing Ingredient
+### Step 6: Add a screen effect (optional)
 
-### Step 1: Write a Formula
+If you want your effect to change how the game looks, you'll need to add rendering code in `GameRenderer.cpp`. Follow the same pattern as the existing effects:
+
+```cpp
+// In GameRenderer.cpp, where blindness/night vision are handled:
+if (mob->hasEffect(MobEffect::myCustomEffect))
+{
+    int duration = mob->getEffect(MobEffect::myCustomEffect)->getDuration();
+    // Your rendering changes here (fog, lightmap, overlay, etc.)
+}
+```
+
+Common approaches:
+- **Fog changes**: Modify `fogStart` and `fogEnd` (like Blindness does)
+- **Lightmap changes**: Scale the brightness values in the lightmap (like Night Vision does)
+- **Overlay**: Draw a fullscreen texture overlay using the `Gui` class
+- **Camera effects**: Modify the view rotation or FOV
+
+## Adding a new brewing ingredient
+
+### Step 1: Write a formula
 
 Figure out which bits your ingredient should flip. Refer to the bit layout and the effect-to-bit mapping in `staticCtor()`.
 
 For example, say you want a new ingredient that makes a Potion of Haste (dig speed, effect ID 3). Looking at the existing patterns, bits 0-3 encode the effect type. You need to pick a unique combination of bits 0-3 that isn't taken, then require bit 4 (enabler) and set bit 13 (functional marker).
 
-### Step 2: Define the Formula Constant
+Here's which bit 0-3 combinations are already used:
+
+| Bits 3210 | Effect |
+|-----------|--------|
+| `0001` | Regeneration |
+| `0010` | Swiftness |
+| `0011` | Fire Resistance |
+| `0100` | Poison |
+| `0101` | Instant Health |
+| `0110` | Night Vision |
+| `1000` | Weakness |
+| `1001` | Strength |
+| `1010` | Slowness |
+| `1011` | Invisibility |
+| `1100` | Instant Damage |
+
+Unused combinations include `0111`, `1101`, `1110`, and `1111`. Pick one of those for your new effect.
+
+### Step 2: Define the formula constant
 
 Add your formula to `PotionBrewing.h` and `PotionBrewing.cpp`:
 
@@ -680,7 +925,14 @@ static const wstring MOD_MYINGREDIENT;
 const wstring PotionBrewing::MOD_MYINGREDIENT = L"+0+1+2-3&4-4+13";
 ```
 
-### Step 3: Assign the Formula to an Item
+This formula:
+- Sets bits 0, 1, 2 (giving `0111`)
+- Clears bit 3
+- Requires bit 4 to be set (needs Awkward Potion base)
+- Clears bit 4 (consumed the enabler)
+- Sets bit 13 (marks it as a functional potion)
+
+### Step 3: Assign the formula to an item
 
 In `Item.cpp`, when creating (or modifying) the item, chain `setPotionBrewingFormula()`:
 
@@ -693,7 +945,7 @@ Item::myNewItem = (new Item(200))
 
 That's it. The brewing stand will now accept this item as an ingredient, because `hasPotionBrewingFormula()` checks if the formula string is non-empty.
 
-### Step 4: Add Duration and Amplifier Formulas
+### Step 4: Add duration and amplifier formulas
 
 If your new brew value should produce a new effect, you need to add entries to the duration and amplifier maps in `PotionBrewing::staticCtor()`:
 
@@ -710,9 +962,19 @@ potionEffectAmplifier.insert(intStringMap::value_type(
 ));
 ```
 
-## Modifying the Existing Brewing Chain
+The duration formula `0 & 1 & 2 & !3 & 0+6` means: check that bits 0, 1, and 2 are set and bit 3 is clear, then the duration value is the value of bit 0 plus the value of bit 6. If bit 6 is set (Redstone was added), the duration is higher.
 
-### Changing What an Ingredient Does
+### Step 5: Add the potion color
+
+`PotionBrewing::getColorValue()` caches the color for each brew value. When `getEffects()` resolves the effects for a brew value, the color is computed by blending the `MobEffect` colors of all active effects on that potion. If your effect uses a unique `eMinecraftColour`, the potion liquid color updates automatically.
+
+### Step 6: Tooltip text
+
+`PotionItem::appendHoverText()` builds the tooltip by calling `getMobEffects()` and listing each effect with its amplifier and duration. Your custom effect will show up here automatically as long as it has a `descriptionId` set. The format is: effect name, then the roman numeral level, then the duration in `m:ss` format.
+
+## Modifying the existing brewing chain
+
+### Changing what an ingredient does
 
 Just edit the formula string. For example, to make Sugar also set bit 5 (amplifier):
 
@@ -724,7 +986,7 @@ const wstring PotionBrewing::MOD_SUGAR = L"-0+1-2-3&4-4+13";
 const wstring PotionBrewing::MOD_SUGAR = L"-0+1-2-3&4-4+13+5";
 ```
 
-### Changing Effect Duration
+### Changing effect duration
 
 The base duration formula is: `(TICKS_PER_SECOND * 60) * (duration * 3 + (duration - 1) * 2)`. This gives 3 minutes for duration=1, 8 minutes for duration=2, etc. The result then gets halved per amplifier level and scaled by the effect's `durationModifier`.
 
@@ -734,11 +996,17 @@ To change how long a specific effect lasts, you can:
 2. Change the duration formula in `staticCtor()` (affects which bit patterns produce longer durations)
 3. Modify the duration calculation in `getEffects()` directly
 
-### Removing an Ingredient
+### Removing an ingredient
 
 Set the item's formula to an empty string, or just don't call `setPotionBrewingFormula()` on it.
 
-## Network Sync
+### Adding Fermented Spider Eye inversions
+
+Fermented Spider Eye's formula (`-0+3-4+13`) works differently from other ingredients. It doesn't require the enabler bit (`&4`), so it can modify already-functional potions. It clears bit 0 and sets bit 3, which shifts the effect to a different bit pattern. This is how Swiftness becomes Slowness, Night Vision becomes Invisibility, etc.
+
+To make your custom potion invertible with Fermented Spider Eye, just make sure that clearing bit 0 and setting bit 3 on your brew value maps to a different valid entry in the `potionEffectDuration` table.
+
+## Network sync
 
 When a server adds or removes an effect on a mob, it sends packets to clients:
 
@@ -760,7 +1028,9 @@ int duration = effectTag->getInt(L"Duration");
 activeEffects.insert(..., new MobEffectInstance(id, duration, amplifier));
 ```
 
-## Quick Reference: Ingredient to Effect
+Custom effects with IDs 20-31 will save and load fine since the NBT just stores the raw ID. The only requirement is that the effect is registered in the `effects[]` array when the world loads.
+
+## Quick reference: ingredient to effect
 
 | Ingredient | Formula Constant | Potion Produced |
 |------------|-----------------|-----------------|

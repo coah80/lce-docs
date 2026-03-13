@@ -78,34 +78,61 @@ Source file lists are kept in separate CMake includes:
 
 Both targets define:
 
-- `_LARGE_WORLDS` for extended world size support
-- `_DEBUG_MENUS_ENABLED` for debug menu availability
-- `_CRT_NON_CONFORMING_SWPRINTFS` / `_CRT_SECURE_NO_WARNINGS` for MSVC compatibility
-- `_WINDOWS64` as the 64-bit platform flag
-- `_DEBUG` (Debug only) / `_LIB` (World library only)
+| Definition | Purpose |
+|---|---|
+| `_LARGE_WORLDS` | Extended world size support |
+| `_DEBUG_MENUS_ENABLED` | Debug menu availability |
+| `_CRT_NON_CONFORMING_SWPRINTFS` | MSVC printf compatibility |
+| `_CRT_SECURE_NO_WARNINGS` | Disable MSVC security warnings |
+| `_WINDOWS64` | 64-bit platform flag |
+| `_DEBUG` | Debug-only definition |
+| `_LIB` | World library only |
 
 ### MSVC options
 
 The `configure_msvc_target()` function applies:
 
-- `/W3` warnings in Debug, `/W0` in Release
+**Debug:**
+
+- `/W3` warnings
 - `/MP` multi-processor compilation
 - `/FS` force synchronous PDB writes
 - `/EHsc` C++ exception handling
-- `/GL /O2 /Oi /GT /GF` whole-program optimization in Release
-- `/LTCG /INCREMENTAL:NO` link-time code generation for Release
+
+**Release:**
+
+- `/W0` warnings (all disabled)
+- `/MP` multi-processor compilation
+- `/GL` whole-program optimization
+- `/O2` maximize speed
+- `/Oi` intrinsic functions
+- `/GT` fiber-safe thread-local storage
+- `/GF` string pooling
+
+**Release linker:**
+
+- `/LTCG` link-time code generation
+- `/INCREMENTAL:NO` no incremental linking
 
 ### Dependencies
 
 `MinecraftClient` links against:
 
-- `MinecraftWorld` (static library)
-- `d3d11` for DirectX 11 rendering
-- `XInput9_1_0` for controller input
-- `wsock32` for networking
-- `legacy_stdio_definitions` for MSVC compatibility
-- Iggy libraries (`iggy_w64.lib`, `iggyperfmon_w64.lib`, `iggyexpruntime_w64.lib`) for SWF/Flash UI rendering
-- 4J libraries (`4J_Input.lib`, `4J_Storage.lib`, `4J_Render_PC.lib`) for platform abstraction (debug/release variants)
+| Library | Purpose |
+|---------|---------|
+| `MinecraftWorld` | Static library with game logic |
+| `d3d11` | DirectX 11 rendering |
+| `XInput9_1_0` | Controller input |
+| `wsock32` | Networking |
+| `legacy_stdio_definitions` | MSVC compatibility |
+| `iggy_w64.lib` | SWF/Flash UI rendering |
+| `iggyperfmon_w64.lib` | Iggy performance monitoring |
+| `iggyexpruntime_w64.lib` | Iggy expression runtime |
+| `4J_Input.lib` | 4J input abstraction (debug/release variants) |
+| `4J_Storage.lib` | 4J storage abstraction (debug/release variants) |
+| `4J_Render_PC.lib` | 4J rendering abstraction (debug/release variants) |
+
+The Iggy libraries handle the Flash/SWF-based UI system from the original console edition. The 4J libraries are proprietary platform abstraction layers.
 
 ## Platform support
 
@@ -126,8 +153,13 @@ endif()
 
 The CMake build automatically copies runtime assets during configuration:
 
-- **Windows**: Uses `robocopy.exe` to copy redistributables from `x64/Release/`, client assets (excluding source files), and DurangoMedia patches.
-- **Unix/Linux**: Uses `rsync` with equivalent exclusion filters. This path exists for asset copying, but the actual compilation still needs MSVC.
+**Windows**: Uses `robocopy.exe` to copy:
+
+- Redistributables from `x64/Release/`
+- Client assets (excluding source files)
+- DurangoMedia patches
+
+**Unix/Linux**: Uses `rsync` with equivalent exclusion filters. This path exists for asset copying, but the actual compilation still needs MSVC.
 
 The asset copy excludes source files (`*.cpp`, `*.h`, etc.), build files, scripts, and platform-specific directories (`Durango*`, `Orbis*`, `PS*`, `Xbox`).
 
@@ -136,6 +168,18 @@ The asset copy excludes source files (`*.cpp`, `*.h`, etc.), build files, script
 Per `COMPILE.md`, contributors on Linux need a Windows machine or VM to build. Running the compiled game via Wine is a separate concern from having a supported build environment.
 
 The `CONTRIBUTING.md` notes that one of the project's goals is "having workable multi-platform compilation for ARM, Consoles, Linux." This is a future goal, not something that works today.
+
+### Platform-specific code
+
+The source contains several platform ifdefs:
+
+| Macro | Platform |
+|-------|----------|
+| `__ORBIS__` | PlayStation (Orbis) |
+| `_WINDOWS64` | Windows 64-bit |
+| `_DURANGO` | Xbox One |
+
+These are remnants of the original multi-platform console codebase. For example, `BaseAttributeMap` uses a different hash function on Orbis because the PlayStation standard library doesn't default-hash enums.
 
 ## CI/CD
 
@@ -198,6 +242,10 @@ Notable settings: `InsertBraces: true` makes sure all control flow blocks have b
 | Nightly releases | None | Automated via GitHub Actions |
 | PR validation | None | Debug build on every PR |
 | Asset copying | Manual | Automated in CMake (robocopy/rsync) |
+| C++ standard | C++11 | C++17 |
+| Source file count | ~1,564 (World) | ~1,837 (World) + ~606 (Client) |
+
+LCEMP also has a `build-macos` directory and a `Common` top-level directory that don't exist in MinecraftConsoles. LCEMP includes `ConsoleSaveFileSplit` files not present in MinecraftConsoles.
 
 ## Contributing
 

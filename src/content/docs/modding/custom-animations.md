@@ -419,6 +419,66 @@ The `a` value is the partial tick (0.0 to 1.0, how far between game ticks we are
 
 If you need partial ticks inside `prepareMobModel` for your own interpolation, it's the third parameter `a`.
 
+## DLC Skin Animation Overrides
+
+The `uiBitmaskOverrideAnim` parameter in `setupAnim` is a bitmask that 4J uses to customize animation behavior for DLC skin packs. Your `setupAnim` should check these bits and adjust accordingly:
+
+```cpp
+void HumanoidModel::setupAnim(float time, float r, float bob,
+                                float yRot, float xRot, float scale,
+                                unsigned int uiBitmaskOverrideAnim)
+{
+    // Check if arms should be held down instead of swinging
+    if (uiBitmaskOverrideAnim & eAnim_ArmsDown)
+    {
+        arm0->xRot = 0;
+        arm1->xRot = 0;
+    }
+    // Check if legs should not animate
+    if (uiBitmaskOverrideAnim & eAnim_NoLegAnim)
+    {
+        leg0->xRot = 0;
+        leg1->xRot = 0;
+    }
+    // ...
+}
+```
+
+The full bitmask is defined in `HumanoidModel.h`. The bits that matter most for custom models:
+
+| Bit | Name | What to do |
+|-----|------|------------|
+| `eAnim_ArmsDown` (0) | Hold arms at sides | Skip arm swing |
+| `eAnim_NoLegAnim` (2) | Freeze legs | Skip leg swing |
+| `eAnim_SingleLegs` (5) | Legs move together | Use same rotation for both legs |
+| `eAnim_SingleArms` (6) | Arms move together | Use same rotation for both arms |
+
+You don't have to support these if you're making a non-humanoid model. They're only relevant for biped models that might be used with DLC skins.
+
+## The Sneaking Animation
+
+When `HumanoidModel::sneaking` is true, the model shifts down and tilts forward:
+
+```cpp
+if (sneaking)
+{
+    body->yRot = 0.5f;  // tilt forward
+    arm0->xRot += 0.4f; // arms angle forward slightly
+    arm1->xRot += 0.4f;
+    leg0->setPos(-2, 12 + 4.25f, 4);  // shift legs back
+    leg1->setPos(2, 12 + 4.25f, 4);
+    head->y = 1;  // head moves down
+}
+```
+
+If your custom model should support sneaking, check the `sneaking` flag and apply a similar shift. The exact values depend on your model's proportions.
+
+## Rendering Scale
+
+The scale parameter passed to `setupAnim` and used in `compile()` is always `1.0f / 16.0f`. This means 1 unit in model space = 1 pixel = 1/16 of a block. So a model that's 32 pixels tall is 2 blocks tall in the world.
+
+You don't need to do anything with the scale in your animation code. It's there for the rendering pipeline. Just set rotations and positions in pixel units.
+
 ## Tips
 
 - **Start simple.** Get a basic sin wave working on one part, then build from there.
@@ -428,3 +488,5 @@ If you need partial ticks inside `prepareMobModel` for your own interpolation, i
 - **Watch your frequency values.** `0.05f` to `0.1f` = very slow. `0.3f` = moderate. `0.6662f` = standard walk speed. `1.0f`+ = fast.
 - **Keep amplitudes small for subtlety.** `0.05f` radians is barely visible. `0.5f` is a noticeable swing. `1.4f` (like leg swing) is a big motion.
 - **The `+ PI` trick is your best friend.** It's how you make things alternate. Arms, legs, tentacles, whatever.
+- **Reset positions each frame too.** If your animation moves parts (not just rotates), make sure to set positions back to their base values at the start of `setupAnim`. Otherwise the previous frame's position changes accumulate.
+- **Check the vanilla code first.** The best animation reference is the existing models. If you want something similar to an existing mob, start by copying its `setupAnim` and tweaking from there.

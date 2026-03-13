@@ -128,8 +128,9 @@ This follows the same pattern as the real `OreTile` class. The key methods are:
 
 - **`getResource()`** returns the item ID that drops when you break the block. We return `Item::ruby_Id` so it drops a ruby gem instead of the ore block itself.
 - **`getResourceCount()`** returns how many items drop. 1 is standard for most ores.
-- **`getResourceCountForLootBonus()`** handles the Fortune enchantment. More fortune = more drops.
-- **`spawnResources()`** is where experience orbs get spawned. The `Mth::nextInt(level->random, 3, 7)` call gives 3 to 7 XP, same as diamond ore.
+- **`getResourceCountForLootBonus()`** handles the Fortune enchantment. The formula is the same one `OreTile` uses: if Fortune level is > 0, roll `nextInt(level + 2) - 1`, clamp to 0, and multiply by the base count.
+- **`spawnResources()`** calls the parent first (which spawns the item drops), then spawns experience orbs. `Mth::nextInt(level->random, 3, 7)` gives 3 to 7 XP, same range as diamond and emerald ore.
+- **`getSpawnResourcesAuxValue()`** returns the aux/data value for the dropped item. We return 0 (no variant). Lapis ore returns `DyePowderItem::BLUE` here since it drops blue dye.
 
 ### How existing ores do it
 
@@ -148,6 +149,21 @@ int OreTile::getResource(int data, Random *random, int playerBonusLevel)
 ```
 
 Notice that iron and gold return `id` (the ore block itself) because they need to be smelted into ingots. Our ruby drops a gem directly, like diamond.
+
+### XP values per ore type
+
+The real `OreTile::spawnResources()` only drops XP when the drop item is different from the block itself (so iron and gold ore give no XP). Here are the ranges:
+
+| Ore | XP Range |
+|-----|---------|
+| Coal | 0-2 |
+| Diamond | 3-7 |
+| Emerald | 3-7 |
+| Lapis | 2-5 |
+| Nether Quartz | 2-5 |
+| Iron/Gold | 0 (drops the block itself) |
+
+We went with 3-7 for ruby to match diamond.
 
 ## Step 3: Register the ore block in Tile
 
@@ -248,13 +264,13 @@ The constructor takes `151` because the `Item` constructor adds 256 internally, 
 For comparison, here is how diamond and emerald are registered:
 
 ```cpp
-Item::diamond = (new Item(8))
+Item::diamond = (new Item(8))       // 256 + 8 = 264
     ->setBaseItemTypeAndMaterial(eBaseItemType_treasure, eMaterial_diamond)
     ->setTextureName(L"diamond")
     ->setDescriptionId(IDS_ITEM_DIAMOND)
     ->setUseDescriptionId(IDS_DESC_DIAMONDS);
 
-Item::emerald = (new Item(132))
+Item::emerald = (new Item(132))     // 256 + 132 = 388
     ->setBaseItemTypeAndMaterial(eBaseItemType_treasure, eMaterial_emerald)
     ->setTextureName(L"emerald")
     ->setDescriptionId(IDS_ITEM_EMERALD)
@@ -312,6 +328,26 @@ This gives ruby:
 
 Feel free to tweak these numbers to whatever feels right for your mod.
 
+### Repair item
+
+The `Tier::getTierItemId()` method uses pointer identity checks to find the repair item. For built-in tiers (WOOD, STONE, IRON, DIAMOND, GOLD), it returns the right item. For custom tiers like RUBY, it returns `-1` by default.
+
+To make ruby tools repairable with rubies, you have two options:
+
+1. **Override `isValidRepairItem()`** on each tool class to check for `Item::ruby`.
+2. **Add a check to `getTierItemId()`** in `Item.cpp`:
+
+```cpp
+int Tier::getTierItemId()
+{
+    // ... existing checks ...
+    if (this == RUBY) return Item::ruby_Id;
+    return -1;
+}
+```
+
+Option 2 is simpler since it covers all tools that use the RUBY tier at once.
+
 ## Step 6: Define an armor material
 
 Armor materials work similarly to tool tiers. They are defined in `ArmorItem.cpp`:
@@ -332,12 +368,7 @@ The `ArmorMaterial` constructor takes:
 | `slotProtections[]` | Array of 4 defense values: {helmet, chestplate, leggings, boots} |
 | `enchantmentValue` | How well it takes enchantments |
 
-The existing protection arrays look like this:
-
-```cpp
-const int _ArmorMaterial::ironArray[]    = {2, 6, 5, 2};  // 15 total
-const int _ArmorMaterial::diamondArray[] = {3, 8, 6, 3};  // 20 total
-```
+The per-slot base health values are `{11, 16, 15, 13}` for helmet, chestplate, leggings, boots. So an iron chestplate has `16 * 15 = 240` durability.
 
 ### In ArmorItem.h
 
@@ -360,17 +391,39 @@ This gives ruby armor:
 - Durability multiplier of 25 (between iron's 15 and diamond's 33)
 - Enchantment value of 12
 
+### Resulting durability
+
+| Piece | Base Health | Multiplier | Total Durability |
+|-------|-------------|-----------|-----------------|
+| Ruby Helmet | 11 | 25 | 275 |
+| Ruby Chestplate | 16 | 25 | 400 |
+| Ruby Leggings | 15 | 25 | 375 |
+| Ruby Boots | 13 | 25 | 325 |
+
+### Repair item
+
+Just like tool tiers, `ArmorMaterial::getTierItemId()` uses pointer identity checks. Add a check for RUBY:
+
+```cpp
+int ArmorMaterial::getTierItemId()
+{
+    // ... existing checks ...
+    if (this == RUBY) return Item::ruby_Id;
+    return -1;
+}
+```
+
 ## Step 7: Create the tools
 
 Now we register all five ruby tools. Each tool type is a different class:
 
-| Tool | Class | Shape pattern |
-|---|---|---|
-| Pickaxe | `PickaxeItem` | `XXX` / ` # ` / ` # ` |
-| Shovel | `ShovelItem` | `X` / `#` / `#` |
-| Axe | `HatchetItem` | `XX` / `X#` / ` #` |
-| Hoe | `HoeItem` | `XX` / ` #` / ` #` |
-| Sword | `WeaponItem` | `X` / `X` / `#` |
+| Tool | Class | Base Attack Damage | Total Damage (with +2 tier bonus) |
+|---|---|---|---|
+| Sword | `WeaponItem` | 4 | 6 |
+| Pickaxe | `PickaxeItem` | 2 | 4 |
+| Shovel | `ShovelItem` | 1 | 3 |
+| Axe | `HatchetItem` | 3 | 5 |
+| Hoe | `HoeItem` | N/A | N/A |
 
 ### In Item.h
 
@@ -501,25 +554,21 @@ Item::boots_ruby = (ArmorItem *)(
     ->setUseDescriptionId(IDS_DESC_BOOTS_RUBY));
 ```
 
-The `ArmorItem` constructor takes `(id, material, modelIndex, slot)`. The `modelIndex` controls which armor texture layer is used for rendering. Pick `5` for a new custom layer (existing materials use 0 through 4).
+The `ArmorItem` constructor takes `(id, material, renderIndex, slot)`. The `renderIndex` controls which armor texture layer is used for rendering. Pick `5` for a new custom layer (existing materials use 0 through 4).
 
-The slot constants are:
-- `ArmorItem::SLOT_HEAD` (0) for helmets
-- `ArmorItem::SLOT_TORSO` (1) for chestplates
-- `ArmorItem::SLOT_LEGS` (2) for leggings
-- `ArmorItem::SLOT_FEET` (3) for boots
+The `(ArmorItem *)` cast is needed because the chained `set*` methods return `Item *`, but the static pointer is `ArmorItem *`.
 
 ## Step 9: Add crafting recipes
 
 ### Tool recipes
 
-The easy way is to plug into the existing `ToolRecipies` and `WeaponRecipies` systems. These systems loop over parallel arrays of materials and tool items.
+The easy way is to plug into the existing `ToolRecipies` and `WeaponRecipies` systems. These loop over parallel arrays of materials and tool items.
 
 In `ToolRecipies.cpp`, inside `ToolRecipies::_init()`, add a sixth material column:
 
 ```cpp
 // After the existing ADD_OBJECT lines for gold:
-ADD_OBJECT(map[0], Item::ruby);       // material
+ADD_OBJECT(map[0], Item::ruby);          // material
 
 ADD_OBJECT(map[1], Item::pickAxe_ruby);  // pickaxe
 ADD_OBJECT(map[2], Item::shovel_ruby);   // shovel
@@ -530,11 +579,11 @@ ADD_OBJECT(map[4], Item::hoe_ruby);      // hoe
 In `WeaponRecipies.cpp`, inside `WeaponRecipies::_init()`:
 
 ```cpp
-ADD_OBJECT(map[0], Item::ruby);       // material
-ADD_OBJECT(map[1], Item::sword_ruby); // sword
+ADD_OBJECT(map[0], Item::ruby);          // material
+ADD_OBJECT(map[1], Item::sword_ruby);    // sword
 ```
 
-The recipe system will automatically create the standard shaped recipes (stick + material in the right pattern) for all your tools.
+The recipe system will automatically create the standard shaped recipes (stick + material in the right pattern) for all your tools. Since `Item::ruby` is an `Item *` (not a `Tile *`), the Object class will tag it as `eType_ITEM`, and the loop will use `i` in the type string. This means ruby tools need exact rubies (no aux value wildcard), which is what you want.
 
 ### Armor recipes
 
@@ -548,7 +597,7 @@ ADD_OBJECT(map[3], Item::leggings_ruby);   // leggings
 ADD_OBJECT(map[4], Item::boots_ruby);      // boots
 ```
 
-Also update `ArmorRecipes::GetArmorType()` to recognize the new IDs:
+Also update `ArmorRecipes::GetArmorType()` to recognize the new IDs so quick equip works:
 
 ```cpp
 case Item::helmet_ruby_Id:
@@ -566,14 +615,20 @@ case Item::boots_ruby_Id:
 
 ### Storage block recipe (9 rubies = 1 block)
 
-In `OreRecipies.cpp`, bump `MAX_ORE_RECIPES` from 5 to 6 in the header, then add:
+In `OreRecipies.h`, bump `MAX_ORE_RECIPES` from 5 to 6:
+
+```cpp
+#define MAX_ORE_RECIPES 6
+```
+
+In `OreRecipies.cpp`, inside `OreRecipies::_init()`, add:
 
 ```cpp
 ADD_OBJECT(map[5], Tile::rubyBlock);
 ADD_OBJECT(map[5], new ItemInstance(Item::ruby, 9));
 ```
 
-This automatically creates both directions: 9 rubies -> 1 ruby block, and 1 ruby block -> 9 rubies.
+This automatically creates both directions: 9 rubies in a 3x3 grid makes 1 ruby block, and 1 ruby block in a 1x1 grid makes 9 rubies. The `addRecipes()` loop handles both.
 
 ## Step 10: Add the smelting recipe
 
@@ -608,28 +663,24 @@ This is where your ore actually shows up in the ground. The game uses `OreFeatur
 OreFeature(int tile, int count);
 ```
 
-It also has an overload that lets you specify what block it replaces (defaults to stone):
+The `count` is the maximum number of blocks in a single vein. For reference, here are all the existing ore features:
 
-```cpp
-OreFeature(int tile, int count, int targetTile);
-```
+| Ore | Vein Size | Veins/Chunk | Height Range | Method |
+|-----|----------|-------------|-------------|--------|
+| Dirt | 32 | 20 | 0 to 128 | `decorateDepthSpan` |
+| Gravel | 32 | 10 | 0 to 128 | `decorateDepthSpan` |
+| Coal | 16 | 20 | 0 to 128 | `decorateDepthSpan` |
+| Iron | 8 | 20 | 0 to 64 | `decorateDepthSpan` |
+| Gold | 8 | 2 | 0 to 32 | `decorateDepthSpan` |
+| Redstone | 7 | 8 | 0 to 16 | `decorateDepthSpan` |
+| Diamond | 7 | 1 | 0 to 16 | `decorateDepthSpan` |
+| Lapis | 6 | 1 | centered on 16 | `decorateDepthAverage` |
 
-The `count` is the maximum number of blocks in a single vein. For reference:
-
-| Ore | Vein size | Veins per chunk | Height range |
-|---|---|---|---|
-| Coal | 16 | 20 | 0 to 128 (full height) |
-| Iron | 8 | 20 | 0 to 64 (bottom half) |
-| Gold | 8 | 2 | 0 to 32 (bottom quarter) |
-| Redstone | 7 | 8 | 0 to 16 (bottom eighth) |
-| Diamond | 7 | 1 | 0 to 16 (bottom eighth) |
-| Lapis | 6 | 1 | centered around Y=16 |
-
-The height values are based on `Level::genDepth` which is 128. So `Level::genDepth / 2` is 64, `Level::genDepth / 4` is 32, and so on.
+Height values are based on `Level::genDepth` which is 128. So `Level::genDepth / 2` is 64, `Level::genDepth / 4` is 32, `Level::genDepth / 8` is 16.
 
 ### Adding ruby to BiomeDecorator
 
-In `BiomeDecorator.h`, add a new feature pointer:
+In `BiomeDecorator.h`, add a new feature pointer in the protected section:
 
 ```cpp
 Feature *rubyOreFeature;
@@ -643,7 +694,7 @@ rubyOreFeature = new OreFeature(Tile::rubyOre_Id, 4);
 
 A vein size of 4 makes ruby pretty rare per vein (smaller than diamond's 7).
 
-Then inside `decorateOres()`, add the generation call:
+Then inside `decorateOres()`, add the generation call. Put it after the existing ore lines but before `level->setInstaTick(false)`:
 
 ```cpp
 decorateDepthSpan(1, rubyOreFeature, 0, Level::genDepth / 8);
@@ -729,7 +780,7 @@ Block textures go in the terrain atlas and item textures go in the items atlas. 
 
 ### Armor model textures
 
-Armor also needs model textures that get rendered on the player body. These are separate from the inventory icon textures. You will need two armor layer images (layer 1 for helmet/chestplate/boots, layer 2 for leggings).
+Armor also needs model textures that get rendered on the player body. These are separate from the inventory icon textures. You will need two armor layer images (layer 1 for helmet/chestplate/boots, layer 2 for leggings). The render index `5` we picked earlier tells the renderer to look for these custom layer files.
 
 ## Step 13: String IDs
 
@@ -764,10 +815,13 @@ Minecraft.World/RubyOreTile.cpp
 Rebuild the project and load up a new world. You should be able to:
 
 1. Find ruby ore underground (below Y=16)
-2. Mine it and get ruby gems (with XP drops)
+2. Mine it and get ruby gems (with 3-7 XP)
 3. Craft ruby tools and armor at a workbench
-4. Smelt ruby ore in a furnace
+4. Smelt ruby ore in a furnace (for silk-touched ore)
 5. Compact 9 rubies into a ruby block and back
+6. Repair ruby tools and armor on an anvil with rubies
+
+If ore is not showing up, make sure you created a **new world** after adding the generation code. Existing chunks that were already generated will not have ruby ore in them.
 
 ## Quick reference: files you touched
 
@@ -797,4 +851,3 @@ Rebuild the project and load up a new world. You should be able to:
 - [Adding Items](/lce-docs/modding/adding-items/) for more details on the item system
 - [Adding Recipes](/lce-docs/modding/adding-recipes/) for the full recipe type string encoding
 - [Custom World Generation](/lce-docs/modding/custom-worldgen/) for more generation options
-- [Custom Materials](/lce-docs/modding/custom-materials/) for creating entirely new tool/armor material systems

@@ -5,54 +5,89 @@ description: What LCE is and what this documentation covers.
 
 ## What is LCE?
 
-LCE (**Legacy Console Edition Multiplayer**) is a source fork of Minecraft Legacy Console Edition (LCE) that adds LAN multiplayer hosting and better PC compatibility. It was created by **notpies**.
+LCE (**Legacy Console Edition Multiplayer**) is a source fork of Minecraft Legacy Console Edition that adds working LAN multiplayer and better PC compatibility. It was created by **notpies**.
 
-The codebase is written in **C++11** and supports multiple platforms, including Windows 64-bit, Xbox 360, Xbox One (Durango), PS3, PS4 (Orbis), and PS Vita.
+The original Legacy Console Edition (or "LCE" in the community) was built by **4J Studios** for Microsoft and Mojang. They ported Minecraft's Java Edition codebase to C++11 and shipped it on Xbox 360, Xbox One (Durango), PS3, PS4 (Orbis), PS Vita, Wii U, and Nintendo Switch. The LCEMP fork takes that C++ codebase and adds a Windows 64-bit build target with real multiplayer networking over TCP/Winsock.
 
 :::caution
-This is NOT the full Minecraft LCE source code. You need to provide required asset files yourself. See the [Building & Compiling](/lce-docs/overview/building/) page for details.
+This is NOT the full Minecraft LCE source code. You need to provide the required asset files yourself. See the [Building & Compiling](/lce-docs/overview/building/) page for details.
 :::
 
-## Features
+## Version Baseline
 
-- Fully working LAN multiplayer
-- Breaking and placing blocks synced across players
-- Kick system for server hosts
-- Up to 8 players (modifiable in source)
-- Keyboard and mouse support
-- Gamma fixed
-- Fullscreen support
+LCEMP is based on roughly the **TU9 / 1.2.2** era of Legacy Console Edition. That means it has content up through:
 
-## Codebase Structure
+- The End dimension and Ender Dragon boss fight
+- Enchanting and brewing systems
+- Villager trading
+- Jungle biomes
+- Anvils, ender chests, tripwires
+- Ocelots, iron golems, snow golems
+- All enchantments through TU9 (no Wither, no horses, no beacons)
+
+A later version of the same codebase, **MinecraftConsoles** (roughly TU19 / 1.6.4 era), exists with more content like the Wither boss, horses, beacons, hoppers, scoreboards, and an entity attribute system. The docs reference MinecraftConsoles differences where relevant.
+
+## LCEMP Features
+
+These are the things notpies added on top of the original console codebase:
+
+- **LAN multiplayer** via TCP sockets (Winsock). The host broadcasts over UDP on port 25566, and clients discover and join over TCP on port 25565
+- **Block sync** for breaking and placing across all connected players
+- **Kick system** so the host can remove players
+- **Up to 8 players** (configurable in source via `WIN64_NET_MAX_CLIENTS` and `WIN64_LAN_BROADCAST_PLAYERS`)
+- **Keyboard and mouse support** through a full `KeyboardMouseInput` class with WASD movement, mouse look, and configurable key bindings
+- **Gamma fix** for proper brightness on PC
+- **Fullscreen support** for the Windows 64-bit build
+
+## Codebase at a Glance
 
 The project is split into two main modules:
 
-| Module | Purpose | File Count |
-|--------|---------|------------|
-| `Minecraft.World` | Game logic — blocks, items, entities, world generation, networking packets, AI, crafting | ~1,560 files |
-| `Minecraft.Client` | Rendering, UI, models, particles, screens, input, textures, platform-specific code | ~530 files |
+| Module | Role | Approximate Files |
+|--------|------|------------------|
+| `Minecraft.World` | Game logic: blocks, items, entities, world gen, networking packets, AI, crafting, enchantments, effects, storage | ~1,560 (845 headers, 715 implementations) |
+| `Minecraft.Client` | Rendering, UI (Iggy/SWF), models, particles, screens, input, textures, audio, platform layers | ~530 source files |
 
-There's also a `Common` directory inside `Minecraft.Client` that holds shared code for things like audio, colors, DLC, game rules, leaderboards, networking, resources, telemetry, tutorials, and UI.
+There's also a `Common/` directory inside `Minecraft.Client` that holds shared code for audio (Miles Sound System), UI (Iggy SWF framework), DLC, game rules, tutorials, networking, and more.
 
 ## Build System
 
 The project uses **CMake** (minimum 3.10) with:
-- `MinecraftWorld` compiled as a **static library**
+
+- `MinecraftWorld` compiled as a **static library** (.lib)
 - `MinecraftClient` compiled as a **Win32 executable** that links against MinecraftWorld
-- External dependencies: Direct3D 11, XInput, 4J Studios libraries (Input, Storage, Profile, Render), Iggy (UI), Miles Sound System
+- External dependencies: Direct3D 11, XInput, 4J Studios libraries, Iggy (SWF UI), Miles Sound System
+
+## Code Origin
+
+The codebase is a direct C++ port of Minecraft's Java Edition. You'll see Java naming conventions everywhere: `Tile` instead of `Block`, `Mob` instead of `LivingEntity`, `GoalSelector` with prioritized `Goal` instances for AI, `shared_ptr` replacing Java's garbage collection, `wstring` for all text. Comments marked `// 4J` throughout the code indicate changes 4J Studios made for the console port, things like thread-local storage for the lighting cache, critical sections around entity lists, console-specific entity limits (max 40 boats, 200 fireballs, 300 projectiles), and platform guards for each console target.
 
 ## About This Documentation
 
-This documentation was generated by an AI (local LLM) that ran **40 systematic passes** through the entire LCE codebase (~2,960 C++ source files). Each pass looked at different parts of the code, and later passes double-checked and corrected findings from earlier ones.
+This documentation was generated by an AI that ran **40 systematic passes** through the entire LCE codebase (~2,960 C++ source files). Each pass looked at different parts of the code, and later passes double-checked and corrected findings from earlier ones.
 
 **If you find errors**, please open a PR on the [GitHub repository](https://github.com/coah80/lce-docs). AI-generated docs will inevitably have mistakes, so community corrections are welcome and encouraged.
 
-## Navigation
+## How to Navigate
 
-- **[Architecture](/lce-docs/overview/architecture/)** — How the two modules connect and the overall class hierarchy
-- **[Building & Compiling](/lce-docs/overview/building/)** — How to set up and build LCE
-- **[Minecraft.World](/lce-docs/world/overview/)** — Deep dive into game logic
-- **[Minecraft.Client](/lce-docs/client/overview/)** — Deep dive into rendering and UI
-- **[Platform Code](/lce-docs/platforms/overview/)** — Platform-specific implementations
-- **[Modding Guide](/lce-docs/modding/getting-started/)** — How to add blocks, items, entities, and more
-- **[Reference](/lce-docs/reference/block-ids/)** — Complete ID registries and class indexes
+Here's where to go depending on what you're looking for:
+
+| I want to... | Go to... |
+|---|---|
+| Understand the overall code structure | [Architecture](/lce-docs/overview/architecture/) |
+| Build the project from source | [Building & Compiling](/lce-docs/overview/building/) |
+| Learn about game logic systems | [Minecraft.World Overview](/lce-docs/world/overview/) |
+| Learn about rendering and UI | [Minecraft.Client Overview](/lce-docs/client/overview/) |
+| See platform-specific code | [Platform Code](/lce-docs/platforms/overview/) |
+| Start modding (add blocks, items, etc.) | [Modding Guide](/lce-docs/modding/getting-started/) |
+| Look up IDs and class indexes | [Reference](/lce-docs/reference/block-ids/) |
+
+### Reading Order
+
+If you're new to the codebase, the recommended reading order is:
+
+1. **This page** (you're here)
+2. **[Architecture](/lce-docs/overview/architecture/)** to understand how the two modules connect
+3. **[Minecraft.World](/lce-docs/world/overview/)** for the game logic layer
+4. **[Minecraft.Client](/lce-docs/client/overview/)** for rendering and UI
+5. **[Modding Guide](/lce-docs/modding/getting-started/)** when you're ready to make changes

@@ -146,3 +146,36 @@ Friend party search uses Xbox Live Social and Multiplayer services:
 - **Build versioning**: `Xbox_BuildVer.h` for version tracking
 - **Presence IDs**: `PresenceIds.h` for Xbox Live rich presence configuration
 - **Service config**: `ServiceConfig/` directory with localized help documents and event definitions
+
+## MinecraftConsoles Additions
+
+### 4JLibs Headers
+
+`Durango/4JLibs/inc/` bundles the 4J abstraction headers:
+- `4J_Render.h` (Direct3D 11 render abstraction)
+- `4J_Input.h` (gamepad input)
+- `4J_Profile.h` (profiles and achievements)
+- `4J_Storage.h` (save data)
+
+### Iggy UI Library
+
+`Durango/Iggy/` bundles the Iggy Flash-based UI library:
+- `gdraw/gdraw_d3d11.h/.cpp` (Direct3D 11 GDraw backend)
+- `include/iggy.h`, `include/gdraw.h`, `include/iggyexpruntime.h`, `include/iggyperfmon.h`, `include/rrCore.h`
+
+### Miles Sound System
+
+`Durango/Miles/include/mss.h` and `rrCore.h` provide the Miles Sound System API for audio playback.
+
+### Sentient Telemetry
+
+`Durango/Sentient/` bundles the Sentient analytics SDK with `DurangoTelemetry.h/.cpp` for Xbox One-specific telemetry, plus the shared `DynamicConfigurations.h`, `MinecraftTelemetry.h`, `SentientManager.h`, `SentientStats.h`, `SentientTelemetryCommon.h`, and `TelemetryEnum.h`.
+
+### Media and Content
+
+`DurangoMedia/` contains platform-specific assets:
+- `DLC/` for downloadable content packages
+- `loc/` for localization strings
+- `Media/` for UI assets and textures
+- `Sound/` for audio data
+- `strings.h` and `4J_strings.h` for string table definitions

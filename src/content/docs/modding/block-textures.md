@@ -88,6 +88,8 @@ this->v0 = y / (float)source->getHeight();
 this->v1 = (y + height) / (float)source->getHeight();
 ```
 
+`SimpleIcon` is a lighter implementation that takes UV values directly. It also supports flags like `IS_GRASS_TOP` that tell the renderer to apply biome-dependent color tinting.
+
 ## Texture Formats and Sizes
 
 Each texture slot in the vanilla terrain atlas is **16x16 pixels**. The atlas itself is 256x256 (16 slots of 16px each). Textures are stored as 32-bit RGBA.
@@ -251,6 +253,23 @@ Icon *SkyrootLogTile::getTexture(int face, int data)
 }
 ```
 
+### Pattern 4: Data-Variant Blocks
+
+Some blocks use the data value to pick between multiple texture sets. Wool, planks, and stone variants all work this way. Override `registerIcons()` to register an array of icons, then index into it using the data value:
+
+```cpp
+void WoolTile::registerIcons(IconRegister *iconRegister)
+{
+    for (int i = 0; i < 16; i++)
+        iconByData[i] = iconRegister->registerIcon(woolNames[i]);
+}
+
+Icon *WoolTile::getTexture(int face, int data)
+{
+    return iconByData[data & 0xF];
+}
+```
+
 ## Animated Textures
 
 Some textures animate: water, lava, fire, and portal effects. The system works like this:
@@ -290,6 +309,8 @@ if (oldFrame != frame)
 0
 ```
 
+The animation strip file should be 16 pixels wide and `16 * frameCount` pixels tall. Each 16x16 section is one frame, stacked top to bottom.
+
 The animated textures that ship with vanilla LCE are:
 
 | Texture Name | Description |
@@ -303,6 +324,18 @@ The animated textures that ship with vanilla LCE are:
 | `portal` | Nether portal effect |
 
 Fire uses two separate animated layers that get composited by the renderer.
+
+## Biome-Tinted Textures
+
+Some block textures get tinted based on the biome. Grass tops, grass sides (the overlay), and leaves all use the colour table for their tint. The `Icon::IS_GRASS_TOP` flag marks a texture as needing biome coloring:
+
+```cpp
+texturesByName[L"AetherGrassTop"]->setFlags(Icon::IS_GRASS_TOP);
+```
+
+The actual tinting happens in `TileRenderer` during block rendering. It reads the biome color from the active `ColourTable` and multiplies it with the vertex colors.
+
+If you want your custom block texture to respond to biome colors, set the `IS_GRASS_TOP` flag on its icon. If you want a custom tint that doesn't follow biome rules, set the color directly in your tile's `getColor()` method instead.
 
 ## How the Aether Client Added Block Textures
 
@@ -461,6 +494,8 @@ texturesToAnimate.push_back(pair<wstring, wstring>(L"myAnimatedBlock", L"myAnima
 
 The animation strip file (`textures/blocks/myAnimatedBlock.png`) should be 16 pixels wide and `16 * frameCount` pixels tall. Each 16x16 section is one frame, stacked top to bottom.
 
+For custom frame timing, add a `.txt` file next to the animation strip with comma-separated frame indices and optional `*duration` suffixes.
+
 ### 8. Rebuild and Test
 
 Add any new source files to `cmake/Sources.cmake` (for `.h` and `.cpp`), rebuild the project, and your block should render with the new texture.
@@ -474,6 +509,8 @@ Add any new source files to `cmake/Sources.cmake` (for `.h` and `.cpp`), rebuild
 **Wrong atlas dimensions.** If you extend the atlas vertically, make sure the slot size calculations account for the new height. The Aether client uses separate `slotW` and `slotH` variables instead of a single `slotSize` for this reason.
 
 **Not calling sendTileData().** If your block uses the `data` parameter in `getTexture(int face, int data)` for different visual states, you need `->sendTileData()` during registration so the data bits get synced to clients.
+
+**Forgetting to compile after atlas changes.** If you change the atlas image but don't rebuild the project, the old atlas stays cached. Do a clean build after changing `terrain.png`.
 
 ## Related Guides
 

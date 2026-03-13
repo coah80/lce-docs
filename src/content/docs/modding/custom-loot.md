@@ -3,11 +3,11 @@ title: Custom Loot & Drops
 description: How mob drops, block drops, fortune, looting, and silk touch work in LCE.
 ---
 
-This guide covers how items get dropped in LCE, both from mobs dying and blocks being broken. We'll look at the actual drop systems and show you how to add your own custom loot.
+This guide covers how items get dropped in LCE, both from mobs dying and blocks being broken. We will look at the actual drop systems, every mob's drops, and show you how to add your own custom loot.
 
 ## How Mob Drops Work
 
-When a mob dies, `Mob::die()` in `Minecraft.World/Mob.cpp` handles the whole loot pipeline. Here's the real code:
+When a mob dies, `Mob::die()` in `Minecraft.World/Mob.cpp` handles the whole loot pipeline. Here is the real code:
 
 ```cpp
 void Mob::die(DamageSource *source)
@@ -60,112 +60,247 @@ Every mob has three virtual methods that control what it drops:
 | `dropDeathLoot(bool, int)` | Main drop logic. Override this for custom drop tables. |
 | `dropRareDeathLoot(int)` | Rare/special drops. The int param is the looting quality level. |
 
-### Real Examples from the Source
+## Every Mob's Drops
 
-Here's how Chicken handles its drops, including the cooked-if-on-fire logic:
+Here is every mob in the codebase and exactly what it drops, pulled straight from the source files.
+
+### Passive Mobs
+
+#### Cow
+
+**File:** `Cow.cpp`
+
+| Drop | Count | Looting | Notes |
+|------|-------|---------|-------|
+| Leather | 0-2 | +1 per level | Base `random->nextInt(3)` |
+| Raw Beef | 1-3 | +1 per level | Base `1 + random->nextInt(3)` |
+| Cooked Beef | 1-3 | +1 per level | Drops instead of raw beef if on fire |
+
+#### Pig
+
+**File:** `Pig.cpp`
+
+| Drop | Count | Looting | Notes |
+|------|-------|---------|-------|
+| Raw Porkchop | 1-3 | +1 per level | Base `1 + random->nextInt(3)` |
+| Cooked Porkchop | 1-3 | +1 per level | Drops instead of raw if on fire |
+| Saddle | 1 | No | Only if the pig was saddled |
+
+#### Chicken
+
+**File:** `Chicken.cpp`
+
+| Drop | Count | Looting | Notes |
+|------|-------|---------|-------|
+| Feather | 0-2 | +1 per level | Base `random->nextInt(3) + random->nextInt(1 + playerBonusLevel)` |
+| Raw Chicken | 1 | No | Always 1 |
+| Cooked Chicken | 1 | No | Drops instead of raw if on fire |
+
+#### Sheep
+
+**File:** `Sheep.cpp`
+
+| Drop | Count | Looting | Notes |
+|------|-------|---------|-------|
+| Wool | 1 | No | Only if NOT sheared. Aux value matches sheep color. |
+| (nothing) | 0 | No | If sheared, drops nothing on death |
+
+Sheep are unique. Unsheared sheep drop 1 wool block matching their color. Sheared sheep drop nothing:
 
 ```cpp
-void Chicken::dropDeathLoot(bool wasKilledByPlayer, int playerBonusLevel)
+void Sheep::dropDeathLoot(bool wasKilledByPlayer, int playerBonusLevel)
 {
-    // drop some feathers
-    int count = random->nextInt(3) + random->nextInt(1 + playerBonusLevel);
-    for (int i = 0; i < count; i++)
+    if (!isSheared())
     {
-        spawnAtLocation(Item::feather_Id, 1);
-    }
-    // and some meat
-    if (this->isOnFire())
-    {
-        spawnAtLocation(Item::chicken_cooked_Id, 1);
-    }
-    else
-    {
-        spawnAtLocation(Item::chicken_raw_Id, 1);
+        spawnAtLocation(shared_ptr<ItemInstance>(
+            new ItemInstance(Tile::cloth_Id, 1, getColor())), 0.0f);
     }
 }
 ```
 
-Skeleton drops both arrows and bones, each with looting bonus:
+#### Squid
 
-```cpp
-void Skeleton::dropDeathLoot(bool wasKilledByPlayer, int playerBonusLevel)
-{
-    // drop some arrows
-    int count = random->nextInt(3 + playerBonusLevel);
-    for (int i = 0; i < count; i++)
-    {
-        spawnAtLocation(Item::arrow->id, 1);
-    }
-    // and some bones
-    count = random->nextInt(3 + playerBonusLevel);
-    for (int i = 0; i < count; i++)
-    {
-        spawnAtLocation(Item::bone->id, 1);
-    }
-}
-```
+**File:** `Squid.cpp`
 
-Blaze has a player-only drop gate and also drops extra glowstone dust (a 4J addition for console's limited Nether):
+| Drop | Count | Looting | Notes |
+|------|-------|---------|-------|
+| Ink Sac | 1-3 | +1 per level | Base `1 + random->nextInt(3)` |
 
-```cpp
-void Blaze::dropDeathLoot(bool wasKilledByPlayer, int playerBonusLevel)
-{
-    if (wasKilledByPlayer)
-    {
-        int count = random->nextInt(2 + playerBonusLevel);
-        for (int i = 0; i < count; i++)
-        {
-            spawnAtLocation(Item::blazeRod_Id, 1);
-        }
-        // 4J added - extra glowstone due to limited Nether size
-        count = random->nextInt(3 + playerBonusLevel);
-        for (int i = 0; i < count; i++)
-        {
-            spawnAtLocation(Item::yellowDust_Id, 1);
-        }
-    }
-}
-```
+#### Wolf
 
-### Rare Death Loot
+**File:** `Wolf.cpp`
 
-Rare drops trigger about 2.5% of the time when killed by a player. Zombie's rare drops include iron ingots, carrots, and potatoes:
+| Drop | Count | Notes |
+|------|-------|-------|
+| (nothing) | 0 | `getDeathLoot()` returns -1 |
 
-```cpp
-void Zombie::dropRareDeathLoot(int rareLootLevel)
-{
-    switch (random->nextInt(3))
-    {
-    case 0:
-        spawnAtLocation(Item::ironIngot_Id, 1);
-        break;
-    case 1:
-        spawnAtLocation(Item::carrots_Id, 1);
-        break;
-    case 2:
-        spawnAtLocation(Item::potato_Id, 1);
-        break;
-    }
-}
-```
+#### Ocelot
 
-Skeleton's rare drop gives an enchanted bow if looting quality is above 0:
+**File:** `Ozelot.cpp`
 
-```cpp
-void Skeleton::dropRareDeathLoot(int rareLootLevel)
-{
-    if (rareLootLevel > 0)
-    {
-        shared_ptr<ItemInstance> bow(new ItemInstance(Item::bow));
-        EnchantmentHelper::enchantItem(random, bow, 5);
-        spawnAtLocation(bow, 0);
-    }
-    else
-    {
-        spawnAtLocation(Item::bow_Id, 1);
-    }
-}
-```
+| Drop | Count | Notes |
+|------|-------|-------|
+| (nothing) | 0 | `dropDeathLoot()` is empty |
+
+#### Snow Golem
+
+**File:** `SnowMan.cpp`
+
+| Drop | Count | Looting | Notes |
+|------|-------|---------|-------|
+| Snowball | 0-15 | No | Base `random->nextInt(16)` |
+
+#### Iron Golem
+
+**File:** `VillagerGolem.cpp`
+
+| Drop | Count | Looting | Notes |
+|------|-------|---------|-------|
+| Rose | 0-2 | No | Base `random->nextInt(3)` |
+| Iron Ingot | 3-5 | No | Base `3 + random->nextInt(3)` |
+
+### Hostile Mobs
+
+#### Zombie
+
+**File:** `Zombie.cpp`
+
+| Drop | Count | Looting | Notes |
+|------|-------|---------|-------|
+| Rotten Flesh | (base Mob) | Yes | Uses `getDeathLoot()` which returns rotten flesh |
+
+**Rare drops** (2.5% base, player-kill only):
+
+| Drop | Chance |
+|------|--------|
+| Iron Ingot | 1/3 of rare drops |
+| Carrot | 1/3 of rare drops |
+| Potato | 1/3 of rare drops |
+
+The source has commented-out rare drops for iron sword, iron helmet, and iron shovel. These were removed.
+
+#### Skeleton
+
+**File:** `Skeleton.cpp`
+
+| Drop | Count | Looting | Notes |
+|------|-------|---------|-------|
+| Arrow | 0-2 | +1 per level | Base `random->nextInt(3 + playerBonusLevel)` |
+| Bone | 0-2 | +1 per level | Base `random->nextInt(3 + playerBonusLevel)` |
+
+**Rare drops:**
+
+| Drop | Condition |
+|------|-----------|
+| Enchanted Bow | If `rareLootLevel > 0` (looting helped). Enchanted at level 5. |
+| Plain Bow | If `rareLootLevel == 0` (no looting boost) |
+
+#### Creeper
+
+**File:** `Creeper.cpp`
+
+| Drop | Count | Looting | Notes |
+|------|-------|---------|-------|
+| Gunpowder | (base Mob) | Yes | Uses `getDeathLoot()` which returns sulphur (gunpowder) |
+
+#### Spider
+
+**File:** `Spider.cpp`
+
+| Drop | Count | Looting | Notes |
+|------|-------|---------|-------|
+| String | (base Mob) | Yes | Uses `getDeathLoot()` which returns string |
+| Spider Eye | 0-1 | Looting bonus | 33% chance OR if looting bonus roll succeeds. Player-kill only. |
+
+The spider eye logic checks: `if (wasKilledByPlayer && (random->nextInt(3) == 0 || random->nextInt(1 + playerBonusLevel) > 0))`.
+
+#### Enderman
+
+**File:** `EnderMan.cpp`
+
+| Drop | Count | Looting | Notes |
+|------|-------|---------|-------|
+| Ender Pearl | 0-1 | +1 per level | Base `random->nextInt(2 + playerBonusLevel)` |
+
+#### Slime
+
+**File:** `Slime.cpp`
+
+| Drop | Count | Looting | Notes |
+|------|-------|---------|-------|
+| Slimeball | 0-2 | No | Only from smallest size (size 1). Base `random->nextInt(3)`. |
+| (nothing) | 0 | No | Larger slimes drop nothing (they split into smaller slimes) |
+
+#### Ghast
+
+**File:** `Ghast.cpp`
+
+| Drop | Count | Looting | Notes |
+|------|-------|---------|-------|
+| Ghast Tear | 0-1 | +1 per level | Base `random->nextInt(2 + playerBonusLevel)` |
+| Gunpowder | 0-2 | +1 per level | Base `random->nextInt(3 + playerBonusLevel)` |
+
+#### Blaze
+
+**File:** `Blaze.cpp`
+
+| Drop | Count | Looting | Notes |
+|------|-------|---------|-------|
+| Blaze Rod | 0-1 | +1 per level | Player-kill only. Base `random->nextInt(2 + playerBonusLevel)`. |
+| Glowstone Dust | 0-2 | +1 per level | Player-kill only. 4J console addition. Base `random->nextInt(3 + playerBonusLevel)`. |
+
+:::note
+The glowstone dust drop is a 4J addition for console. Java Edition blazes do not drop glowstone. This was added because the Nether is smaller on console and glowstone is harder to farm.
+:::
+
+#### Magma Cube (LavaSlime)
+
+**File:** `LavaSlime.cpp`
+
+| Drop | Count | Looting | Notes |
+|------|-------|---------|-------|
+| Magma Cream | 0-2 | +1 per level | Only from size > 1. Base `random->nextInt(3 + playerBonusLevel)`. |
+| (nothing) | 0 | No | Smallest size drops nothing |
+
+#### Zombie Pigman (PigZombie)
+
+**File:** `PigZombie.cpp`
+
+| Drop | Count | Looting | Notes |
+|------|-------|---------|-------|
+| Rotten Flesh | 0-1 | +1 per level | Base `random->nextInt(2 + playerBonusLevel)` |
+| Gold Nugget | 0-1 | +1 per level | Base `random->nextInt(2 + playerBonusLevel)` |
+
+**Rare drops:**
+
+| Drop | Condition |
+|------|-----------|
+| Enchanted Gold Sword | If `rareLootLevel > 0`. Enchanted at level 5. |
+| Gold Ingot OR Gold Sword OR Gold Helmet | If `rareLootLevel == 0`. Random pick from 3. |
+
+### Mob Drop Summary Table
+
+| Mob | Regular Drops | Rare Drops | Notes |
+|-----|--------------|------------|-------|
+| Cow | Leather (0-2), Beef (1-3) | None | Cooked if on fire |
+| Pig | Porkchop (1-3) | None | Cooked if on fire. Saddle if saddled. |
+| Chicken | Feather (0-2), Chicken (1) | None | Cooked if on fire |
+| Sheep | Wool (1) or nothing | None | Only unsheared sheep drop wool |
+| Squid | Ink Sac (1-3) | None | |
+| Wolf | Nothing | None | |
+| Ocelot | Nothing | None | |
+| Snow Golem | Snowball (0-15) | None | |
+| Iron Golem | Rose (0-2), Iron (3-5) | None | |
+| Zombie | Rotten Flesh | Iron/Carrot/Potato | |
+| Skeleton | Arrow (0-2), Bone (0-2) | Bow (plain or enchanted) | |
+| Creeper | Gunpowder | None | |
+| Spider | String + Spider Eye | None | Eye is 33% player-kill only |
+| Enderman | Ender Pearl (0-1) | None | |
+| Slime | Slimeball (0-2) | None | Smallest size only |
+| Ghast | Ghast Tear (0-1), Gunpowder (0-2) | None | |
+| Blaze | Blaze Rod (0-1), Glowstone (0-2) | None | Player-kill only. Glowstone is console-exclusive. |
+| Magma Cube | Magma Cream (0-2) | None | Size > 1 only |
+| Zombie Pigman | Rotten Flesh (0-1), Gold Nugget (0-1) | Gold Ingot/Sword/Helmet or Enchanted Gold Sword | |
 
 ## How Looting Works
 
@@ -181,6 +316,13 @@ int EnchantmentHelper::getKillingLootBonus(shared_ptr<Inventory> inventory)
 This scans the player's held item for the Looting enchantment and returns its level (0-3). Mob drop methods receive this as `playerBonusLevel` and typically use it like `random->nextInt(3 + playerBonusLevel)` to increase drop counts.
 
 For rare drops, the looting level subtracts directly from the random roll, making rare drops more likely. Each looting level effectively adds 0.5% to the base 2.5% chance.
+
+| Looting Level | Rare Drop Chance |
+|---|---|
+| 0 (none) | 2.5% (5/200) |
+| I | 3.0% (6/200) |
+| II | 3.5% (7/200) |
+| III | 4.0% (8/200) |
 
 ## Adding Custom Mob Drops
 
@@ -229,23 +371,6 @@ void MyMob::dropRareDeathLoot(int rareLootLevel)
     }
 }
 ```
-
-### Special Cases: Sheep
-
-Sheep has a unique drop system. Unsheared sheep drop 1 wool block of their color. Sheared sheep drop nothing:
-
-```cpp
-void Sheep::dropDeathLoot(bool wasKilledByPlayer, int playerBonusLevel)
-{
-    if (!isSheared())
-    {
-        spawnAtLocation(shared_ptr<ItemInstance>(
-            new ItemInstance(Tile::cloth_Id, 1, getColor())), 0.0f);
-    }
-}
-```
-
-The `getColor()` return value becomes the aux/data value of the wool item, so the dropped wool matches the sheep's color.
 
 ## How Block Drops Work
 
@@ -322,11 +447,11 @@ bool EnchantmentHelper::hasSilkTouch(shared_ptr<Inventory> inventory)
 
 Blocks opt into Silk Touch support by overriding `isSilkTouchable()` and `getSilkTouchItemInstance()`. Some examples:
 
-- **Glass** returns `true` for `isSilkTouchable()` (normally drops nothing).
-- **Leaves** return the leaf block with the correct type mask: `new ItemInstance(id, 1, data & LEAF_TYPE_MASK)`.
-- **Ender Chests** support silk touch, dropping the full block instead of obsidian.
-- **Ice** has special handling to avoid placing water when silk-touched.
-- Most cube-shaped, non-entity tiles are silk-touchable by default.
+- **Glass** returns `true` for `isSilkTouchable()` (normally drops nothing)
+- **Leaves** return the leaf block with the correct type mask: `new ItemInstance(id, 1, data & LEAF_TYPE_MASK)`
+- **Ender Chests** support silk touch, dropping the full block instead of obsidian
+- **Ice** has special handling to avoid placing water when silk-touched
+- Most cube-shaped, non-entity tiles are silk-touchable by default
 
 ### Fortune (Digging Loot Bonus)
 
@@ -340,7 +465,7 @@ int EnchantmentHelper::getDiggingLootBonus(shared_ptr<Inventory> inventory)
 }
 ```
 
-Ores override `getResourceCountForLootBonus()` to multiply drops with Fortune. Here's the real ore logic:
+Ores override `getResourceCountForLootBonus()` to multiply drops with Fortune. Here is the real ore logic:
 
 ```cpp
 int OreTile::getResourceCountForLootBonus(int bonusLevel, Random *random)
@@ -398,6 +523,16 @@ void OreTile::spawnResources(Level *level, int x, int y, int z,
 }
 ```
 
+| Ore | XP Drop Range |
+|-----|---------------|
+| Coal Ore | 0-2 |
+| Diamond Ore | 3-7 |
+| Emerald Ore | 3-7 |
+| Lapis Ore | 2-5 |
+| Nether Quartz | 2-5 |
+| Iron Ore | 0 (drops itself) |
+| Gold Ore | 0 (drops itself) |
+
 ### Leaf Drops
 
 Leaves have their own `spawnResources()` override. Oak leaves have a 1/20 chance to drop saplings and a 1/200 chance to drop apples. Jungle leaves have a 1/40 sapling chance:
@@ -431,6 +566,13 @@ void LeafTile::spawnResources(Level *level, int x, int y, int z,
 ```
 
 Using shears on leaves bypasses this entirely and drops the leaf block itself.
+
+| Leaf Type | Sapling Chance | Apple Chance |
+|-----------|---------------|--------------|
+| Oak | 1/20 (5%) | 1/200 (0.5%) |
+| Spruce | 1/20 (5%) | None |
+| Birch | 1/20 (5%) | None |
+| Jungle | 1/40 (2.5%) | None |
 
 ### Crop Drops
 
@@ -532,9 +674,19 @@ shared_ptr<ItemInstance> MyOreTile::getSilkTouchItemInstance(int data)
 
 ### Key Source Files
 
-- `Minecraft.World/Mob.cpp` for the base `die()` and `dropDeathLoot()` pipeline
-- `Minecraft.World/Tile.cpp` for `playerDestroy()`, `spawnResources()`, and silk touch
-- `Minecraft.World/OreTile.cpp` for fortune logic and ore XP
-- `Minecraft.World/LeafTile.cpp` for leaf drop chances and shears behavior
-- `Minecraft.World/CropTile.cpp` for growth-based crop drops
-- `Minecraft.World/EnchantmentHelper.cpp` for looting, fortune, and silk touch checks
+| File | What it does |
+|---|---|
+| `Minecraft.World/Mob.cpp` | Base `die()` and `dropDeathLoot()` pipeline |
+| `Minecraft.World/Tile.cpp` | `playerDestroy()`, `spawnResources()`, and silk touch |
+| `Minecraft.World/OreTile.cpp` | Fortune logic, ore XP drops |
+| `Minecraft.World/LeafTile.cpp` | Leaf drop chances and shears behavior |
+| `Minecraft.World/CropTile.cpp` | Growth-based crop drops |
+| `Minecraft.World/EnchantmentHelper.cpp` | Looting, fortune, and silk touch checks |
+| `Minecraft.World/Cow.cpp` | Cow drops (leather + beef) |
+| `Minecraft.World/Pig.cpp` | Pig drops (porkchop + saddle) |
+| `Minecraft.World/Chicken.cpp` | Chicken drops (feather + chicken) |
+| `Minecraft.World/Sheep.cpp` | Sheep drops (colored wool) |
+| `Minecraft.World/Skeleton.cpp` | Skeleton drops (arrow + bone + rare bow) |
+| `Minecraft.World/Zombie.cpp` | Zombie drops (rotten flesh + rare items) |
+| `Minecraft.World/Blaze.cpp` | Blaze drops (blaze rod + glowstone) |
+| `Minecraft.World/PigZombie.cpp` | Zombie pigman drops (flesh + gold) |

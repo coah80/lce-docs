@@ -200,9 +200,52 @@ ForestBiome::ForestBiome(int id) : Biome(id)
 | `gravelCount` | 1 | Gravel deposits |
 | `liquids` | true | Underground lava/water pockets |
 
+### The Full Decorator Flow
+
+Here's the exact order that `BiomeDecorator::decorate()` places things. This order matters because later features can overwrite earlier ones.
+
+1. **Ores** (`decorateOres()`)
+2. **Sand deposits** (sandCount times, placed at surface)
+3. **Clay deposits** (clayCount times, placed at surface)
+4. **Gravel deposits** (gravelCount times, placed at surface)
+5. **Trees** (treeCount times, +1 bonus tree 10% of the time)
+6. **Huge mushrooms** (hugeMushrooms times)
+7. **Flowers** (flowerCount times, yellow flower + 25% chance of rose each)
+8. **Grass** (grassCount times, uses `biome->getGrassFeature()`)
+9. **Dead bushes** (deadBushCount times)
+10. **Water lilies** (waterlilyCount times)
+11. **Mushrooms** (mushroomCount times, 25% chance brown + 12.5% chance red each)
+12. **Extra mushrooms** (always: 25% chance brown, 12.5% chance red, once each)
+13. **Reeds** (reedsCount times + always 10 extra attempts)
+14. **Pumpkins** (1 in 32 chance per chunk)
+15. **Cacti** (cactusCount times)
+16. **Water springs** (50 attempts if `liquids` is true)
+17. **Lava springs** (20 attempts if `liquids` is true)
+
+Note: reeds always get 10 extra placement attempts on top of `reedsCount`. And mushrooms get a baseline placement (one brown, one red attempt) even if `mushroomCount` is 0.
+
+### Ore Generation Rates
+
+The decorator places ores through `decorateOres()`. Each ore type has a vein size (set in `_init()`) and a spawn count/depth:
+
+| Ore | Vein Size | Attempts per Chunk | Y Range |
+|-----|-----------|-------------------|---------|
+| Dirt | 32 blocks | 20 | 0 to genDepth (128) |
+| Gravel | 32 blocks | 10 | 0 to 128 |
+| Coal | 16 blocks | 20 | 0 to 128 |
+| Iron | 8 blocks | 20 | 0 to 64 |
+| Gold | 8 blocks | 2 | 0 to 32 |
+| Redstone | 7 blocks | 8 | 0 to 16 |
+| Diamond | 7 blocks | 1 | 0 to 16 |
+| Lapis Lazuli | 6 blocks | 1 | centered at y=16, spread 16 |
+
+Lapis uses `decorateDepthAverage()` instead of `decorateDepthSpan()`. This means it uses a triangle distribution centered on y=16, so it's most common around that level and gets rarer above and below.
+
+4J added `level->setInstaTick(true)` around ore generation as a performance optimization. This prevents block update events from firing while ores are being placed.
+
 ### Ore Features
 
-The decorator automatically places ores at standard rates through `decorateOres()`. These are controlled by the feature objects:
+The decorator places ores at these rates through `decorateOres()`. The feature objects are:
 
 | Feature | Ore Type |
 |---------|----------|
@@ -212,6 +255,31 @@ The decorator automatically places ores at standard rates through `decorateOres(
 | `redStoneOreFeature` | Redstone |
 | `diamondOreFeature` | Diamond |
 | `lapisOreFeature` | Lapis Lazuli |
+
+### Decorator Helper Methods
+
+The `BiomeDecorator` provides three methods for ore-style placement that you can use in custom decorators:
+
+```cpp
+// Place count times at random x/z, random y between y0 and y1
+void decorateDepthSpan(int count, Feature *feature, int y0, int y1);
+
+// Place count times at random x/z, y centered on yMid with triangle distribution
+void decorateDepthAverage(int count, Feature *feature, int yMid, int ySpan);
+
+// Shorthand for decorateDepthSpan with y0=0, y1=genDepth
+void decorate(int count, Feature *feature);
+```
+
+`decorateDepthAverage` uses `random->nextInt(ySpan) + random->nextInt(ySpan) + (yMid - ySpan)`. Adding two random values creates a triangle distribution that peaks at `yMid`. This is how lapis lazuli concentrates around y=16.
+
+### Liquid Springs
+
+When `liquids` is true (the default), the decorator places:
+- **50 water springs**: at random y using `random->nextInt(random->nextInt(genDepth - 8) + 8)`. The nested `nextInt` makes springs more common at lower Y values.
+- **20 lava springs**: at random y using triple-nested `nextInt`, making them even more biased toward the bottom of the world.
+
+Set `decorator->liquids = false` in your biome constructor to turn off underground springs entirely.
 
 ### Custom Tree Generation
 
@@ -461,3 +529,149 @@ The `zoomLevel` variable in `getDefaultLayers()` controls biome scale: 4 for nor
 | 20 | Extreme Hills Edge | `ExtremeHillsBiome` |
 | 21 | Jungle | `JungleBiome` |
 | 22 | Jungle Hills | `JungleBiome` |
+
+## Existing Biome Analysis
+
+Here's a detailed look at what each biome subclass actually configures. Use these as reference when building your own.
+
+### PlainsBiome (ID 1)
+
+The simplest biome. No subclass overrides at all. Just uses the base `Biome` defaults: grass surface, 0 trees, 2 flowers, 1 grass. Temperature 0.8, downfall 0.4.
+
+### DesertBiome (ID 2, 17)
+
+- Surface: sand on sand
+- Clears all friendly mob lists (no animals)
+- Decorator: `deadBushCount = 2`, `reedsCount = 50`, `cactusCount = 10`
+- No rain (`setNoRain()`)
+- Temperature 2.0, downfall 0.0
+- Also has the desert well (1 in 1000 chance per chunk in `decorate()`)
+
+### ForestBiome (ID 4, 18)
+
+- Adds wolves to `friendlies_wolf` (weight 5, group 4)
+- Decorator: `treeCount = 10`, `grassCount = 2`
+- `getTreeFeature()`: 20% birch, 80% normal oak
+
+### TaigaBiome (ID 5, 19)
+
+- Adds wolves
+- Decorator: `treeCount = 10`, `grassCount = 1`
+- Surface: grass/dirt (default)
+- Snow covered for Taiga Hills variant
+- `getTreeFeature()`: 33% tall spruce, 67% normal spruce
+
+### SwampBiome (ID 6)
+
+The most complex decorator setup of any vanilla biome:
+
+- Decorator: `treeCount = 2`, `flowerCount = -999` (disabled!), `deadBushCount = 1`, `mushroomCount = 8`, `reedsCount = 10`, `waterlilyCount = 4`
+- `getTreeFeature()`: always returns `SwampTreeFeature`
+- Custom `decorate()` adds extra reeds (10 bonus attempts on top of the 10 base) and extra mushrooms
+
+Setting `flowerCount` to -999 is a clever hack. Since the flower loop runs `flowerCount` times, a negative number means zero iterations. The constant -999 is used instead of 0 to make the intent clear.
+
+### JungleBiome (ID 21, 22)
+
+The densest biome by far:
+
+- Decorator: `treeCount = 50`, `grassCount = 25`, `flowerCount = 4`
+- Adds ocelots to enemies list (weight 2, group 1-1)
+- Adds chickens to `friendlies_chicken` (weight 10, group 4)
+- Custom `getTreeFeature()` with four tree types:
+  - 10% chance: huge jungle tree (MegaTreeFeature, 2x2 trunk)
+  - Of the remaining 90%: 50% shrub, 33.3% normal oak, 16.7% jungle tree
+- Custom `decorate()` adds 50 vine placements after the standard decoration
+- Temperature 1.2, downfall 0.9 (humid)
+
+### IceBiome (ID 12, 13)
+
+- Snow covered
+- Temperature 0.0, downfall 0.5
+- Decorator: default (minimal vegetation)
+- Surface: grass/dirt with snow on top
+
+### MushroomIslandBiome (ID 14, 15)
+
+- Surface: `mycelium` on dirt
+- Clears all enemy and friendly mob lists
+- Adds mooshroom cows to `friendlies_mushroomcow` (weight 8, group 4-8)
+- Decorator: `hugeMushrooms = 1`, `flowerCount = 0`, `grassCount = 0`
+
+### ExtremeHillsBiome (ID 3, 20)
+
+- Temperature 0.2, downfall 0.3
+- Adds default biome emerald ore feature (not through the standard decorator)
+- Standard decorator settings
+
+### OceanBiome (ID 0, 10)
+
+- Depth: -1.0 (deep water)
+- Scale: 0.1 (flat ocean floor)
+- No subclass customization beyond depth/scale
+
+### BeachBiome (ID 16)
+
+- Surface: sand on sand
+- Depth: 0.0, scale: 0.1 (flat at sea level)
+
+### RiverBiome (ID 7, 11)
+
+- Depth: -0.5 (shallow water)
+- Scale: 0.0 (flat)
+
+## The Layer Seed Algorithm
+
+The layer pipeline uses a custom random number generator. Each layer gets a 64-bit seed that combines the world seed with the layer's own seed. Here's how it works:
+
+```cpp
+void Layer::initWorldGenSeed(__int64 seed) {
+    worldGenSeed = seed;
+    worldGenSeed *= worldGenSeed * 6364136223846793005LL + 1442695040888963407LL;
+    worldGenSeed += baseSeed;
+    worldGenSeed *= worldGenSeed * 6364136223846793005LL + 1442695040888963407LL;
+    worldGenSeed += baseSeed;
+    worldGenSeed *= worldGenSeed * 6364136223846793005LL + 1442695040888963407LL;
+    worldGenSeed += baseSeed;
+}
+```
+
+Then for each position, it re-seeds with the X/Z coordinates:
+
+```cpp
+void Layer::initRandom(__int64 x, __int64 z) {
+    chunkSeed = worldGenSeed;
+    chunkSeed *= chunkSeed * 6364136223846793005LL + 1442695040888963407LL;
+    chunkSeed += x;
+    chunkSeed *= chunkSeed * 6364136223846793005LL + 1442695040888963407LL;
+    chunkSeed += z;
+    chunkSeed *= chunkSeed * 6364136223846793005LL + 1442695040888963407LL;
+    chunkSeed += x;
+    chunkSeed *= chunkSeed * 6364136223846793005LL + 1442695040888963407LL;
+    chunkSeed += z;
+}
+```
+
+The `nextRandom(int bound)` method then extracts values from this seed. On PS Vita, there's an optimization that uses bitwise AND instead of modulo when the bound is a power of 2.
+
+This deterministic seeding is what makes world generation reproducible from the same seed. Every layer, at every position, always produces the same result for a given world seed.
+
+## The Biome Color System
+
+Each biome has four color table entries for grass, foliage, water, and sky. These are set through `setLeafFoliageWaterSkyColor()`:
+
+```cpp
+Biome *Biome::setLeafFoliageWaterSkyColor(
+    eMinecraftColour grass,
+    eMinecraftColour foliage,
+    eMinecraftColour water,
+    eMinecraftColour sky)
+```
+
+The `getSkyColor()`, `getGrassColor()`, `getFolageColor()`, and `getWaterColor()` methods all read from the ColourTable using these enum values. If the colour table returns 0 (no entry), the code falls back to a temperature-based calculation.
+
+For a new biome, you can either:
+1. Reuse existing biome color entries (pass `eMinecraftColour_Grass_Forest` etc.)
+2. Add new entries to the ColourTable string array and binary data
+
+Option 1 is simpler and works fine if your biome's colors are similar to an existing one. Option 2 gives you full control but requires editing the binary color data that ships with the texture pack.

@@ -29,9 +29,11 @@ Every recipe belongs to a group that controls where it shows up in the console c
 | `'V'` | Transport | `eGroupType_Transport` |
 | `'D'` | Decoration | `eGroupType_Decoration` (default) |
 
+If you use an unrecognized character or forget the group entirely, it defaults to Decoration.
+
 ## Shaped recipes
 
-Shaped recipes use `Recipes::addShapedRecipy()`, which is a C variadic function. The arguments follow a specific encoding because C++ variadics can't carry type information the way Java reflection can. A **type string** is passed as the second variadic argument to describe what comes next.
+Shaped recipes use `Recipes::addShapedRecipy()`, which is a C variadic function. The arguments follow a specific encoding because C++ variadics cannot carry type information the way Java reflection can. A **type string** is passed as the second variadic argument to describe what comes next.
 
 ### The type string encoding
 
@@ -40,6 +42,8 @@ The type string is a wide-character string where each character tells the parser
 | Char | Meaning | Variadic type |
 |---|---|---|
 | `s` | A row of the crafting grid | `wchar_t *` (wide string literal) |
+| `w` | A string array (reads until empty string) | `wstring *` |
+| `a` | A row (alternate, same as `s`) | `wchar_t *` |
 | `c` | A mapping character (key) | `wchar_t` |
 | `z` | Mapped to an `ItemInstance *` | `ItemInstance *` |
 | `i` | Mapped to an `Item *` | `Item *` |
@@ -47,6 +51,10 @@ The type string is a wide-character string where each character tells the parser
 | `g` | The recipe group | `wchar_t` (one of `S`, `T`, `F`, `A`, `M`, `V`, `D`) |
 
 The type string **must** end with `g` followed by the group character. The parser reads types left-to-right and grabs variadic args accordingly.
+
+### Important: `t` vs `z` for tile ingredients
+
+When you use `t` (Tile), the parser creates `new ItemInstance(tile, 1, ANY_AUX_VALUE)`. This means any aux/data value will match. When you use `z` (ItemInstance), you provide the instance yourself and can specify an exact aux value. Use `z` when you need a specific variant (like birch planks vs oak planks).
 
 ### How shaped recipes work
 
@@ -99,7 +107,28 @@ addShapedRecipy(new ItemInstance(Tile::wood, 4, 0),
     L'S');
 ```
 
-Using `z` (ItemInstance) instead of `t` (Tile) lets you specify an **aux data value** for the ingredient. When you use `t`, the mapping automatically uses `ANY_AUX_VALUE` (-1).
+Using `z` (ItemInstance) instead of `t` (Tile) lets you specify an **aux data value** for the ingredient. With `t`, the mapping automatically uses `ANY_AUX_VALUE` (-1), so any wood type would match.
+
+### The `w` type for sub-manager shapes
+
+The recipe sub-managers (ToolRecipies, WeaponRecipies, ArmorRecipes) use `w` instead of `s`. The `w` type reads a `wstring *` array and keeps reading entries until it finds an empty string. This is how those classes pass their pre-built shape arrays:
+
+```cpp
+// Inside ToolRecipies::addRecipes()
+wchTypes[0]=L'w';    // shape array
+wchTypes[1]=L'c';    // char key
+wchTypes[2]=L'i';    // stick (Item)
+wchTypes[3]=L'c';    // char key
+wchTypes[4]=L'i';    // material (Item)
+wchTypes[5]=L'g';    // group
+r->addShapedRecipy(new ItemInstance(target),
+    wchTypes, shapes[t],
+    L'#', Item::stick,
+    L'X', pObjMaterial->item,
+    L'T');
+```
+
+The shapes array has an empty string `L""` as a terminator after the last row.
 
 ### Keeping NBT tags
 
@@ -115,9 +144,11 @@ addShapedRecipy(new ItemInstance(Item::carrotOnAStick, 1),
     L'T')->keepTag();
 ```
 
+The `addShapedRecipy()` function returns a `ShapedRecipy *` pointer, so you can chain `keepTag()` on it. This sets the `_keepTag` flag, and when the recipe is assembled, the NBT tag from the first non-null ingredient is copied to the result.
+
 ## Shapeless recipes
 
-Shapeless recipes use `Recipes::addShapelessRecipy()`. The type string is simpler since there's no grid, just a list of ingredients:
+Shapeless recipes use `Recipes::addShapelessRecipy()`. The type string is simpler since there is no grid, just a list of ingredients:
 
 | Char | Meaning |
 |---|---|
@@ -125,6 +156,8 @@ Shapeless recipes use `Recipes::addShapelessRecipy()`. The type string is simple
 | `t` | Next arg is `Tile *` |
 | `z` | Next arg is `ItemInstance *` |
 | `g` | Group char follows (must be last) |
+
+Note: for shapeless recipes, `t` (Tile) does **not** add `ANY_AUX_VALUE`. It creates a plain `new ItemInstance(tile)`. This is different from shaped recipes where `t` always adds `ANY_AUX_VALUE`.
 
 ### Example: eye of ender
 
@@ -157,6 +190,15 @@ addShapelessRecipy(new ItemInstance(Item::book, 1),
     Item::paper,
     Item::leather,
     L'D');              // group: Decoration
+```
+
+### Example: mushroom stew (mix of types)
+
+```cpp
+addShapelessRecipy(new ItemInstance(Item::mushroomStew),
+    L"ttig",           // two Tiles + one Item, group
+    Tile::mushroom1, Tile::mushroom2, Item::bowl,
+    L'F');
 ```
 
 ## Furnace (smelting) recipes
@@ -204,35 +246,86 @@ FurnaceRecipes::getInstance()->addFurnaceRecipy(
 LCE organizes recipes into dedicated classes that each register their own set. The `Recipes` constructor calls them in a specific order to control crafting menu layout:
 
 ```cpp
-pToolRecipies->addRecipes(this);
-pFoodRecipies->addRecipes(this);
-pStructureRecipies->addRecipes(this);
-// ... inline recipes (bed, enchanting table, etc.) ...
-pArmorRecipes->addRecipes(this);
-pClothDyeRecipes->addRecipes(this);
-// ... more inline recipes ...
-pWeaponRecipies->addRecipes(this);
-// ... more inline recipes ...
-pOreRecipies->addRecipes(this);
+pToolRecipies->addRecipes(this);       // Pickaxes, shovels, axes, hoes, shears
+pFoodRecipies->addRecipes(this);       // Food crafting recipes
+pStructureRecipies->addRecipes(this);  // Sandstone, workbench, furnace, chest, etc.
+// ... inline recipes (bed, enchanting table, stairs, etc.) ...
+pArmorRecipes->addRecipes(this);       // Armor pieces (chain commented out)
+pClothDyeRecipes->addRecipes(this);    // Wool dyeing, dye mixing, carpets
+// ... more inline recipes (TNT, slabs, rails, etc.) ...
+pWeaponRecipies->addRecipes(this);     // Swords
+// ... more inline recipes (bow, arrow, bucket, torch, etc.) ...
+pOreRecipies->addRecipes(this);        // Storage block conversions
 ```
 
-| Class | File | Category |
-|---|---|---|
-| `ToolRecipies` | `Minecraft.World/ToolRecipies.h` | Pickaxes, shovels, axes, hoes |
-| `WeaponRecipies` | `Minecraft.World/WeaponRecipies.h` | Swords |
-| `ArmorRecipes` | `Minecraft.World/ArmorRecipes.h` | Helmets, chestplates, etc. |
-| `FoodRecipies` | `Minecraft.World/FoodRecipies.h` | Cooked food, bowls |
-| `OreRecipies` | `Minecraft.World/OreRecipies.h` | Ore blocks, ingot-to-block |
-| `StructureRecipies` | `Minecraft.World/StructureRecipies.h` | Chests, furnaces, workbenches |
-| `ClothDyeRecipes` | `Minecraft.World/ClothDyeRecipes.h` | Wool dyeing |
+### How sub-managers work internally
 
-To add recipes in a new category, create a class with an `addRecipes(Recipes *r)` method and call it from the `Recipes` constructor.
+All sub-managers (except `FoodRecipies` and `ClothDyeRecipes`) use the same pattern:
+
+1. A `map` array of `vector<Object *>` where row 0 holds materials and subsequent rows hold result items.
+2. An `_init()` method fills the map with `ADD_OBJECT(map[row], value)` calls.
+3. An `addRecipes()` loop iterates over each material column and builds recipes dynamically.
+
+The `Object` class (defined in `Recipes.h`) is a union that can hold `Tile *`, `Item *`, or `ItemInstance *`. The `GetType()` method tells the loop whether to use `t` or `i` in the type string.
+
+| Class | File | Category | Map Rows |
+|---|---|---|---|
+| `ToolRecipies` | `ToolRecipies.cpp` | Pickaxes, shovels, axes, hoes | 5 (material + 4 tool types) |
+| `WeaponRecipies` | `WeaponRecipies.cpp` | Swords | 2 (material + sword) |
+| `ArmorRecipes` | `ArmorRecipes.cpp` | All armor pieces | 5 (material + 4 slots) |
+| `OreRecipies` | `OreRecipies.cpp` | Storage block conversions | 2 per entry (block + items) |
+| `FoodRecipies` | `FoodRecipies.cpp` | Food items, golden items | Direct registration |
+| `ClothDyeRecipes` | `ClothDyeRecipes.cpp` | Wool dyeing, dye mixing | Loop + direct |
+| `StructureRecipies` | `StructureRecipies.cpp` | Building blocks | Direct registration |
+
+### ToolRecipies internals
+
+`MAX_TOOL_RECIPES = 5`. Four shape patterns stored in a static `wstring` array:
+
+```
+Pickaxe:  XXX    Shovel:  X     Axe:  XX     Hoe:  XX
+           #              #           X#            #
+           #              #            #            #
+```
+
+Five material columns: Planks (Tile), Cobblestone (Tile), Iron Ingot (Item), Diamond (Item), Gold Ingot (Item).
+
+The loop also registers shears at the end as a 2x2 shaped recipe.
+
+### WeaponRecipies internals
+
+`MAX_WEAPON_RECIPES = 2`. One shape pattern: `X / X / #`.
+
+Same five material columns as tools. Bow and arrow recipes are commented out here and registered inline in `Recipes.cpp` instead, to avoid display issues in the crafting menu.
+
+### ArmorRecipes internals
+
+`MAX_ARMOUR_RECIPES = 5`. Four shape patterns:
+
+```
+Helmet:     XXX     Chestplate:  X X     Leggings:  XXX     Boots:  X X
+            X X                  XXX                 X X             X X
+                                 XXX                 X X
+```
+
+**Chain armor is commented out.** The 4J comment says: "removing the chain armour, since we show all possible recipes in the xbox game, and it's not one you can make." So only 4 materials are active: leather, iron, diamond, gold.
+
+Also provides `GetArmorType(int itemId)` for 4J's quick equip feature. This maps any armor piece ID to its slot type (helmet, chestplate, leggings, boots).
+
+### OreRecipies internals
+
+`MAX_ORE_RECIPES = 5`. Each entry is a block/item pair. The loop creates both directions:
+
+- 9 items in a 3x3 grid makes 1 block (group `'D'`)
+- 1 block in a 1x1 grid makes 9 items (group `'D'`)
+
+Current entries: Gold, Iron, Diamond, Emerald, Lapis.
 
 ## Adding a new recipe: step by step
 
 1. **Decide the recipe type**: shaped (pattern matters), shapeless (any order), or furnace (smelting).
 
-2. **Choose where to register it**: either inline in `Recipes::Recipes()` in `Recipes.cpp`, or in one of the category classes.
+2. **Choose where to register it**: either inline in `Recipes::Recipes()` in `Recipes.cpp`, or in one of the category classes. If it fits an existing category (tools, armor, ores), add to that sub-manager. Otherwise, add inline.
 
 3. **Build the type string**: for shaped recipes, count your rows (`s` each), then each character-ingredient pair (`c` + `i`/`t`/`z`), and end with `g`.
 
@@ -250,11 +343,57 @@ To add recipes in a new category, create a class with an `addRecipes(Recipes *r)
    // Shapeless: mushroom stew
    addShapelessRecipy(new ItemInstance(Item::mushroomStew, 1),
        L"ttig",
-       Tile::mushroom1, Tile::mushroom2,
+       Tile::mushroom1, Tile::mushroom2, Item::bowl,
        L'F');
    ```
 
 5. **Rebuild**. Recipes are registered during `Recipes::staticCtor()` at startup. After the constructor runs, `buildRecipeIngredientsArray()` gets called automatically to index all recipes for the console crafting UI.
+
+## Plugging into sub-managers
+
+If you are adding a new material tier (like ruby), you can plug directly into the existing sub-managers instead of writing recipes by hand.
+
+### Adding to ToolRecipies
+
+In `ToolRecipies::_init()`, add entries to each row:
+
+```cpp
+ADD_OBJECT(map[0], Item::ruby);           // material
+ADD_OBJECT(map[1], Item::pickAxe_ruby);   // pickaxe
+ADD_OBJECT(map[2], Item::shovel_ruby);    // shovel
+ADD_OBJECT(map[3], Item::hatchet_ruby);   // axe
+ADD_OBJECT(map[4], Item::hoe_ruby);       // hoe
+```
+
+### Adding to WeaponRecipies
+
+```cpp
+ADD_OBJECT(map[0], Item::ruby);           // material
+ADD_OBJECT(map[1], Item::sword_ruby);     // sword
+```
+
+### Adding to ArmorRecipes
+
+```cpp
+ADD_OBJECT(map[0], Item::ruby);            // material
+ADD_OBJECT(map[1], Item::helmet_ruby);     // helmet
+ADD_OBJECT(map[2], Item::chestplate_ruby); // chestplate
+ADD_OBJECT(map[3], Item::leggings_ruby);   // leggings
+ADD_OBJECT(map[4], Item::boots_ruby);      // boots
+```
+
+Also update `GetArmorType()` with the new armor IDs so quick equip works.
+
+### Adding to OreRecipies
+
+Bump `MAX_ORE_RECIPES` in the header, then add:
+
+```cpp
+ADD_OBJECT(map[5], Tile::rubyBlock);
+ADD_OBJECT(map[5], new ItemInstance(Item::ruby, 9));
+```
+
+This creates both the 9-to-block and block-to-9 recipes automatically.
 
 ## Key source files
 
@@ -263,3 +402,9 @@ To add recipes in a new category, create a class with an `addRecipes(Recipes *r)
 - `Minecraft.World/ShapelessRecipy.h` for the shapeless recipe class
 - `Minecraft.World/Recipes.h` / `Recipes.cpp` for the recipe manager and all built-in recipes
 - `Minecraft.World/FurnaceRecipes.h` / `FurnaceRecipes.cpp` for the furnace recipe manager
+
+## Related guides
+
+- [Crafting & Recipes](/lce-docs/world/crafting/) for the full internals of the recipe system
+- [Adding Items](/lce-docs/modding/adding-items/) to create items for your recipes
+- [Making a Full Ore](/lce-docs/modding/full-ore/) for an end-to-end example using all recipe types

@@ -696,6 +696,32 @@ void HugeExplosionSeedParticle::tick()
 
 This "seed" pattern is useful whenever you want a burst of particles spread over multiple ticks rather than all at once.
 
+## Performance Considerations
+
+The 200-per-layer cap is very low. On Java Edition you get 4000. This means you need to be careful about how many particles you spawn.
+
+**Batch spawning.** If you spawn a burst of 50 particles at once, that's 25% of the layer's budget gone instantly. Consider spreading the spawn across multiple ticks using a seed particle (like `HugeExplosionSeedParticle` does).
+
+**Short lifetimes.** Keep lifetimes short so particles cycle out quickly. The default 4-tick lifetime is fine for transient effects. Longer effects (like dragon breath at 200+ ticks) eat into the budget for a long time.
+
+**Use the right layer.** Don't put everything on `MISC_TEXTURE`. If your particle uses an item or block texture, use `ITEM_TEXTURE` or `TERRAIN_TEXTURE` so it doesn't compete with smoke, flame, and spell particles for the same 200-slot cap.
+
+**The dragon breath layer.** 4J added `DRAGON_BREATH_TEXTURE` with a 1000-particle cap specifically because dragon breath needed more particles than the other layers could spare. If you have a similarly intensive effect, consider adding your own layer with a custom cap. You'll need to update `TEXTURE_COUNT` and expand the `particles` array.
+
+## Debugging Particles
+
+If your particle doesn't show up, check these things in order:
+
+1. **Is the enum registered?** Make sure your `ePARTICLE_TYPE` entry exists in `ParticleTypes.h`.
+2. **Is the switch case wired?** Look at `LevelRenderer::addParticleInternal()` and confirm there's a `case` for your type.
+3. **Is `getParticleTexture()` returning the right layer?** If it returns the wrong layer constant, the engine might not bind the right atlas before rendering.
+4. **Is the lifetime > 0?** If `lifetime` is 0, the particle dies on the first tick before it gets rendered.
+5. **Is the size > 0?** A size of 0 makes the quad infinitely small.
+6. **Is the alpha > 0?** Check that you're not accidentally setting alpha to 0 in the constructor.
+7. **Is the particle being spawned at the right position?** Add a `SmokeParticle` at the same coordinates to verify the spawn point is visible.
+
+Use `ParticleEngine::countParticles()` (shown in the debug screen with F3) to see how many particles are active per layer. If your layer is at 200, new particles are being evicted immediately.
+
 ## Related Guides
 
 - [Adding Blocks](/lce-docs/modding/adding-blocks/) to learn about `animateTick()` for ambient block particles

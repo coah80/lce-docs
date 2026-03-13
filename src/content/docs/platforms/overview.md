@@ -70,7 +70,7 @@ The 4J render abstraction (`RenderManager` singleton) wraps platform graphics AP
 - Command buffers for batched draw calls
 - Viewport management for splitscreen
 
-Xbox 360 uses Direct3D 9, Xbox One and Windows 64 use Direct3D 11. The Sony platforms use their native GNM/GCM renderers.
+Xbox 360 uses Direct3D 9, Xbox One and Windows 64 use Direct3D 11. PS3 uses GCM. PS4 uses GNM. PS Vita uses GXM.
 
 ### Input (`C_4JInput`)
 
@@ -95,6 +95,51 @@ Beyond the core abstractions, each platform has its own unique subsystems:
 - **PS Vita**: Ad-hoc networking (`SQRNetworkManager_AdHoc_Vita`), custom memory allocators, `libdivide` optimizations
 - **Windows 64**: Winsock LAN discovery, keyboard/mouse input, post-process gamma correction, Win32 windowed mode
 
+## Sony Shared Network Layer (MinecraftConsoles)
+
+In the MinecraftConsoles codebase, 4J refactored the Sony networking stack into a shared layer at `Common/Network/Sony/`. This directory contains the base classes that all three Sony platforms (PS3, PS4, Vita) extend:
+
+| File | Purpose |
+|------|---------|
+| `SQRNetworkManager.h/.cpp` | Base NP Matching2 room manager with RUDP transport |
+| `SQRNetworkPlayer.h/.cpp` | Base Sony network player with PlayerSyncData |
+| `PlatformNetworkManagerSony.h/.cpp` | Shared `CPlatformNetworkManager` implementation |
+| `NetworkPlayerSony.h/.cpp` | Shared network player wrapper |
+| `SonyCommerce.h/.cpp` | PlayStation Store commerce (categories, products, checkout) |
+| `SonyHttp.h/.cpp` | HTTP client for web requests |
+| `SonyRemoteStorage.h/.cpp` | Cloud saves and remote storage |
+
+The `SQRNetworkManager` base class defines the shared constants used by all Sony platforms:
+- `MAX_LOCAL_PLAYER_COUNT` = `XUSER_MAX_COUNT` (4)
+- `MAX_ONLINE_PLAYER_COUNT` = `MINECRAFT_NET_MAX_PLAYERS` (8)
+- `NP_POOL_SIZE` = 128 KB
+- `MAX_FRIENDS` = 100
+- `MAX_SIMULTANEOUS_INVITES` = 10
+- `RUDP_THREAD_STACK_SIZE` = 32,878 bytes
+
+RUDP thread priority differs per platform: PS3 uses 999, PS4/Vita use 500.
+
+The shared `RoomSyncData` struct synchronizes player state across machines using NP Matching2's internal room binary data. Each player slot has a UID, room member ID, small ID, and local controller index.
+
+In LCEMP, each Sony platform had its own copy of this code. The refactoring into a shared directory happened between the two codebase snapshots.
+
+## Third-Party Libraries
+
+MinecraftConsoles bundles several third-party libraries per platform:
+
+| Library | Directory | Purpose |
+|---------|-----------|---------|
+| Iggy (RAD Game Tools) | `{Platform}/Iggy/` | Flash-based UI rendering (gdraw + iggy includes) |
+| Miles Sound System (RAD) | `{Platform}/Miles/` | Audio playback |
+| Sentient | `{Platform}/Sentient/` | Telemetry and analytics |
+| 4JLibs | `{Platform}/4JLibs/inc/` | 4J's render, input, profile, and storage abstractions |
+
+Xbox 360 also bundles: full Sentient SDK headers (`Sentient/Include/`), XUI font system (`Font/`)
+
+PS3 also bundles: Boost 1.53.0 subset (`PS3Extras/boost_1_53_0/`), DirectX math headers (`PS3Extras/DirectX/`), HeapInspector memory debugging tool (`PS3Extras/HeapInspector/`), full SPU task sources (`SPU_Tasks/`)
+
+PS Vita also bundles: libdivide integer division optimization (`PSVitaExtras/libdivide.h`)
+
 ## File Naming Conventions
 
 Platform files follow consistent naming patterns:
@@ -107,3 +152,13 @@ Platform files follow consistent naming patterns:
 - `Social/` subdirectory for social features (where applicable)
 - `XML/` subdirectory for the XML parser (ATG XML parser, shared across platforms)
 - `{Platform}Extras/` for platform-specific utilities and type stubs
+
+## LCEMP vs MinecraftConsoles Differences
+
+The two codebases have the same overall platform architecture, but MinecraftConsoles has some notable changes:
+
+- **Sony shared network layer** was refactored from per-platform copies into `Common/Network/Sony/`
+- **Windows 64** gained `KeyboardMouseInput` (full keyboard/mouse class) and `Windows64_Xuid.h` (persistent player UID with `uid.dat` file storage)
+- **All platforms** gained Iggy, Miles, Sentient, and 4JLibs include directories (these were likely external references in LCEMP)
+- **PS3** gained full SPU task source code (the SPU jobs were likely pre-compiled in LCEMP)
+- **Platform media directories** (`DurangoMedia/`, `OrbisMedia/`, `PS3Media/`, `PSVitaMedia/`, `Windows64Media/`) were added for DLC content, localization, and asset files

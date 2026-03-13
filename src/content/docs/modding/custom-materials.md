@@ -540,6 +540,110 @@ This gives you a block that:
 - Always drops when punched
 - Shows up as ice-blue on maps
 
+## The staticCtor initialization order
+
+All materials are created in `Material::staticCtor()`. Here's the exact order and the builder chain for every material. This matters because the builder methods mutate the object in place, and the chain determines the final property state.
+
+```cpp
+void Material::staticCtor()
+{
+    air             = new GasMaterial(MaterialColor::none);
+    grass           = new Material(MaterialColor::grass);
+    dirt            = new Material(MaterialColor::dirt);
+    wood            = (new Material(MaterialColor::wood))->flammable();
+    stone           = (new Material(MaterialColor::stone))->notAlwaysDestroyable();
+    metal           = (new Material(MaterialColor::metal))->notAlwaysDestroyable();
+    heavyMetal      = (new Material(MaterialColor::metal))
+                        ->notAlwaysDestroyable()->notPushable();
+    water           = (new LiquidMaterial(MaterialColor::water))
+                        ->destroyOnPush();
+    lava            = (new LiquidMaterial(MaterialColor::fire))
+                        ->destroyOnPush();
+    leaves          = (new Material(MaterialColor::plant))
+                        ->flammable()->neverBuildable()->destroyOnPush();
+    plant           = (new DecorationMaterial(MaterialColor::plant))
+                        ->destroyOnPush();
+    replaceable_plant = (new DecorationMaterial(MaterialColor::plant))
+                        ->flammable()->destroyOnPush()->replaceable();
+    sponge          = new Material(MaterialColor::cloth);
+    cloth           = (new Material(MaterialColor::cloth))->flammable();
+    fire            = (new GasMaterial(MaterialColor::none))
+                        ->destroyOnPush();
+    sand            = new Material(MaterialColor::sand);
+    decoration      = (new DecorationMaterial(MaterialColor::none))
+                        ->destroyOnPush();
+    clothDecoration = (new DecorationMaterial(MaterialColor::cloth))
+                        ->flammable();
+    glass           = (new Material(MaterialColor::none))
+                        ->neverBuildable()->makeDestroyedByHand();
+    buildable_glass = (new Material(MaterialColor::none))
+                        ->makeDestroyedByHand();
+    explosive       = (new Material(MaterialColor::fire))
+                        ->flammable()->neverBuildable();
+    coral           = (new Material(MaterialColor::plant))->destroyOnPush();
+    ice             = (new Material(MaterialColor::ice))
+                        ->neverBuildable()->makeDestroyedByHand();
+    topSnow         = (new DecorationMaterial(MaterialColor::snow))
+                        ->replaceable()->neverBuildable()
+                        ->notAlwaysDestroyable()->destroyOnPush();
+    snow            = (new Material(MaterialColor::snow))
+                        ->notAlwaysDestroyable();
+    cactus          = (new Material(MaterialColor::plant))
+                        ->neverBuildable()->destroyOnPush();
+    clay            = new Material(MaterialColor::clay);
+    vegetable       = (new Material(MaterialColor::plant))->destroyOnPush();
+    egg             = (new Material(MaterialColor::plant))->destroyOnPush();
+    portal          = (new PortalMaterial(MaterialColor::none))->notPushable();
+    cake            = (new Material(MaterialColor::none))->destroyOnPush();
+    web             = (new WebMaterial(MaterialColor::cloth))
+                        ->notAlwaysDestroyable()->destroyOnPush();
+    piston          = (new Material(MaterialColor::stone))->notPushable();
+}
+```
+
+Notice a few interesting things:
+- `water` and `lava` call `destroyOnPush()` even though `LiquidMaterial` already sets this in its constructor. The builder chain applies it twice but the result is the same.
+- `topSnow` is the most complex: it's a `DecorationMaterial` (non-solid, no light blocking, no motion blocking) that's also replaceable, never buildable, not always destroyable, and destroyed by pistons.
+- `clothDecoration` is the only decoration material that's flammable but not destroyed by pistons. This means carpets burn but pistons push them normally.
+
+## Additional gameplay systems that use materials
+
+### Entity movement and collision
+
+When an entity moves through the world, the physics engine checks `blocksMotion()` to decide if there's a collision. Materials where `blocksMotion()` returns false (decorations, gases, liquids, webs, portals) let entities pass through. Webs are special: the material says no collision, but the `WebTile::handleEntityInside()` method applies a velocity multiplier of 0.25 to slow entities down.
+
+### Rendering and transparency
+
+`blocksLight()` controls whether the block stops light propagation. But it also affects how the renderer decides whether to draw faces between adjacent blocks. If a block's material blocks light, the renderer assumes adjacent faces are hidden and skips them. This is why glass (which blocks light) sometimes shows faces against other glass blocks. The `isSolid()` method also affects the rendering pipeline: non-solid blocks use a different render pass that supports transparency.
+
+### The `neverBuildable` flag
+
+This is one of the less obvious properties. When `neverBuildable` is set:
+- `isSolidBlocking()` returns `false` regardless of `blocksMotion()`
+- Mobs won't spawn on blocks with this material
+- The block can't be used as a foundation for other blocks in some placement checks
+
+Materials that set this: leaves, glass, explosive, ice, cactus, topSnow. These are all blocks that look solid but shouldn't count as real building surfaces.
+
+### The `destroyedByHand` flag
+
+This is not the same as `isAlwaysDestroyable()`. The `isAlwaysDestroyable` flag controls whether any tool can break the block. The `destroyedByHand` flag controls whether the block drops its item when broken without a tool. Glass and ice set `destroyedByHand` to true, which is why they always drop (well, glass doesn't drop normally, but the flag is about the material level, not the tile's specific drop logic).
+
+### Map colors in detail
+
+The map renderer looks up `material->color->id` to find the color for each pixel. The mapping goes through the `eMinecraftColour` system:
+
+```cpp
+MaterialColor::MaterialColor(int id, eMinecraftColour colorEnum)
+{
+    this->id = id;
+    this->color = colorEnum;
+    MaterialColor::colors[id] = this;
+}
+```
+
+The actual RGB values for map colors are loaded from the ColourTable binary data, which means texture packs can change how blocks appear on maps.
+
 ## Key source files
 
 - `Minecraft.World/Material.h` / `.cpp` for the base class and all static instances
@@ -551,6 +655,8 @@ This gives you a block that:
 - `Minecraft.World/MaterialColor.h` / `.cpp` for map colors
 - `Minecraft.World/Tile.h` / `.cpp` for how blocks use materials
 - `Minecraft.World/FireTile.cpp` for fire spread flammability checks
+- `Minecraft.World/LiquidTileStatic.cpp` for lava ignition checks
 - `Minecraft.World/PistonBaseTile.cpp` for piston push reaction logic
 - `Minecraft.World/MobSpawner.cpp` for mob spawning material checks
 - `Minecraft.World/Inventory.cpp` for tool requirement checks
+- `Minecraft.World/WebTile.cpp` for the web slowdown behavior (separate from material)

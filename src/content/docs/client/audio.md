@@ -44,7 +44,7 @@ public:
 };
 ```
 
-The sound name tables (`wchSoundNames` and `wchUISoundNames`) map sound type enums (defined in `Minecraft.World/SoundTypes.h`) to human-readable names.
+The sound name tables (`wchSoundNames` and `wchUISoundNames`) map sound type enums (defined in `Minecraft.World/SoundTypes.h`) to human-readable names. These are defined in `SoundNames.cpp` and must stay in sync with the enum order.
 
 ### SoundEngine (implementation)
 
@@ -74,6 +74,27 @@ The Miles Sound System headers are included per platform:
 
 Xbox 360 uses the native XAudio system instead of Miles.
 
+## The sound pipeline
+
+Game code never touches Miles directly. The chain goes:
+
+```
+Entity/Level code
+    |
+    v
+LevelListener::playSound()
+    |
+    v
+ServerLevelListener --> LevelSoundPacket (network)
+    |
+    v
+SoundEngine::play()   -- 3D positioned sound
+SoundEngine::playUI()  -- non-positional UI sound
+SoundEngine::playStreaming() -- music / jukebox
+```
+
+When `SoundEngine::play()` fires, it builds a Miles event name like `"Minecraft/mob.zombie"` from the dot-separated string and enqueues it to the event system. `ConvertSoundPathToName()` handles the conversion from dots to the slash-separated event paths that Miles expects.
+
 ## 3D audio
 
 ### Listener system
@@ -94,6 +115,10 @@ typedef struct {
     AUDIO_VECTOR vOrientFront;    // facing direction
 } AUDIO_LISTENER;
 ```
+
+### Splitscreen listener handling
+
+In splitscreen, the engine can't just set one listener position. Instead, it calculates the **Manhattan distance** from each sound to every active player, picks the closest one, and uses that distance for the 3D falloff. The listener is placed at the origin and the sound is placed along the Z axis at the calculated distance. This gives reasonable spatial audio across all screen splits.
 
 ### Sound playback
 
@@ -131,6 +156,181 @@ void playStreamingMusic(const wstring& name, int x, int y, int z);
 
 The `fSoundClipDist` parameter (default 16 blocks) controls how far away a sound can be heard.
 
+## Sound attenuation
+
+All 3D sounds use a custom linear falloff function instead of the default Miles rolloff:
+
+```cpp
+F32 AILCALLBACK custom_falloff_function(
+    HSAMPLE S, F32 distance, F32 rolloff_factor, F32 min_dist, F32 max_dist)
+{
+    // Thunder has no attenuation at all
+    if (max_dist == 10000.0f)
+        return 1.0f;
+
+    // Linear falloff: full volume at distance 0, silent at max_dist
+    F32 result = 1.0f - (distance / max_dist);
+    if (result < 0.0f) result = 0.0f;
+    if (result > 1.0f) result = 1.0f;
+    return result;
+}
+```
+
+The `max_dist` parameter (called `distanceScaler` in the code) controls how far a sound carries:
+
+| Sound type | Distance (blocks) | Notes |
+|---|---|---|
+| Most sounds | 16 | Default `fSoundClipDist` |
+| Ghast sounds | 30 | Audible from further away |
+| Ender Dragon | 100 | Boss sounds carry far |
+| Thunder | 10,000 | Effectively infinite, always full volume |
+| Music discs | 64 | Jukebox carries 4x further than normal |
+
+## Sound categories
+
+Sounds are grouped by naming prefix. Every sound in the game has an entry in the `eSOUND_TYPE` enum in `SoundTypes.h`.
+
+### Mob sounds (`mob.*`)
+
+Ambient, hurt, death, and step sounds for every mob:
+
+| Enum pattern | String name pattern | Notes |
+|---|---|---|
+| `eSoundType_MOB_ZOMBIE_AMBIENT` | `mob.zombie` | Idle groaning |
+| `eSoundType_MOB_ZOMBIE_HURT` | `mob.zombiehurt` | Taking damage |
+| `eSoundType_MOB_ZOMBIE_DEATH` | `mob.zombiedeath` | Dying |
+| `eSoundType_MOB_CREEPER_HURT` | `mob.creeper` | Creeper hurt |
+| `eSoundType_MOB_WOLF_BARK` | `mob.wolf.bark` | Wolf barking |
+| `eSoundType_MOB_WOLF_HURT` | `mob.wolf.hurt` | Wolf hurt |
+| `eSoundType_MOB_WOLF_DEATH` | `mob.wolf.death` | Wolf death |
+| `eSoundType_MOB_WOLF_GROWL` | `mob.wolf.growl` | Wolf growl |
+| `eSoundType_MOB_WOLF_PANTING` | `mob.wolf.panting` | Tamed wolf panting |
+| `eSoundType_MOB_WOLF_WHINE` | `mob.wolf.whine` | Wolf whine |
+| `eSoundType_MOB_WOLF_SHAKE` | `mob.wolf.shake` | Wolf shaking off water |
+| `eSoundType_MOB_CAT_HISS` | `mob.cat.hiss` | Cat hiss |
+| `eSoundType_MOB_CAT_PURR` | `mob.cat.purr` | Cat purr |
+| `eSoundType_MOB_CAT_PURREOW` | `mob.cat.purreow` | Cat meow |
+| `eSoundType_MOB_CHICKEN_AMBIENT` | `mob.chicken` | Chicken clucking |
+| `eSoundType_MOB_CHICKEN_HURT` | `mob.chickenhurt` | Chicken hurt |
+| `eSoundType_MOB_CHICKEN_PLOP` | `mob.chicken.plop` | Egg laying |
+| `eSoundType_MOB_COW_AMBIENT` | `mob.cow` | Cow mooing |
+| `eSoundType_MOB_COW_HURT` | `mob.cowhurt` | Cow hurt |
+| `eSoundType_MOB_PIG_AMBIENT` | `mob.pig` | Pig oinking |
+| `eSoundType_MOB_PIG_DEATH` | `mob.pig.death` | Pig death |
+| `eSoundType_MOB_SHEEP_AMBIENT` | `mob.sheep` | Sheep bleating |
+| `eSoundType_MOB_GHAST_AMBIENT` | `mob.ghast.moan` | Ghast moaning |
+| `eSoundType_MOB_GHAST_DEATH` | `mob.ghast.death` | Ghast death |
+| `eSoundType_MOB_GHAST_FIREBALL` | `mob.ghast.fireball` | Ghast shooting |
+| `eSoundType_MOB_GHAST_SCREAM` | `mob.ghast.scream` | Ghast screaming |
+| `eSoundType_MOB_BLAZE_HIT` | `mob.blaze.hit` | Blaze hurt |
+| `eSoundType_MOB_BLAZE_DEATH` | `mob.blaze.death` | Blaze death |
+| `eSoundType_MOB_BLAZE_BREATHE` | `mob.blaze.breathe` | Blaze ambient |
+| `eSoundType_MOB_ENDERMAN_IDLE` | `mob.endermen.idle` | Enderman ambient |
+| `eSoundType_MOB_ENDERMAN_HIT` | `mob.endermen.hit` | Enderman hurt |
+| `eSoundType_MOB_ENDERMAN_DEATH` | `mob.endermen.death` | Enderman death |
+| `eSoundType_MOB_ENDERMAN_PORTAL` | `mob.endermen.portal` | Enderman teleport |
+| `eSoundType_MOB_ENDERDRAGON_GROWL` | `mob.enderdragon.growl` | Dragon growl |
+| `eSoundType_MOB_ENDERDRAGON_HIT` | `mob.enderdragon.hit` | Dragon hurt |
+| `eSoundType_MOB_ENDERDRAGON_WINGS` | `mob.enderdragon.wings` | Dragon wingflap |
+| `eSoundType_MOB_ENDERDRAGON_END` | `mob.enderdragon.end` | Dragon death |
+| `eSoundType_MOB_SILVERFISH_AMBIENT` | `mob.silverfish.say` | Silverfish ambient |
+| `eSoundType_MOB_SILVERFISH_HIT` | `mob.silverfish.hit` | Silverfish hurt |
+| `eSoundType_MOB_SILVERFISH_DEATH` | `mob.silverfish.kill` | Silverfish death |
+| `eSoundType_MOB_SILVERFISH_STEP` | `mob.silverfish.step` | Silverfish walk |
+| `eSoundType_MOB_GOLEM_HIT` | `mob.irongolem.hit` | Iron golem hurt |
+| `eSoundType_MOB_GOLEM_DEATH` | `mob.irongolem.death` | Iron golem death |
+| `eSoundType_MOB_GOLEM_WALK` | `mob.irongolem.walk` | Iron golem walk |
+| `eSoundType_MOB_GOLEM_THROW` | `mob.irongolem.throw` | Iron golem throw |
+| `eSoundType_MOB_SLIME_BIG` | `mob.slime.big` | Large slime |
+| `eSoundType_MOB_SLIME_SMALL` | `mob.slime.small` | Small slime |
+| `eSoundType_MOB_MAGMACUBE_BIG` | `mob.magmacube.big` | Large magma cube |
+| `eSoundType_MOB_MAGMACUBE_JUMP` | `mob.magmacube.small` | Magma cube jump |
+
+### Block/tile sounds (`step.*`, `dig.*`, `tile.*`)
+
+| Enum | String name | Used for |
+|---|---|---|
+| `eSoundType_STEP_STONE` | `step.stone` | Walking on stone |
+| `eSoundType_STEP_WOOD` | `step.wood` | Walking on wood |
+| `eSoundType_STEP_GRAVEL` | `step.gravel` | Walking on gravel |
+| `eSoundType_STEP_GRASS` | `step.grass` | Walking on grass |
+| `eSoundType_STEP_CLOTH` | `step.cloth` | Walking on wool |
+| `eSoundType_STEP_SAND` | `step.sand` | Walking on sand |
+| `eSoundType_STEP_SNOW` | `step.snow` | Walking on snow |
+| `eSoundType_STEP_LADDER` | `step.ladder` | Climbing ladders |
+| `eSoundType_DIG_GRASS` | `dig.grass` | Breaking grass blocks |
+| `eSoundType_DIG_STONE` | `dig.stone` | Breaking stone |
+| `eSoundType_DIG_WOOD` | `dig.wood` | Breaking wood |
+| `eSoundType_DIG_GRAVEL` | `dig.gravel` | Breaking gravel |
+| `eSoundType_DIG_CLOTH` | `dig.cloth` | Breaking wool |
+| `eSoundType_DIG_SAND` | `dig.sand` | Breaking sand |
+| `eSoundType_DIG_SNOW` | `dig.snow` | Breaking snow |
+| `eSoundType_TILE_PISTON_IN` | `tile.piston.in` | Piston retracting |
+| `eSoundType_TILE_PISTON_OUT` | `tile.piston.out` | Piston extending |
+
+### Random/gameplay sounds (`random.*`)
+
+| Enum | String name | Used for |
+|---|---|---|
+| `eSoundType_RANDOM_EXPLODE` | `random.explode` | Explosions |
+| `eSoundType_RANDOM_BOW` | `random.bow` | Firing a bow |
+| `eSoundType_RANDOM_CHEST_OPEN` | `random.chestopen` | Opening a chest |
+| `eSoundType_RANDOM_CHEST_CLOSE` | `random.chestclosed` | Closing a chest |
+| `eSoundType_RANDOM_DOOR_OPEN` | `random.door_open` | Opening a door |
+| `eSoundType_RANDOM_DOOR_CLOSE` | `random.door_close` | Closing a door |
+| `eSoundType_RANDOM_CLICK` | `random.click` | Buttons, levers |
+| `eSoundType_RANDOM_GLASS` | `random.glass` | Breaking glass |
+| `eSoundType_RANDOM_FIZZ` | `random.fizz` | Fire extinguish, lava pop |
+| `eSoundType_RANDOM_LEVELUP` | `random.levelup` | Experience level up |
+| `eSoundType_RANDOM_POP` | `random.pop` | Item pickup |
+| `eSoundType_RANDOM_ORB` | `random.orb` | Experience orb pickup |
+| `eSoundType_RANDOM_SPLASH` | `random.splash` | Water splash |
+| `eSoundType_RANDOM_DRINK` | `random.drink` | Drinking potion |
+| `eSoundType_RANDOM_EAT` | `random.eat` | Eating food |
+| `eSoundType_RANDOM_ANVIL_USE` | `random.anvil_use` | Using an anvil |
+| `eSoundType_RANDOM_ANVIL_LAND` | `random.anvil_land` | Falling anvil landing |
+| `eSoundType_RANDOM_ANVIL_BREAK` | `random.anvil_break` | Anvil breaking |
+| `eSoundType_RANDOM_FUSE` | `random.fuse` | TNT fuse |
+| `eSoundType_RANDOM_BOWHIT` | `random.bowhit` | Arrow hitting target |
+
+### Ambient sounds (`ambient.*`)
+
+| Enum | String name |
+|---|---|
+| `eSoundType_AMBIENT_WEATHER_RAIN` | `ambient.weather.rain` |
+| `eSoundType_AMBIENT_WEATHER_THUNDER` | `ambient.weather.thunder` |
+| `eSoundType_AMBIENT_CAVE_CAVE` | `ambient.cave.cave` |
+
+### Other categories
+
+| Prefix | Examples | Purpose |
+|---|---|---|
+| `portal.*` | `portal.portal`, `portal.trigger`, `portal.travel` | Portal effects |
+| `fire.*` | `fire.ignite`, `fire.fire` | Fire sounds |
+| `damage.*` | `damage.hurtflesh`, `damage.fallsmall`, `damage.fallbig` | Player damage |
+| `note.*` | `note.harp`, `note.bd`, `note.snare`, `note.hat`, `note.bassattack` | Note blocks |
+| `liquid.*` | `liquid.water`, `liquid.lava`, `liquid.lavapop` | Liquid sounds |
+| `minecart.*` | `minecart.base`, `minecart.inside` | Minecart movement |
+
+### UI sounds (ESoundEffect)
+
+UI sounds are a separate, smaller enum:
+
+```cpp
+enum ESoundEffect
+{
+    eSFX_Back,       // "back"
+    eSFX_Craft,      // "craft"
+    eSFX_CraftFail,  // "craftfail"
+    eSFX_Focus,      // "focus"
+    eSFX_Press,      // "press"
+    eSFX_Scroll,     // "scroll"
+    eSFX_MAX
+};
+```
+
+These get played through `SoundEngine::playUI()` and are routed to the `"Minecraft/UI/"` event path in the soundbank.
+
 ## Music system
 
 ### Music file enumeration
@@ -156,15 +356,19 @@ The `eMUSICFILES` enum lists all music tracks:
 
 Total: `eStream_Max` entries.
 
+File paths follow the pattern `music/<trackname>.binka` for background music and `cds/<discname>.binka` for music discs. The `.binka` format is Bink Audio (compressed, from RAD Game Tools).
+
 ### Music types
 
 ```cpp
 enum eMUSICTYPE {
     eMusicType_None,
-    eMusicType_Game,
-    eMusicType_CD,
+    eMusicType_Game,   // background music (not 3D positioned)
+    eMusicType_CD,     // jukebox music (3D positioned, attenuates with distance)
 };
 ```
+
+Background music plays globally with no 3D positioning. Jukebox music is 3D-positioned at the jukebox block with a distance scaler of 64 blocks (4x the normal sound range).
 
 ### Music streaming state machine
 
@@ -181,6 +385,14 @@ enum MUSIC_STREAMSTATE {
 };
 ```
 
+The state transitions:
+
+```
+Idle --> Opening --> Playing --> Completed --> Stop --> Stopping --> Idle
+```
+
+`OpeningCancel` handles the case where a new track is requested while one is still opening.
+
 Music streaming runs on a dedicated thread:
 
 ```cpp
@@ -190,7 +402,24 @@ static int OpenStreamThreadProc(void* lpParameter);
 
 ### Music selection
 
-`getMusicID(int iDomain)` picks a random track that fits the current dimension. The track ranges are configurable per texture/mash-up pack:
+`getMusicID(int iDomain)` picks a random track that fits the current dimension:
+
+```cpp
+int SoundEngine::getMusicID(int iDomain)
+{
+    switch (iDomain)
+    {
+    case LevelData::DIMENSION_END:
+        return m_iStream_End_Min;  // always plays dragon-alive track
+    case LevelData::DIMENSION_NETHER:
+        return GetRandomishTrack(m_iStream_Nether_Min, m_iStream_Nether_Max);
+    default:
+        return GetRandomishTrack(m_iStream_Overworld_Min, m_iStream_Overworld_Max);
+    }
+}
+```
+
+The track ranges are configurable per texture/mash-up pack:
 
 ```cpp
 void SetStreamingSounds(int iOverworldMin, int iOverWorldMax,
@@ -198,15 +427,15 @@ void SetStreamingSounds(int iOverworldMin, int iOverWorldMax,
                         int iEndMin, int iEndMax, int iCD1);
 ```
 
-`GetRandomishTrack(iStart, iEnd)` selects a track, using `m_bHeardTrackA` to avoid playing the same track back to back.
+`GetRandomishTrack(iStart, iEnd)` selects a track, using `m_bHeardTrackA` to avoid playing the same track back to back. Once all tracks in the range have been heard, the array resets. It doesn't try too hard, so occasionally you will hear the same track twice.
 
 ### Music tick
 
-`playMusicTick()` is called each game tick. It manages the delay between tracks (`m_iMusicDelay`) and drives the streaming state machine. `playMusicUpdate()` handles the actual state transitions.
+`playMusicTick()` is called each game tick. It manages the delay between tracks (`m_iMusicDelay`, up to about 3 minutes of random delay) and drives the streaming state machine. `playMusicUpdate()` handles the actual state transitions.
 
 ### CD music (jukeboxes)
 
-Music disc playback is tracked separately. The `m_CDMusic` field stores the current disc track name. `GetIsPlayingStreamingCDMusic()` and `SetIsPlayingStreamingCDMusic()` manage this state.
+Music disc playback is tracked separately. The `m_CDMusic` field stores the current disc track name. `GetIsPlayingStreamingCDMusic()` and `SetIsPlayingStreamingCDMusic()` manage this state. The track name gets matched against the `m_szStreamFileA` array to find the right file.
 
 ## Volume control
 
@@ -222,7 +451,7 @@ The master volumes (`m_MasterMusicVolume`, `m_MasterEffectsVolume`) are set from
 ## Sound bank and driver
 
 The Miles Sound System uses:
-- **`HMSOUNDBANK m_hBank`** is the loaded sound bank containing all SFX
+- **`HMSOUNDBANK m_hBank`** is the loaded sound bank containing all SFX (`Minecraft.msscmp`)
 - **`HDIGDRIVER m_hDriver`** is the digital audio driver
 - **`HSTREAM m_hStream`** is the current streaming music handle
 
@@ -269,6 +498,10 @@ MinecraftConsoles adds a large batch of new sound types to `SoundTypes.h`. These
 - Variant hurt sounds: `_ZOMBIE_HIT`, `_SKELETON_HIT`, `_DONKEY_HIT`, `_HIT`
 - Variant idle sounds: `_ZOMBIE_IDLE`, `_SKELETON_IDLE`, `_DONKEY_IDLE`, `_IDLE`
 - `_DONKEY_ANGRY`, `_ANGRY`, `_GALLOP`, `_BREATHE`, `_WOOD`
+
+### Witch sounds
+
+- `eSoundType_MOB_WITCH_IDLE`, `_HURT`, `_DEATH`
 
 ### Mob step/ambient sounds
 

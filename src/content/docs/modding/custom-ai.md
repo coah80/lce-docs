@@ -28,6 +28,21 @@ Every tick, the `GoalSelector` does this:
 
 On the 2 ticks between full checks, it only checks `canContinueToUse()` on already-running goals and stops any that return `false`.
 
+### GoalSelector internals
+
+The `GoalSelector` wraps each goal in an `InternalGoal` struct that stores three things:
+
+- `prio`: the priority number (lower = more important)
+- `goal`: pointer to the `Goal` instance
+- `canDeletePointer`: whether the selector owns the memory and should delete it on cleanup (4J addition, defaults to `true`)
+
+Two lists track goals:
+
+- `goals`: every registered goal
+- `usingGoals`: only the goals that are currently running
+
+The `canDeletePointer` flag matters when a goal is shared. For example, the Wolf stores its `SitGoal` as a member variable so it can call `sitGoal->wantToSit()` from outside the AI system. In that case you'd pass `false` to `addGoal()` so the selector doesn't try to delete a pointer that the mob still needs.
+
 ### Priority
 
 Lower number = higher priority. A goal with priority 0 beats a goal with priority 5.
@@ -80,8 +95,24 @@ Here's what various built-in goals use:
 | `TemptGoal` | Move + Look |
 | `EatTileGoal` | Move + Look + Jump |
 | `ControlledByPlayerGoal` | Move + Look + Jump |
+| `SitGoal` | Jump + Move |
+| `ArrowAttackGoal` | Move + Look |
+| `AvoidPlayerGoal` | Move |
+| `BreedGoal` | Move + Look |
+| `FollowOwnerGoal` | Move + Look |
+| `OfferFlowerGoal` | Move + Look |
+| `BegGoal` | Look |
 
 Target goals use a separate flag (`TargetGoal::TargetFlag = 1`) so they don't conflict with movement goals. Since target goals go in `targetSelector` (a separate `GoalSelector`), they only compete with each other.
+
+### The `canUseInSystem` check
+
+This is the core of goal arbitration. When a goal wants to start, the selector runs `canUseInSystem()` against every currently active goal:
+
+1. For each **higher-priority** active goal (lower number): if `canCoExist()` returns false (flags overlap), the candidate is blocked. It can't interrupt something more important.
+2. For each **lower-priority** active goal (higher number): if the lower-priority goal's `canInterrupt()` returns false, the candidate is blocked. Some goals refuse to be interrupted.
+
+If the candidate passes all checks, it can start. Any lower-priority goals whose flags conflict get their `stop()` called and are removed from `usingGoals`.
 
 ## The Goal Base Class
 
@@ -131,6 +162,7 @@ These go in `goalSelector`.
 | `LookAtPlayerGoal` | Stares at a nearby player (or other entity type) |
 | `InteractGoal` | Like `LookAtPlayerGoal` but for specific entity types with higher chance |
 | `MeleeAttackGoal` | Paths to the target and punches it |
+| `ArrowAttackGoal` | Ranged attack with arrows or snowballs |
 | `LeapAtTargetGoal` | Jumps at the current target (wolf pounce) |
 | `AvoidPlayerGoal` | Runs away from a specific entity type |
 | `FleeSunGoal` | Finds shade when the sun is out (skeletons) |
@@ -157,11 +189,11 @@ These go in `goalSelector`.
 | `TradeWithPlayerGoal` | Villager looks at the player who's trading with them |
 | `LookAtTradingPlayerGoal` | Same idea but from the trading screen |
 | `OcelotSitOnTileGoal` | Cat sits on beds and furnaces |
-| `OcelotAttackGoal` | Ocelot's sneaky attack pattern |
-| `RunAroundLikeCrazyGoal` | Untamed horse bucks the player off |
+| `OzelotAttackGoal` | Ocelot's sneaky attack pattern |
 | `ControlledByPlayerGoal` | Player steering a saddled pig |
 | `RestrictOpenDoorGoal` | Prevents pathing through open doors |
-| `RangedAttackGoal` | Shoots projectiles (skeletons, snow golems, witches) |
+
+For detailed constructor parameters, control flags, and behavior specifics for every single goal, see the [AI & Goals reference](/world/ai-goals/).
 
 ### Target Goals
 
@@ -347,38 +379,144 @@ goalSelector.addGoal(4, new MeleeAttackGoal(this, 1.0, true)); // Bite
 
 The target goals pick the enemy. The action goals do the actual fighting.
 
-## Custom Pathfinding Logic
+## The Pathfinding System
 
-Most goals use the mob's `PathNavigation` to get around. Here are the key methods:
+Goals don't move mobs directly. They call into the navigation and control systems which handle the actual movement. Understanding these systems is important for writing goals that move around.
+
+### PathNavigation
+
+Every `Mob` with pathfinding has a `PathNavigation` instance. This is the main interface goals use to move the mob.
+
+**Constructor:** `PathNavigation(Mob *mob, Level *level, float maxDist)`
+
+The `maxDist` parameter sets the maximum pathfinding range. If the destination is farther than this, pathfinding won't even try.
+
+#### Navigation settings
+
+| Method | Default | What it does |
+|---|---|---|
+| `setAvoidWater(bool)` | varies | If true, paths won't go through water |
+| `setCanOpenDoors(bool)` | false | If true, paths can go through closed doors |
+| `setCanPassDoors(bool)` | varies | If true, paths can go through open doors |
+| `setAvoidSun(bool)` | false | If true, trims paths to avoid sunlit blocks |
+| `setCanFloat(bool)` | varies | If true, allows paths through water (for swimming mobs) |
+| `setSpeed(float)` | varies | Base movement speed multiplier |
+
+#### Key methods
 
 ```cpp
 // Move to a position
-mob->getNavigation()->moveTo(double x, double y, double z, double speed);
+mob->getNavigation()->moveTo(double x, double y, double z, float speed);
 
 // Move to an entity (auto-updates the destination)
-mob->getNavigation()->moveTo(shared_ptr<Entity> target, double speed);
+mob->getNavigation()->moveTo(shared_ptr<Mob> target, float speed);
 
 // Create a path without starting to walk it
-Path *path = mob->getNavigation()->createPath(shared_ptr<Entity> target);
+Path *path = mob->getNavigation()->createPath(shared_ptr<Mob> target);
 Path *path = mob->getNavigation()->createPath(double x, double y, double z);
 
 // Start walking a pre-built path
-mob->getNavigation()->moveTo(Path *path, double speed);
+mob->getNavigation()->moveTo(Path *path, float speed);
 
 // Stop all movement
 mob->getNavigation()->stop();
 
 // Check if the mob has finished its current path
 bool done = mob->getNavigation()->isDone();
-
-// Navigation settings
-mob->getNavigation()->setCanOpenDoors(true);
-mob->getNavigation()->setAvoidWater(true);
-mob->getNavigation()->setCanFloat(true);
-mob->getNavigation()->setSpeedModifier(1.5);
 ```
 
-For finding random positions (used by wander and panic goals), there's a utility class:
+#### Stuck detection
+
+The navigation system has built-in stuck detection. Every 100 ticks, it checks if the mob has moved at least 1.5 blocks from its last check position. If the mob hasn't moved enough, the path is considered stuck and gets cleared. This prevents mobs from walking into walls forever.
+
+The waypoint radius (how close the mob needs to get to a path node before moving on to the next one) is based on `bbWidth * 0.5f`. Wider mobs have bigger waypoint radii.
+
+#### Sun trimming
+
+When `avoidSun` is true, the navigation trims the end of any path that passes through blocks exposed to direct sunlight. This is how skeletons stop short of sunlit areas.
+
+### PathFinder (A* algorithm)
+
+Under the hood, `PathNavigation` uses a `PathFinder` that implements A* pathfinding.
+
+**Constructor:** `PathFinder(LevelSource *level, bool canPassDoors, bool canOpenDoors, bool avoidWater, bool canFloat)`
+
+The pathfinder uses:
+- A `BinaryHeap` as the open set (priority queue for the A* frontier)
+- An `unordered_map<int, Node*>` for all visited nodes (using a hash key based on block coordinates)
+- A `NodeArray` for neighbor lookups
+
+#### Node types
+
+Each block in the pathfinding grid gets a type that determines traversability:
+
+| Constant | Value | Meaning |
+|---|---|---|
+| `TYPE_TRAP` | -4 | Dangerous block (fire, cactus). Avoided but passable. |
+| `TYPE_FENCE` | -3 | Fence or wall. Not passable. |
+| `TYPE_LAVA` | -2 | Lava. Not passable unless the mob is immune. |
+| `TYPE_WATER` | -1 | Water. Passable if `canFloat` or not `avoidWater`. |
+| `TYPE_BLOCKED` | 0 | Solid block. Not passable. |
+| `TYPE_OPEN` | 1 | Air above solid ground. Passable. |
+| `TYPE_WALKABLE` | 2 | Walkable surface. Passable. |
+
+The `isFree()` method classifies blocks into these types. It checks multiple blocks for the entity's full bounding box since large mobs need more than one block of clearance.
+
+#### Path results
+
+The A* search returns a `Path` object containing an ordered list of `Node` positions. Goals that create paths own the memory and need to delete them when they're done. The navigation system also manages its own path and handles cleanup internally.
+
+### Control Objects
+
+Goals don't set mob velocity directly. Instead they talk to control objects that handle smooth movement and rotation each tick.
+
+#### MoveControl
+
+Handles forward movement toward a target position.
+
+| | |
+|---|---|
+| **Constants** | `MIN_SPEED = 0.0005f` (below this, the mob stops), `MAX_TURN = 30` degrees per tick |
+| **Key method** | `setWantedPosition(x, y, z, speed)` |
+| **Tick behavior** | Calculates direction to the wanted position, smoothly rotates using `rotlerp` (limited to `MAX_TURN` degrees per tick), applies forward speed. When the target Y is above the mob, triggers a jump automatically. |
+
+#### LookControl
+
+Handles head rotation toward a target.
+
+| | |
+|---|---|
+| **Key methods** | `setLookAt(entity, yMax, xMax)` or `setLookAt(x, y, z, yMax, xMax)` |
+| **Parameters** | `yMax`: max Y rotation per tick, `xMax`: max X (pitch) rotation per tick |
+| **Tick behavior** | Smoothly rotates the head toward the look target within the rotation limits |
+
+#### JumpControl
+
+Simple jump trigger.
+
+| | |
+|---|---|
+| **Key method** | `jump()` sets a flag |
+| **Tick behavior** | If the flag is set, calls the mob's jump method and clears the flag |
+
+#### BodyControl
+
+Handles body rotation to match head direction over time. The body gradually rotates toward wherever the head is looking.
+
+#### Sensing
+
+Caches line-of-sight results per tick for performance.
+
+| | |
+|---|---|
+| **Key method** | `canSee(entity)` |
+| **Caching** | Maintains `seen` and `unseen` vectors. Results are cached for the current tick. Both vectors are cleared at the start of each new tick. |
+
+Always use `mob->getSensing()->canSee(target)` in your goals instead of doing manual raycasts. Multiple goals checking the same target in the same tick will reuse the cached result.
+
+### RandomPos utility
+
+Many goals need to pick a random position. The `RandomPos` class has three methods for this:
 
 ```cpp
 // Random position within range
@@ -393,7 +531,9 @@ Vec3 *pos = RandomPos::getPosAvoid(shared_ptr<PathfinderMob> mob,
     int xzRange, int yRange, Vec3 *avoid);
 ```
 
-These all return `nullptr` if they can't find a valid spot, so always check.
+4J added a `quadrant` parameter to `getPos()` for directed wandering (used by the animal despawn detection system). All methods return `nullptr` if they can't find a valid spot, so always check.
+
+The internal `generateRandomPos()` method tries 10 random positions and picks the one with the best `getWalkTargetValue()` score. This means mobs tend to wander toward "nice" areas. For passive mobs, grassy well-lit areas score higher. For hostile mobs, dark areas score higher.
 
 ### Restriction System
 
@@ -424,7 +564,9 @@ Use `AvoidPlayerGoal`. Despite the name, it works for any entity type:
 goalSelector.addGoal(1, new AvoidPlayerGoal(this, typeid(Creeper), 8.0f, 1.0, 1.2));
 ```
 
-It finds the nearest entity of that type, picks a random position *away* from it, and runs there. When the entity gets close (within 7 blocks), the mob switches to the sprint speed.
+It finds the nearest entity of that type, picks a random position *away* from it using `RandomPos::getPosAvoid()`, and runs there. When the entity gets close (within 7 blocks), the mob switches from `walkSpeed` to `sprintSpeed`.
+
+For tamed animals, the goal automatically skips players since the pet shouldn't flee from people.
 
 For custom flee logic, look at `PanicGoal` as a simpler template. It just picks a random spot and runs when hurt:
 
@@ -451,7 +593,9 @@ Use `TemptGoal` if you want the mob to follow a player holding a specific item:
 goalSelector.addGoal(3, new TemptGoal(this, 0.25, Item::wheat_Id, false));
 ```
 
-The last parameter (`canScare`) makes the mob stop following if the player moves too quickly while close.
+The last parameter (`canScare`) makes the mob stop following if the player moves too quickly while close. When `canScare` is true and the player moves within 6 blocks, the mob gets scared and backs off. There's also a 100-tick cooldown after the goal stops before it can start again.
+
+`TemptGoal` also disables water avoidance while active (so the mob can follow through water) and calls `setDespawnProtected()` to prevent the mob from despawning while being led.
 
 For a pet that always follows its owner, use `FollowOwnerGoal`:
 
@@ -460,7 +604,7 @@ For a pet that always follows its owner, use `FollowOwnerGoal`:
 goalSelector.addGoal(5, new FollowOwnerGoal(this, 1.0, 10, 2));
 ```
 
-This also handles teleporting the pet to the owner when pathfinding fails and they're far away.
+This also handles teleporting the pet to the owner when pathfinding fails and they're far away. The teleport searches a 5x5 grid around the owner for solid ground with air above. Water avoidance is disabled while following.
 
 ### Making a Mob Guard an Area
 
@@ -475,6 +619,20 @@ goalSelector.addGoal(4, new MoveTowardsRestrictionGoal(this, 1.0));
 The mob will wander freely within 16 blocks of home, but always drift back if it strays. Pair this with an attack goal and a target goal for a full guard setup.
 
 The Iron Golem does exactly this, with `DefendVillageTargetGoal` picking village attackers as targets.
+
+### Making a Mob With Ranged Attacks
+
+Use `ArrowAttackGoal` for projectile attacks:
+
+```cpp
+// Shoot arrows. Speed 0.25, arrow type, fire every 60 ticks
+goalSelector.addGoal(2, new ArrowAttackGoal(this, 0.25f, ArrowAttackGoal::ArrowType, 60));
+
+// Or throw snowballs
+goalSelector.addGoal(2, new ArrowAttackGoal(this, 0.25f, ArrowAttackGoal::SnowballType, 20));
+```
+
+The mob needs 20 ticks of continuous line of sight before it fires its first shot. This prevents mobs from shooting through walls when they briefly see a player. After the first shot, it fires at the `attackInterval` rate. The attack radius is 10 blocks squared.
 
 ### Combining Multiple Behaviors
 
@@ -493,7 +651,7 @@ goalSelector.addGoal(9, new LookAtPlayerGoal(this, typeid(Player), 8)); // Look 
 goalSelector.addGoal(9, new RandomLookAroundGoal(this));   // Look around randomly
 ```
 
-Notice that two goals can share the same priority (9 here). They'll coexist as long as their control flags don't overlap.
+Notice that two goals can share the same priority (9 here). They'll coexist as long as their control flags don't overlap. `LookAtPlayerGoal` uses `LookControlFlag` and `RandomLookAroundGoal` uses no flags, so they can both be active at priority 9 without conflict.
 
 The general pattern for priority ordering:
 
@@ -513,6 +671,12 @@ goalSelector.addGoal(3, new MeleeAttackGoal(this, eTYPE_VILLAGER, 1.0, true));
 ```
 
 The first one only activates when the target is a Player (checked via the `attackType` filter). The second only activates for Villagers. Since they're at different priorities, the zombie prefers attacking players over villagers. This is a clean way to handle multiple attack preferences without writing a custom goal.
+
+### Multi-speed movement
+
+`OzelotAttackGoal` shows how to make a mob change speeds based on range. It uses three different speed values: a walk speed when far away, a sprint speed when close, and a sneak speed at mid range. This creates a stalk-and-pounce behavior where the ocelot creeps up slowly and then dashes in for the attack.
+
+You can do the same thing in a custom goal by checking the distance to the target in your `tick()` and calling `mob->getNavigation()->setSpeed()` with different values.
 
 ## Writing a Custom Target Goal
 
@@ -585,7 +749,9 @@ public:
 
 - Always clean up `Path*` pointers. The navigation system allocates them with `new`, and your goal owns them after calling `createPath()`. Delete them in your destructor and when replacing them.
 - Use `weak_ptr<Entity>` for target references. Entities can die or get removed at any time. Holding a `shared_ptr` keeps dead entities in memory.
-- Keep `canUse()` cheap. It runs every 3 ticks for every registered goal on every mob. Add cooldown counters if you need expensive checks.
-- `canContinueToUse()` defaults to calling `canUse()`. Override it with a simpler check when possible, since it runs more often.
+- Keep `canUse()` cheap. It runs every 3 ticks for every registered goal on every mob. Add cooldown counters if you need expensive checks (like the `scanCooldown` in the GuardAreaGoal example).
+- `canContinueToUse()` defaults to calling `canUse()`. Override it with a simpler check when possible, since it runs more often (every tick on non-evaluation ticks).
 - Test priority ordering carefully. If two goals fight over the same control flags, the one with the higher priority (lower number) always wins.
-- Use `mob->getSensing()->canSee(target)` for line-of-sight checks rather than rolling your own.
+- Use `mob->getSensing()->canSee(target)` for line-of-sight checks rather than rolling your own. The caching saves work.
+- When goals need shared state (like `SitGoal` needing to be toggled from the interact method), store the goal as a member variable on the mob and pass `canDeletePointer = false` to `addGoal()`.
+- The `setLevel()` override exists on many goals as a 4J addition for schematic loading. If your goal stores a `Level*` pointer, override `setLevel()` so it gets updated when the entity is loaded from a schematic.

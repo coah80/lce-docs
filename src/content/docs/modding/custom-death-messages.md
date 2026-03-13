@@ -15,6 +15,24 @@ Every damage source has:
 - A **food exhaustion** value (how much hunger the damage costs)
 - Type flags like `isFireSource`, `_isProjectile`, `_isMagic`, and `_scalesWithDifficulty`
 
+### Default constructor values
+
+When you create a `DamageSource`, the constructor sets these defaults:
+
+| Field | Default Value |
+|---|---|
+| `_bypassArmor` | `false` |
+| `_bypassInvul` | `false` |
+| `exhaustion` | `FoodConstants::EXHAUSTION_ATTACK` |
+| `isFireSource` | `false` |
+| `_isProjectile` | `false` |
+| `_isMagic` | `false` |
+| `_scalesWithDifficulty` | uninitialized (a known 4J bug) |
+
+The `_scalesWithDifficulty` field is never set to `false` in the base constructor. This means it holds whatever garbage was in memory. For the static instances (like `DamageSource::lava`) this usually works out fine since static memory gets zeroed. But for dynamically allocated sources, it could theoretically be true by accident. The `EntityDamageSource` subclass overrides `scalesWithDifficulty()` to return true for mob attackers and false for player attackers, so this bug rarely causes problems in practice.
+
+### Builder pattern
+
 The game ships with a bunch of static damage source instances that get created at startup:
 
 ```cpp
@@ -49,6 +67,15 @@ There are three levels of damage source:
 
 Used for environmental damage with no entity involved. Fall damage, drowning, lava, cactus, void, etc. The `getEntity()` and `getDirectEntity()` methods both return `nullptr`.
 
+The base `getDeathMessagePacket()` just packs the victim's name and the message ID:
+
+```cpp
+shared_ptr<ChatPacket> DamageSource::getDeathMessagePacket(shared_ptr<Player> player)
+{
+    return shared_ptr<ChatPacket>(new ChatPacket(player->name, m_msgId));
+}
+```
+
 ### EntityDamageSource
 
 Used when a specific entity is doing the damage directly. Melee attacks from mobs and players use this. It stores a `shared_ptr<Entity>` to the attacker.
@@ -68,6 +95,23 @@ DamageSource *DamageSource::playerAttack(shared_ptr<Player> player)
 DamageSource *DamageSource::thorns(shared_ptr<Entity> source)
 {
     return (new EntityDamageSource(ChatPacket::e_ChatDeathThorns, source))->setMagic();
+}
+```
+
+The `EntityDamageSource` overrides `scalesWithDifficulty()` to return true for mob attackers but false for player attackers. This means zombie hits deal more damage on Hard, but player hits don't change with difficulty.
+
+Its death message packet includes the attacker's entity type, and if the attacker is a player, their name too:
+
+```cpp
+shared_ptr<ChatPacket> EntityDamageSource::getDeathMessagePacket(shared_ptr<Player> player)
+{
+    wstring additional = L"";
+    if (entity->GetType() == eTYPE_SERVERPLAYER)
+    {
+        shared_ptr<Player> sourcePlayer = dynamic_pointer_cast<Player>(entity);
+        if (sourcePlayer != NULL) additional = sourcePlayer->name;
+    }
+    return shared_ptr<ChatPacket>(new ChatPacket(player->name, m_msgId, entity->GetType(), additional));
 }
 ```
 
@@ -108,47 +152,9 @@ The key difference between `getEntity()` and `getDirectEntity()` matters here. F
 
 This is how the game knows to give kill credit to the player who shot the arrow, not the arrow itself.
 
-## How Death Messages Get Generated
+The fireball factory has a special case: when there's no owner (dispenser-fired fireballs), it uses the fireball as both the entity and the owner, and switches to the `e_ChatDeathOnFire` message instead of `e_ChatDeathFireball`.
 
-When a player dies, `ServerPlayer::die()` is called. This method grabs the death message from the damage source and broadcasts it to everyone:
-
-```cpp
-void ServerPlayer::die(DamageSource *source)
-{
-    server->getPlayers()->broadcastAll(
-        source->getDeathMessagePacket(dynamic_pointer_cast<Player>(shared_from_this()))
-    );
-    inventory->dropAll();
-}
-```
-
-Each class in the hierarchy builds the `ChatPacket` differently:
-
-**DamageSource** (base) just includes the victim's name and the message ID:
-
-```cpp
-shared_ptr<ChatPacket> DamageSource::getDeathMessagePacket(shared_ptr<Player> player)
-{
-    return shared_ptr<ChatPacket>(new ChatPacket(player->name, m_msgId));
-}
-```
-
-**EntityDamageSource** also packs in the attacker's entity type, and if the attacker is a player, their name too:
-
-```cpp
-shared_ptr<ChatPacket> EntityDamageSource::getDeathMessagePacket(shared_ptr<Player> player)
-{
-    wstring additional = L"";
-    if (entity->GetType() == eTYPE_SERVERPLAYER)
-    {
-        shared_ptr<Player> sourcePlayer = dynamic_pointer_cast<Player>(entity);
-        if (sourcePlayer != NULL) additional = sourcePlayer->name;
-    }
-    return shared_ptr<ChatPacket>(new ChatPacket(player->name, m_msgId, entity->GetType(), additional));
-}
-```
-
-**IndirectEntityDamageSource** does the same thing but uses the **owner** instead of the direct entity. If the owner is null, it falls back to the projectile's type:
+Its death message packet uses the **owner** for the entity type. If the owner is null, it falls back to the projectile's type:
 
 ```cpp
 shared_ptr<ChatPacket> IndirectEntityDamageSource::getDeathMessagePacket(shared_ptr<Player> player)
@@ -173,6 +179,72 @@ shared_ptr<ChatPacket> IndirectEntityDamageSource::getDeathMessagePacket(shared_
 ```
 
 The `ChatPacket` packs all this up and sends it over the network. The client then looks up the localized string for the `EChatPacketMessage` enum value and fills in the player names and entity type.
+
+## Every Damage Source
+
+Here is every damage source in the game, with its flags and behavior:
+
+### Static instances (environmental damage)
+
+| Source | Message | Flags | Notes |
+|---|---|---|---|
+| `inFire` | `e_ChatDeathInFire` | Fire | Standing in fire block |
+| `onFire` | `e_ChatDeathOnFire` | BypassArmor, Fire | Burning (the fire tick damage) |
+| `lava` | `e_ChatDeathLava` | Fire | Standing in lava |
+| `inWall` | `e_ChatDeathInWall` | BypassArmor | Suffocating inside a block |
+| `drown` | `e_ChatDeathDrown` | BypassArmor | Underwater too long |
+| `starve` | `e_ChatDeathStarve` | BypassArmor | Hunger on Hard difficulty |
+| `cactus` | `e_ChatDeathCactus` | (none) | Touching a cactus |
+| `fall` | `e_ChatDeathFall` | BypassArmor | Fall damage |
+| `outOfWorld` | `e_ChatDeathOutOfWorld` | BypassArmor, BypassInvul | Falling into the void |
+| `genericSource` | `e_ChatDeathGeneric` | BypassArmor | Catch-all for unknown damage |
+| `explosion` | `e_ChatDeathExplosion` | ScalesWithDifficulty | TNT, creeper explosions |
+| `controlledExplosion` | `e_ChatDeathExplosion` | (none) | Player-caused explosion (no difficulty scaling) |
+| `magic` | `e_ChatDeathMagic` | BypassArmor, Magic | Instant damage potion (direct) |
+| `dragonbreath` | `e_ChatDeathDragonBreath` | BypassArmor | Dragon breath attack |
+| `wither` | `e_ChatDeathWither` | BypassArmor | Wither effect ticking |
+| `anvil` | `e_ChatDeathAnvil` | (none) | Falling anvil |
+| `fallingBlock` | `e_ChatDeathFallingBlock` | (none) | Other falling blocks |
+
+### Factory methods (entity damage)
+
+| Factory | Message | Flags | Damage Class |
+|---|---|---|---|
+| `mobAttack(mob)` | `e_ChatDeathMob` | (none) | `EntityDamageSource` |
+| `playerAttack(player)` | `e_ChatDeathPlayer` | (none) | `EntityDamageSource` |
+| `thorns(entity)` | `e_ChatDeathThorns` | Magic | `EntityDamageSource` |
+| `arrow(arrow, owner)` | `e_ChatDeathArrow` | Projectile | `IndirectEntityDamageSource` |
+| `fireball(fb, owner)` | `e_ChatDeathFireball` | Fire, Projectile | `IndirectEntityDamageSource` |
+| `fireball(fb, null)` | `e_ChatDeathOnFire` | Fire, Projectile | `IndirectEntityDamageSource` |
+| `thrown(entity, owner)` | `e_ChatDeathThrown` | Projectile | `IndirectEntityDamageSource` |
+| `indirectMagic(e, owner)` | `e_ChatDeathIndirectMagic` | BypassArmor, Magic | `IndirectEntityDamageSource` |
+
+Notice that `explosion` and `controlledExplosion` use the same death message but different flags. The `explosion` version scales with difficulty (so explosions hurt more on Hard), while `controlledExplosion` doesn't scale (player-triggered TNT deals consistent damage).
+
+## How Death Messages Get Generated
+
+When a player dies, `ServerPlayer::die()` is called. This method grabs the death message from the damage source and broadcasts it to everyone:
+
+```cpp
+void ServerPlayer::die(DamageSource *source)
+{
+    server->getPlayers()->broadcastAll(
+        source->getDeathMessagePacket(dynamic_pointer_cast<Player>(shared_from_this()))
+    );
+    inventory->dropAll();
+}
+```
+
+The `ChatPacket` constructor takes up to four arguments:
+
+```cpp
+ChatPacket(const wstring& message,          // Victim's name
+           EChatPacketMessage type,          // Message enum
+           int customData = -1,             // Attacker's eINSTANCEOF type
+           const wstring& additionalMessage) // Attacker's name (if player)
+```
+
+These get packed into `m_stringArgs` and `m_intArgs` vectors and sent over the network. The client reads the packet, looks up the localized string for the enum value, and fills in the placeholders with the victim name, attacker name, and entity type.
 
 ## All Death Message IDs
 
@@ -204,6 +276,33 @@ These are all the `EChatPacketMessage` enum values used for death messages, defi
 | `e_ChatDeathFallingBlock` | `DamageSource::fallingBlock` | "Player was squashed by a falling block" |
 | `e_ChatDeathThorns` | `thorns()` | "Player was killed trying to hurt Entity" |
 
+### Non-death chat message IDs
+
+The `EChatPacketMessage` enum also contains spawn limit messages and other system messages. These aren't death messages but they share the same enum:
+
+| Enum Value | Purpose |
+|---|---|
+| `e_ChatPlayerMaxPigsSheepCows` | Spawn egg rejected: too many pigs/sheep/cows |
+| `e_ChatPlayerMaxChickens` | Spawn egg rejected: too many chickens |
+| `e_ChatPlayerMaxSquid` | Spawn egg rejected: too many squid |
+| `e_ChatPlayerMaxMooshrooms` | Spawn egg rejected: too many mooshrooms |
+| `e_ChatPlayerMaxWolves` | Spawn egg rejected: too many wolves |
+| `e_ChatPlayerMaxAnimals` | Spawn egg rejected: general animal cap |
+| `e_ChatPlayerMaxEnemies` | Spawn egg rejected: too many enemies |
+| `e_ChatPlayerMaxVillagers` | Spawn egg rejected: too many villagers |
+| `e_ChatPlayerMaxHangingEntities` | Too many paintings/item frames |
+| `e_ChatPlayerCantSpawnInPeaceful` | Can't spawn enemies in peaceful |
+| `e_ChatPlayerMaxBredAnimals` | Breeding rejected: general animal cap |
+| `e_ChatPlayerMaxBredPigsSheepCows` | Breeding rejected: pig/sheep/cow cap |
+| `e_ChatPlayerMaxBredChickens` | Breeding rejected: chicken cap |
+| `e_ChatPlayerMaxBredMooshrooms` | Breeding rejected: mooshroom cap |
+| `e_ChatPlayerMaxBredWolves` | Breeding rejected: wolf cap |
+| `e_ChatPlayerCantShearMooshroom` | Shearing rejected: mooshroom cap |
+| `e_ChatPlayerMaxBoats` | Too many boats |
+| `e_ChatCommandTeleportSuccess` | Teleport command succeeded |
+| `e_ChatCommandTeleportMe` | Teleport me command |
+| `e_ChatCommandTeleportToMe` | Teleport to me command |
+
 ## Bypass Flags
 
 Bypass flags control how the damage interacts with the game's defense systems. Here is what each one does:
@@ -212,11 +311,15 @@ Bypass flags control how the damage interacts with the game's defense systems. H
 
 When set, the damage completely skips the armor absorption step. The player's armor value is ignored and armor durability is not reduced. This also sets food exhaustion to 0, meaning the damage does not make the player hungrier.
 
+This is important: calling `bypassArmor()` zeroes the exhaustion field. So if you chain `bypassArmor()` before any custom exhaustion value, it will get overwritten. If you want bypass-armor damage that still causes exhaustion, you'd need to set exhaustion after calling `bypassArmor()`.
+
 Used by: `onFire`, `inWall`, `drown`, `starve`, `fall`, `outOfWorld`, `genericSource`, `magic`, `dragonbreath`, `wither`
 
 ### `bypassInvul()`
 
 When set, the damage goes through even if the player has invulnerability (creative mode, god mode, etc.). Only `outOfWorld` (void damage) uses this by default, since falling into the void should always kill you.
+
+Used by: `outOfWorld`
 
 ### `setIsFire()`
 
@@ -238,7 +341,7 @@ Marks the damage as magical. Currently used by `magic`, `indirectMagic()`, and `
 
 ### `setScalesWithDifficulty()`
 
-Makes damage scale with the world's difficulty setting. On Peaceful it does 0 damage, on Easy it does `damage/2 + 1`, on Normal it is unchanged, and on Hard it does `damage * 3/2`. For `EntityDamageSource`, mob attacks (but not player attacks) automatically scale with difficulty even without this flag.
+Makes damage scale with the world's difficulty setting. On Peaceful it does 0 damage, on Easy it does `damage/2 + 1`, on Normal it is unchanged, and on Hard it does `damage * 3/2`. For `EntityDamageSource`, mob attacks (but not player attacks) automatically scale with difficulty even without this flag because the `scalesWithDifficulty()` method is overridden to check the entity type.
 
 Used by: `explosion`
 
@@ -268,9 +371,19 @@ void Player::actuallyHurt(DamageSource *source, int dmg)
 }
 ```
 
-**Armor absorption** (`getDamageAfterArmorAbsorb`) uses the player's armor value (0-20) to reduce damage. If `bypassArmor()` is set, this step is completely skipped.
+### Step 0: Blocking
 
-**Enchantment absorption** (`getDamageAfterMagicAbsorb`) checks all protection enchantments on the player's armor and reduces damage further. The `ProtectionEnchantment` class checks the damage source's flags to decide how much protection to give:
+If the player is blocking (holding a sword in the block stance) and the damage doesn't bypass armor, the damage is halved using `(1 + dmg) >> 1`. This is integer math, so 5 damage becomes 3, and 1 damage becomes 1.
+
+### Step 1: Armor absorption
+
+`getDamageAfterArmorAbsorb()` uses the player's total armor value (0 to 20, from equipped armor pieces) to reduce damage. The formula is roughly: `damage = damage * (1 - armorValue / 25.0)`. If `bypassArmor()` is set on the source, this entire step is skipped and the damage passes through unchanged.
+
+This step also reduces durability on the player's armor pieces. Each piece takes `damage / 4` durability, with a minimum of 1.
+
+### Step 2: Enchantment absorption
+
+`getDamageAfterMagicAbsorb()` checks every protection enchantment on every equipped armor piece. The `ProtectionEnchantment::getDamageProtection()` method returns a protection value based on the enchantment level and type:
 
 ```cpp
 int ProtectionEnchantment::getDamageProtection(int level, DamageSource *source)
@@ -288,7 +401,45 @@ int ProtectionEnchantment::getDamageProtection(int level, DamageSource *source)
 }
 ```
 
-So if you create a new damage source and you want armor to block it, don't call `bypassArmor()`. If you want fire protection enchantments to help against it, call `setIsFire()`. And so on.
+### Protection multipliers
+
+Each enchantment type has a different multiplier that gets applied to the base protection formula `(6 + level^2) / 3`:
+
+| Type | Constant | Multiplier | When it applies |
+|---|---|---|---|
+| Protection (ALL) | 0 | 0.75x | All damage except `bypassInvul` |
+| Fire Protection | 1 | 1.25x | Damage where `isFire()` is true |
+| Feather Falling | 2 | 2.5x | Only `DamageSource::fall` (exact pointer match) |
+| Blast Protection | 3 | 1.5x | Only `DamageSource::explosion` (exact pointer match) |
+| Projectile Protection | 4 | 1.5x | Damage where `isProjectile()` is true |
+
+Note that Feather Falling and Blast Protection check by pointer equality (`source == DamageSource::fall`), not by flag. This means a custom fall damage source that isn't the exact static `DamageSource::fall` pointer won't trigger Feather Falling. Projectile Protection and Fire Protection check by flag, so they work with any custom damage source that has those flags set.
+
+### Protection enchantment compatibility
+
+Only one type of protection enchantment can exist on a piece of armor, with one exception: Feather Falling can coexist with any other protection type. So you can have Protection + Feather Falling on boots, but not Protection + Fire Protection on a chestplate.
+
+Max enchantment level is 4 for all protection types.
+
+### Protection values by level
+
+Here are the actual protection values returned for each level:
+
+| Level | Base `(6+L^2)/3` | ALL (x0.75) | FIRE (x1.25) | FALL (x2.5) | EXPLOSION (x1.5) | PROJECTILE (x1.5) |
+|---|---|---|---|---|---|---|
+| 1 | 2.33 | 1 | 2 | 5 | 3 | 3 |
+| 2 | 3.33 | 2 | 4 | 8 | 5 | 5 |
+| 3 | 5.00 | 3 | 6 | 12 | 7 | 7 |
+| 4 | 7.33 | 5 | 9 | 18 | 11 | 11 |
+
+These values are per piece of armor. A player wearing four pieces of Protection IV gets 5*4 = 20 protection points total against all damage. The total protection is then capped and converted to a damage reduction percentage.
+
+### Additional enchantment effects
+
+`ProtectionEnchantment` also has two static helper methods:
+
+- `getFireAfterDampener(entity, time)`: reduces the duration of fire based on Fire Protection level. Each level reduces fire time by 15%.
+- `getExplosionKnockbackAfterDampener(entity, power)`: reduces explosion knockback based on Blast Protection level. Each level reduces knockback by 15%.
 
 ## Creating a Custom Damage Source
 
@@ -388,6 +539,22 @@ DamageSource *DamageSource::lightning(shared_ptr<Entity> source)
 
 Don't forget to add your new `.h` and `.cpp` files to `cmake/Sources.cmake` in the `MINECRAFT_WORLD_SOURCES` list.
 
+## Creating a Custom IndirectEntityDamageSource
+
+If your damage comes from a projectile with a separate owner (like arrows), use `IndirectEntityDamageSource`:
+
+```cpp
+// Factory method for a custom trap that credits the player who placed it
+DamageSource *DamageSource::trap(shared_ptr<Entity> trapBlock, shared_ptr<Entity> placer)
+{
+    return new IndirectEntityDamageSource(ChatPacket::e_ChatDeathMyTrap, trapBlock, placer);
+}
+```
+
+The first entity parameter is the "direct entity" (the thing that did the damage), and the second is the "owner" (who gets kill credit). When `getEntity()` is called, it returns the owner. When `getDirectEntity()` is called, it returns the trap block.
+
+If the owner is null (maybe the placer logged out), the death message packet falls back to using the direct entity's type for the message.
+
 ## Kill Credit
 
 Kill credit is handled through the `getEntity()` method. When a mob or player dies, `Mob::die()` checks who gets credit:
@@ -418,12 +585,34 @@ If you want custom kill credit behavior, override `getEntity()` in your subclass
 Here is the full flow from something hurting a player to the death message showing up:
 
 1. Something calls `entity->hurt(damageSource, damage)`
-2. `Player::hurt()` checks invulnerability, creative mode, and difficulty scaling
-3. `Mob::hurt()` handles invulnerability frames, knockback, and then calls `actuallyHurt()`
-4. `Player::actuallyHurt()` runs the damage through blocking, armor absorption, and enchantment absorption
+2. `Player::hurt()` checks invulnerability frames (the brief immune period after taking damage), creative mode immunity, and whether the source can `bypassInvul()`
+3. `Mob::hurt()` handles knockback calculation and the invulnerability timer reset
+4. `Player::actuallyHurt()` runs the damage through:
+   - **Blocking check**: if blocking and not bypass-armor, halves damage via `(1 + dmg) >> 1`
+   - **Armor absorption**: `getDamageAfterArmorAbsorb()` reduces damage based on armor value (skipped if `bypassArmor`)
+   - **Enchantment absorption**: `getDamageAfterMagicAbsorb()` checks all protection enchantments and reduces damage further
+   - **Food exhaustion**: `causeFoodExhaustion()` costs hunger equal to `source->getFoodExhaustion()` (0 if bypass-armor)
+   - **Health reduction**: `health -= dmg`
 5. If health drops to 0 or below, `Mob::hurt()` calls `die(source)`
-6. `Player::die()` calls `Mob::die()` which handles kill credit, loot drops, and stats
+6. `Player::die()` calls `Mob::die()` which handles:
+   - Kill credit via `source->getEntity()->awardKillScore()`
+   - Kill notification via `source->getEntity()->killed()`
+   - Loot drops via `dropDeathLoot()`
+   - Statistics updates
 7. `ServerPlayer::die()` calls `source->getDeathMessagePacket(player)` and broadcasts the result to all players
 8. Every connected client receives the `ChatPacket` and displays the localized death message
+
+### Difficulty scaling
+
+If the damage source `scalesWithDifficulty()` returns true, the damage gets adjusted before step 4:
+
+| Difficulty | Scaling |
+|---|---|
+| Peaceful | 0 damage (immune) |
+| Easy | `damage / 2 + 1` |
+| Normal | Unchanged |
+| Hard | `damage * 3 / 2` |
+
+For `EntityDamageSource`, `scalesWithDifficulty()` checks if the attacker is a `Mob` (returns true) or a `Player` (returns false). So zombie hits scale with difficulty but player-vs-player damage doesn't.
 
 That is the whole system. The damage source you pass in at step 1 determines everything: how much the damage is reduced, who gets credit for the kill, and what message shows up in chat.

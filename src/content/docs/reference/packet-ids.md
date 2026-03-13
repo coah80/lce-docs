@@ -15,7 +15,7 @@ map(id, receiveOnClient, receiveOnServer, sendToAnyClient, renderStats, typeid, 
 - **C->S** means the client sends it to the server (`receiveOnClient = false`, `receiveOnServer = true`)
 - **Both** means either direction (`receiveOnClient = true`, `receiveOnServer = true`)
 
-## Packet Table
+## Packet Table (LCEMP)
 
 | ID | Class Name | Direction | Broadcast | Purpose |
 |----|-----------|-----------|-----------|---------|
@@ -108,26 +108,59 @@ map(id, receiveOnClient, receiveOnServer, sendToAnyClient, renderStats, typeid, 
 | 254 | `GetInfoPacket` | C->S | no | Server list ping (added 1.8.2) |
 | 255 | `DisconnectPacket` | Both | yes | Disconnect / kick reason |
 
-**Total registered packets: 88** (IDs 0 to 255, with gaps)
+## Additional Packets (MinecraftConsoles)
+
+The MinecraftConsoles repo adds these packets not in the LCEMP source:
+
+| ID | Class Name | Direction | Broadcast | Purpose |
+|----|-----------|-----------|-----------|---------|
+| 27 | `PlayerInputPacket` | C->S | no | Player vehicle input (was commented out in LCEMP, now active) |
+| 39 | `SetEntityLinkPacket` | S->C | yes | Entity link / leash (replaces `SetRidingPacket`) |
+| 44 | `UpdateAttributesPacket` | S->C | yes | Entity attribute sync (new) |
+| 63 | `LevelParticlesPacket` | S->C | yes | Spawn particles at position (new) |
+| 133 | `TileEditorOpenPacket` | S->C | yes | Open tile editor (command block, new) |
+| 206 | `SetObjectivePacket` | S->C | yes | Scoreboard objective (new) |
+| 207 | `SetScorePacket` | S->C | yes | Scoreboard score update (new) |
+| 208 | `SetDisplayObjectivePacket` | S->C | yes | Scoreboard display slot (new) |
+| 209 | `SetPlayerTeamPacket` | S->C | yes | Scoreboard team update (new) |
+
+:::note
+In MinecraftConsoles, `SetCarriedItemPacket` (16) changed from C->S only to Both
+directions. Packet 39 changed from `SetRidingPacket` to `SetEntityLinkPacket` to support
+the leash system alongside vehicle riding.
+
+The scoreboard packets (206-209) support the scoreboard system added in TU19. These work
+with the `/scoreboard` command for objectives, scores, display positions, and teams.
+:::
+
+**Total registered packets (LCEMP): 88** (IDs 0 to 255, with gaps)
+
+**Total registered packets (MinecraftConsoles): 97** (IDs 0 to 255, with gaps)
 
 ## Unused / Commented-Out IDs
 
-These IDs show up in comments but aren't registered:
+These IDs show up in comments but aren't registered in either codebase:
 
 | ID | Class Name | Notes |
 |----|-----------|-------|
 | 21 | *(gap)* | No packet registered at this ID |
-| 27 | `PlayerInputPacket` | Commented out |
 | 203 | `ChatAutoCompletePacket` | "Don't think we need them" (1.3.2) |
 | 204 | `ClientInformationPacket` | "Don't think we need them" (1.3.2) |
 | 252 | `SharedKeyPacket` | "Don't think we need them" (1.3.2) |
 | 253 | `ServerAuthDataPacket` | "Don't think we need them" (1.3.2) |
+
+:::note
+ID 27 (`PlayerInputPacket`) was commented out in LCEMP but is active in MinecraftConsoles.
+:::
 
 ## Notes
 
 - The **Broadcast** column matches the `sendToAnyClient` parameter. When `yes`, the packet goes to all connected clients. When `no`, it's sent per-dimension per-machine (a 4J splitscreen optimization).
 - Packets marked **(4J added)** are custom additions by 4J Studios for the Legacy Console Edition and don't exist in vanilla Java Edition.
 - `MoveEntityPacketSmall` (162 to 165) is an optimized version of `MoveEntityPacket` (30 to 33) for smaller position changes.
-- `ContainerSetSlotPacket` (103) has conditional direction: in non-content-package builds it can also be sent C->S for debug purposes.
+- `ContainerSetSlotPacket` (103) has conditional direction: in non-content-package builds it can also be sent C->S for debug purposes. This is the same in both codebases.
+- The `renderStats` parameter controls which packets show up in the debug network stats overlay. Packets with `renderStats = true` tend to be the high-traffic ones like entity movement and chunk data.
 
-**Source file:** `Minecraft.World/Packet.cpp`
+**Source files:**
+- LCEMP: `Minecraft.World/Packet.cpp`
+- MinecraftConsoles: `Minecraft.World/Packet.cpp`

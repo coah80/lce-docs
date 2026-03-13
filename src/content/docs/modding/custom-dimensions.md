@@ -30,8 +30,13 @@ The base class provides a bunch of virtual methods you can override. Here's what
 | Method | What it controls |
 |--------|-----------------|
 | `init()` | Set up biome source, dimension ID, flags |
+| `init(Level *level)` | Called by the engine. Stores level pointer, calls `init()` then `updateLightRamp()` |
+| `updateLightRamp()` | Fills the `brightnessRamp` array (controls ambient light curve) |
 | `createRandomLevelSource()` | Return your custom terrain generator |
+| `createFlatLevelSource()` | Return a flat-world terrain generator |
+| `createStorage(File dir)` | Return chunk storage handler (default: `OldChunkStorage`) |
 | `getTimeOfDay()` | Sun position / day-night cycle |
+| `getMoonPhase()` | Moon phase (0-7), calculated from world time |
 | `getSunriseColor()` | Sunrise/sunset gradient (or `NULL` to disable) |
 | `getFogColor()` | Fog color based on time of day |
 | `isNaturalDimension()` | Whether natural day/night mob spawning rules apply |
@@ -44,6 +49,25 @@ The base class provides a bunch of virtual methods you can override. Here's what
 | `isFoggyAt()` | Whether fog is extra thick at a position |
 | `hasBedrockFog()` | Whether the bedrock fog effect at world bottom is active |
 | `getClearColorScale()` | Sky clear color multiplier |
+| `getXZSize()` | World size in chunks (4J addition for console worlds) |
+
+### The Initialization Chain
+
+When the engine creates a dimension, it calls `init(Level *level)` which does three things in order:
+
+```cpp
+void Dimension::init(Level *level)
+{
+    this->level = level;
+    this->levelType = level->getLevelData()->getGenerator();
+    init();              // your subclass override
+    updateLightRamp();   // your subclass override (or default)
+}
+```
+
+This is why you only need to override the parameterless `init()` in your subclass. The engine handles wiring up the level pointer and level type before your code runs.
+
+### The Factory Method
 
 The `Dimension::getNew()` factory method is how the game creates dimension instances from an ID:
 
@@ -53,11 +77,234 @@ Dimension *Dimension::getNew(int id)
     if (id == -1) return new HellDimension();
     if (id == 0) return new NormalDimension();
     if (id == 1) return new TheEndDimension();
+    if (id == 2) return new AetherDimension();
     return NULL;
 }
 ```
 
 You'll need to add your dimension to this factory. More on that in the [registration section](#registering-the-dimension).
+
+## Every Virtual Method in Detail
+
+Here's the complete breakdown of every virtual method on `Dimension`, what the base class does by default, and when you'd want to override it.
+
+### init()
+
+Sets up biome source, dimension ID, and flags. The base class version checks if the world is superflat (uses `FixedBiomeSource` with plains) or normal (uses full `BiomeSource`). Your subclass should always override this.
+
+```cpp
+// Base class default:
+void Dimension::init()
+{
+    if (level->getLevelData()->getGenerator() == LevelType::lvl_flat)
+        biomeSource = new FixedBiomeSource(Biome::plains, 0.5f, 0.5f);
+    else
+        biomeSource = new BiomeSource(level);
+}
+```
+
+### updateLightRamp()
+
+Fills the `brightnessRamp[16]` array that maps light levels (0-15) to actual brightness values. The base class uses 0.0 ambient light. The Nether overrides this with 0.1 ambient light, which makes dark areas less dark:
+
+```cpp
+// Nether override:
+void HellDimension::updateLightRamp()
+{
+    float ambientLight = 0.10f;  // vs 0.0f in base class
+    for (int i = 0; i <= Level::MAX_BRIGHTNESS; i++)
+    {
+        float v = (1 - i / (float)(Level::MAX_BRIGHTNESS));
+        brightnessRamp[i] =
+            ((1 - v) / (v * 3 + 1)) * (1 - ambientLight) + ambientLight;
+    }
+}
+```
+
+The formula is the same either way. A higher `ambientLight` value lifts the floor on the brightness curve, so even light level 0 isn't pitch black. If you want your dimension to have a minimum brightness (like the Nether's faint glow), override this.
+
+### createRandomLevelSource()
+
+Returns the `ChunkSource` that generates terrain. The base class returns `RandomLevelSource` for normal worlds and `FlatLevelSource` for superflat. The Nether returns `HellRandomLevelSource` or `HellFlatLevelSource`. The End returns `TheEndLevelRandomLevelSource`. Your custom dimension must override this to return your own terrain generator.
+
+```cpp
+// Base class:
+ChunkSource *Dimension::createRandomLevelSource() const
+{
+    if (levelType == LevelType::lvl_flat)
+        return new FlatLevelSource(level, level->getSeed(),
+            level->getLevelData()->isGenerateMapFeatures());
+    else
+        return new RandomLevelSource(level, level->getSeed(),
+            level->getLevelData()->isGenerateMapFeatures());
+}
+```
+
+### createFlatLevelSource()
+
+Returns the flat-world generator. The base class always returns `FlatLevelSource`. You probably don't need to override this unless your dimension needs a special flat mode.
+
+### createStorage(File dir)
+
+Returns the chunk storage backend. Default is `OldChunkStorage`. You'd only override this if you need custom save behavior.
+
+### getTimeOfDay(__int64 time, float a)
+
+Returns a float from 0.0 to 1.0 representing the sun's position. The `time` parameter is the world tick count and `a` is the partial tick for interpolation.
+
+The base class (Overworld) does this:
+
+```cpp
+float Dimension::getTimeOfDay(__int64 time, float a) const
+{
+    int dayStep = (int)(time % Level::TICKS_PER_DAY);
+    float td = (dayStep + a) / Level::TICKS_PER_DAY - 0.25f;
+    if (td < 0) td += 1;
+    if (td > 1) td -= 1;
+    float tdo = td;
+    td = 1 - (float)((cos(td * PI) + 1) / 2);
+    td = tdo + (td - tdo) / 3.0f;
+    return td;
+}
+```
+
+The `-0.25f` offset makes noon (time 0) correspond to td=0.0. The cosine smoothing makes sunrise and sunset happen more gradually than a linear ramp.
+
+Return a constant to freeze time:
+
+| Value | Effect |
+|-------|--------|
+| `0.0f` | Permanent bright daytime (Aether, End) |
+| `0.25f` | Permanent sunset |
+| `0.5f` | Permanent dim/midnight (Nether) |
+| `0.75f` | Permanent sunrise |
+
+### getMoonPhase(__int64 time, float a)
+
+Returns the moon phase as an int from 0 to 7. The base class calculates it as `(time / TICKS_PER_DAY) % 8`. You'd only override this if you want a different moon cycle.
+
+### getSunriseColor(float td, float a)
+
+Returns a 4-element float array `[r, g, b, alpha]` when the sun is near the horizon, or `NULL` to disable the sunrise/sunset effect. The base class loads colors from the `ColourTable` (`Sky_Dawn_Dark` and `Sky_Dawn_Bright`) and blends between them using a cosine window:
+
+```cpp
+float span = 0.4f;
+float tt = Mth::cos(td * PI * 2) - 0.0f;
+if (tt >= -span && tt <= span)
+{
+    // Calculate blend and intensity
+    float aa = ((tt - mid) / span) * 0.5f + 0.5f;
+    float mix = 1 - (((1 - sin(aa * PI))) * 0.99f);
+    mix = mix * mix;
+    sunriseCol[0] = (aa * (r2 - r1) + r1);
+    sunriseCol[1] = (aa * (g2 - g1) + g1);
+    sunriseCol[2] = (aa * (b2 - b1) + b1);
+    sunriseCol[3] = mix;  // intensity
+    return sunriseCol;
+}
+return NULL;
+```
+
+The Aether and End both return `NULL` since they don't have a day/night cycle.
+
+### getFogColor(float td, float a)
+
+Returns an RGB `Vec3` for the fog color. The `td` parameter is the current time of day. See the [Fog & Sky page](/lce-docs/modding/fog-sky/) for the full breakdown of how each dimension handles this.
+
+### isNaturalDimension()
+
+Controls whether the normal day/night mob spawning rules apply. The Overworld returns `true`, everything else returns `false`. When `false`, the dimension uses its own spawning logic or the time-of-day check gets skipped.
+
+### mayRespawn()
+
+Whether players can respawn in this dimension after dying. The Overworld returns `true`. Nether, End, and Aether all return `false`, which sends dead players back to the Overworld.
+
+### hasGround()
+
+Whether the dimension has a normal ground plane. Affects rendering. The End returns `false` because the main island floats in the void. The Aether returns `true` even though it also has floating islands, because the game treats the ground rendering differently.
+
+### getCloudHeight()
+
+The Y level where clouds render. Default is `Level::genDepth` (128). The Aether raises this to `Level::genDepth + 32` (160). The End drops it to `8`, which effectively hides clouds below the island.
+
+### isValidSpawn(int x, int z)
+
+Checks whether a given X/Z position is a valid player spawn point. The Overworld checks for grass:
+
+```cpp
+bool Dimension::isValidSpawn(int x, int z) const
+{
+    int topTile = level->getTopTile(x, z);
+    if (topTile != Tile::grass_Id) return false;
+    return true;
+}
+```
+
+The Aether and End are more flexible. They just check that the top block is solid:
+
+```cpp
+bool AetherDimension::isValidSpawn(int x, int z) const
+{
+    int topTile = level->getTopTile(x, z);
+    if (topTile == 0) return false;
+    return Tile::tiles[topTile]->material->blocksMotion();
+}
+```
+
+The Nether returns `false` for everything since you can't normally spawn there.
+
+### getSpawnPos()
+
+Returns fixed spawn coordinates, or `NULL` to let the engine search for a valid spot. The End returns `Pos(100, 50, 0)`. The Aether returns `Pos(0, 64, 0)`. The Overworld returns `NULL`.
+
+### getSpawnYPosition()
+
+Returns the Y level for spawning. The base class returns `Level::genDepth / 2` (64) for normal worlds and `4` for superflat. The Aether returns `64`. The End returns `50`.
+
+### isFoggyAt(int x, int z)
+
+Whether fog is extra thick at a given position. When `true`, the renderer pulls the fog start much closer and shortens the fog end distance. The Nether and End return `true` everywhere. The Overworld and Aether return `false`.
+
+When `isFoggyAt` returns `true`, the renderer uses these shortened fog values:
+```cpp
+glFogf(GL_FOG_START, distance * 0.05f);
+glFogf(GL_FOG_END, min(distance, 192.0f) * 0.5f);
+```
+
+Compare that to normal fog which uses `distance * 0.25f` for start and the full `distance` for end.
+
+### hasBedrockFog()
+
+Whether the fog-at-bedrock-level effect is active. This is the effect where fog gets thicker as you approach Y=0. The base class returns `true` unless it's a superflat world, the dimension has a ceiling, or the host player turned it off via the `eGameHostOption_BedrockFog` option:
+
+```cpp
+bool Dimension::hasBedrockFog()
+{
+    if (app.GetGameHostOption(eGameHostOption_BedrockFog) == 0)
+        return false;
+    return (levelType != LevelType::lvl_flat && !hasCeiling);
+}
+```
+
+The Aether overrides this to return `false` since there's no bedrock.
+
+### getClearColorScale()
+
+Multiplier for the sky clear color based on player Y position. The base class returns `1.0 / 32.0` for normal worlds and `1.0` for superflat. Lower values mean the sky darkens more when you're deep underground. The Aether returns `1.0` since the sky should always be full brightness.
+
+### getXZSize()
+
+Returns the world size in chunks. The base class returns `level->getLevelData()->getXZSize()`. The Nether overrides this to divide by the hell scale factor:
+
+```cpp
+int HellDimension::getXZSize()
+{
+    return ceil((float)level->getLevelData()->getXZSize()
+        / level->getLevelData()->getHellScale());
+}
+```
+
+This is how the Nether ends up smaller than the Overworld on console.
 
 ## Creating a Dimension Subclass
 
@@ -228,16 +475,20 @@ The base class in `ChunkSource.h` defines the pure virtual methods you need to i
 class ChunkSource
 {
 public:
-    int m_XZSize;
+    int m_XZSize;   // World size in chunks (4J addition)
 
     virtual bool hasChunk(int x, int y) = 0;
+    virtual bool reallyHasChunk(int x, int y);  // 4J: defaults to hasChunk()
     virtual LevelChunk *getChunk(int x, int z) = 0;
     virtual LevelChunk *create(int x, int z) = 0;
     virtual void lightChunk(LevelChunk *lc) {}
     virtual void postProcess(ChunkSource *parent, int x, int z) = 0;
+    virtual bool saveAllEntities() { return false; }
     virtual bool save(bool force, ProgressListener *progressListener) = 0;
     virtual bool tick() = 0;
     virtual bool shouldSave() = 0;
+    virtual LevelChunk **getCache() { return NULL; }
+    virtual void dataReceived(int x, int z) {}
     virtual wstring gatherStats() = 0;
     virtual vector<Biome::MobSpawnerData *> *getMobsAt(
         MobCategory *mobCategory, int x, int y, int z) = 0;
@@ -246,9 +497,10 @@ public:
 };
 ```
 
-The two most important methods are:
+The most important methods are:
 - **`getChunk()`** / **`create()`** - Generate a chunk's blocks
 - **`postProcess()`** - Decorate with features (trees, ores, flowers) after initial generation
+- **`lightChunk()`** - Recalculate heightmap/skylight after chunk enters the cache
 
 ### How the Aether Level Source Works
 
@@ -257,17 +509,20 @@ The `AetherLevelSource` generates floating islands using Perlin noise. Here's th
 ```cpp
 class AetherLevelSource : public ChunkSource
 {
+public:
+    static const int CHUNK_HEIGHT = 4;  // Y subdivision size
+    static const int CHUNK_WIDTH = 8;   // X/Z subdivision size
 private:
     Random *random;
     Random *pprandom;
-    PerlinNoise *lperlinNoise1;
-    PerlinNoise *lperlinNoise2;
-    PerlinNoise *perlinNoise1;
-    PerlinNoise *islandNoise;    // Scattered island clusters
-    PerlinNoise *carvingNoise;   // Irregular island shapes
+    PerlinNoise *lperlinNoise1;   // Low-frequency terrain shape
+    PerlinNoise *lperlinNoise2;   // Low-frequency terrain shape (blended)
+    PerlinNoise *perlinNoise1;    // Mid-frequency blend selector
+    PerlinNoise *islandNoise;     // Scattered island clusters
+    PerlinNoise *carvingNoise;    // Irregular island shapes
 public:
-    PerlinNoise *scaleNoise;
-    PerlinNoise *depthNoise;
+    PerlinNoise *scaleNoise;      // Terrain scale variation
+    PerlinNoise *depthNoise;      // Terrain depth/elevation shift
     Level *level;
 };
 ```
@@ -293,11 +548,13 @@ AetherLevelSource::AetherLevelSource(Level *level, __int64 seed)
 }
 ```
 
+The number passed to each `PerlinNoise` constructor is the number of octaves. More octaves means more detail but more expensive to compute.
+
 ### Chunk Generation Pipeline
 
 The chunk generation happens in `getChunk()`, which calls two sub-methods:
 
-1. **`prepareHeights()`** - Fills the chunk with blocks based on noise. Where the noise value is positive, place your dimension's base stone block:
+1. **`prepareHeights()`** - Fills the chunk with blocks based on noise. The noise is sampled at `CHUNK_WIDTH` (8) block intervals and trilinearly interpolated between samples. Where the noise value is positive, place your dimension's base stone block:
 
 ```cpp
 // Inside the noise sampling loop:
@@ -333,6 +590,36 @@ for (int y = Level::genDepthMinusOne; y >= 0; y--)
         }
         // When run reaches 0, stays as holystone
     }
+}
+```
+
+### The Noise Pipeline (getHeights)
+
+The `getHeights()` method is where the actual island shapes come from. It samples seven different noise fields and combines them:
+
+1. **Scale noise** (`scaleNoise`) - Controls how stretched or compressed the terrain is vertically at each column
+2. **Depth noise** (`depthNoise`) - Shifts the terrain center up or down, creating shelf-like elevation steps
+3. **Island noise** (`islandNoise`) - Creates scattered island clusters. The value gets scaled to create a threshold (`islandVal * 100 - 60`). Only columns where this threshold is high enough will have solid terrain
+4. **Two low-frequency noises** (`lperlinNoise1`, `lperlinNoise2`) - The main terrain shape, sampled at full scale
+5. **Blend noise** (`perlinNoise1`) - Picks how much of noise 1 vs noise 2 to use at each point (sampled at 1/80th scale)
+6. **Carving noise** (`carvingNoise`) - Cuts irregular hollows into solid areas. When the carving value dips below -6.0, it subtracts from the terrain value
+
+There's also an **edge fade** system tied to world size. The code calculates the distance from the center and starts fading terrain out at 85% of `worldHalf`. This prevents islands from generating right at the world boundary.
+
+Finally, there are top and bottom **slide functions** that force the noise to zero at the ceiling and floor of the world:
+
+```cpp
+// Slide at top (last 2 y-cells)
+if (yy > ySize / 2 - 2)
+{
+    double slide = (yy - (ySize / 2 - 2)) / 64.0f;
+    val = val * (1 - slide) + -3000 * slide;
+}
+// Slide at bottom (first 10 y-cells)
+if (yy < 10)
+{
+    double slide = (10 - yy) / (10 - 1.0f);
+    val = val * (1 - slide) + -30 * slide;
 }
 ```
 
@@ -382,14 +669,21 @@ void AetherLevelSource::postProcess(ChunkSource *parent, int xt, int zt)
     biome->decorate(level, pprandom, xo, zo);
 
     HeavyTile::instaFall = false;
+
+    app.processSchematics(parent->getChunk(xt, zt));
 }
 ```
 
+Note the `HeavyTile::instaFall` flag. Setting this to `true` tells sand and gravel not to fall as entities during decoration. They just snap into place. The `processSchematics` call at the end handles any game-rules-defined schematics that should be placed in this chunk.
+
 ### The Lighting Step
 
-One important detail: `lightChunk()` needs to call `recalcHeightmap()` so skylighting works correctly. This has to happen after the chunk is added to the cache, not during generation:
+One important detail: `lightChunk()` needs to call `recalcHeightmap()` so skylighting works correctly. This has to happen after the chunk is added to the cache, not during generation. The 4J source comments explain why:
 
 ```cpp
+// 4J - recalcHeightmap split out from getChunk so that it runs after
+// the chunk is added to the cache. This is required for skylight to
+// be calculated correctly -- lightGaps() needs the chunk to pass hasChunk().
 void AetherLevelSource::lightChunk(LevelChunk *lc)
 {
     lc->recalcHeightmap();
@@ -419,6 +713,15 @@ vector<Biome::MobSpawnerData *> *AetherLevelSource::getMobsAt(
     Biome *biome = level->getBiome(x, z);
     if (biome == NULL) return NULL;
     return biome->getMobs(mobCategory);
+}
+```
+
+The `create()` method just calls through to `getChunk()`:
+
+```cpp
+LevelChunk *AetherLevelSource::create(int x, int z)
+{
+    return getChunk(x, z);
 }
 ```
 
@@ -498,6 +801,15 @@ AetherBiomeDecorator::AetherBiomeDecorator(Biome *biome) : BiomeDecorator(biome)
     zaniteOreFeature = new OreFeature(Tile::zaniteOre_Id, 8, Tile::holystone_Id);
     gravititeOreFeature = new OreFeature(Tile::gravititeOre_Id, 4, Tile::holystone_Id);
 
+    // Quicksoil shelves on island undersides
+    quicksoilShelfFeature = new QuicksoilShelfFeature();
+
+    // AerCloud features at various rarities
+    largeAerCloudFeature = new AerCloudFeature(Tile::aercloud_Id, 6, 10, 2, 4, true);
+    smallAerCloudFeature = new AerCloudFeature(Tile::aercloud_Id, 3, 6, 1, 2, false);
+    smallGoldAerCloudFeature = new AerCloudFeature(Tile::goldAercloud_Id, 2, 4, 1, 2, false);
+    smallBlueAerCloudFeature = new AerCloudFeature(Tile::blueAercloud_Id, 2, 4, 1, 2, false);
+
     // Set feature counts
     treeCount = 2;
     grassCount = 5;
@@ -506,6 +818,7 @@ AetherBiomeDecorator::AetherBiomeDecorator(Biome *biome) : BiomeDecorator(biome)
     // Disable overworld stuff
     sandCount = 0;
     clayCount = 0;
+    gravelCount = 0;
     liquids = false;
     // ... etc
 }
@@ -531,7 +844,35 @@ void AetherBiomeDecorator::decorate()
         delete tree;
     }
 
-    // Flowers, grass, etc...
+    // Flowers, grass...
+
+    // Quicksoil shelves (3 per chunk)
+    for (int i = 0; i < 3; i++) { /* ... */ }
+
+    // Large aerclouds (1 in 5 chunks)
+    if (random->nextInt(5) == 0) { /* ... */ }
+
+    // Small white aerclouds (1 in 10 chunks, y >= 80)
+    if (random->nextInt(10) == 0) { /* ... */ }
+
+    // Gold aerclouds (1 in 30 chunks)
+    if (random->nextInt(30) == 0) { /* ... */ }
+
+    // Blue aerclouds (1 in 60 chunks)
+    if (random->nextInt(60) == 0) { /* ... */ }
+}
+```
+
+The ore placement uses the standard `decorateDepthSpan` helper:
+
+```cpp
+void AetherBiomeDecorator::decorateAetherOres()
+{
+    level->setInstaTick(true);
+    decorateDepthSpan(20, ambrosiumOreFeature, 0, Level::genDepth);     // Common, full height
+    decorateDepthSpan(10, zaniteOreFeature, 0, Level::genDepth / 2);    // Moderate, lower half
+    decorateDepthSpan(4, gravititeOreFeature, 0, Level::genDepth / 4);  // Rare, bottom quarter
+    level->setInstaTick(false);
 }
 ```
 
@@ -556,7 +897,7 @@ Biome::myBiome = (new MyBiome(23))
     ->setTemperatureAndDownfall(0.5f, 0.0f);
 ```
 
-Pick a biome ID that doesn't conflict with existing ones. The Aether uses ID 23.
+Pick a biome ID that doesn't conflict with existing ones. The Aether uses ID 23. The `Biome` constructor automatically registers the biome in the `Biome::biomes[256]` array at the given ID index.
 
 ## Portal Logic
 
@@ -782,10 +1123,16 @@ Here's a comparison of how each dimension configures itself, which is handy for 
 | `hasCeiling` | false | true | true | false |
 | `ultraWarm` | false | true | false | false |
 | `getTimeOfDay()` | Full cycle | 0.5 (dim) | 0.0 (bright) | 0.0 (bright) |
+| `updateLightRamp()` | ambient 0.0 | ambient 0.1 | default | default |
 | `isNaturalDimension()` | true | false | false | false |
 | `mayRespawn()` | true | false | false | false |
 | `hasGround()` | true | true | false | true |
 | `isFoggyAt()` | false | true | true | false |
+| `hasBedrockFog()` | conditional | false (ceiling) | false (ceiling) | false (override) |
+| `getClearColorScale()` | 1/32 | 1/32 | 1/32 | 1.0 |
+| `getCloudHeight()` | 128 | 128 | 8 | 160 |
+| `getSpawnPos()` | NULL (search) | N/A | (100,50,0) | (0,64,0) |
+| `getXZSize()` | world size | world / hellScale | world / 3 | world size |
 | Biome source | `BiomeSource` | Fixed (hell) | Fixed (sky) | Fixed (aether) |
 
 ## Summary

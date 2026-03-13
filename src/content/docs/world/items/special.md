@@ -97,8 +97,12 @@ The tooltip shows all stored enchantments using `Enchantment::getFullname()`.
 | ID | 259 |
 | Max Durability | 64 |
 | Stack Size | 1 |
+| Base Item Type | `eBaseItemType_devicetool` |
+| Material | `eMaterial_flintandsteel` |
 
-Places fire on the adjacent block face. If used on air above obsidian, it tries to create a Nether portal through `PortalTile::trySpawnPortal()`. Uses 1 durability each time.
+Places fire on the adjacent block face. If the target position is air and the block below is obsidian (`Tile::obsidian_Id`), it tries to create a Nether portal through `PortalTile::trySpawnPortal()`. A successful portal awards both `portalsCreated` and `InToTheNether` statistics. Uses 1 durability each time via `instance->hurt(1, player)`.
+
+The `bTestUseOnOnly` path only returns true if the target block would be air (for tooltip display).
 
 ## SaddleItem
 
@@ -109,7 +113,9 @@ Places fire on the adjacent block face. If used on air above obsidian, it tries 
 | ID | 329 |
 | Stack Size | 1 |
 
-Goes on pigs through `interactEnemy`. Once placed, you can't get it back.
+Goes on pigs through `interactEnemy`. Checks that the pig doesn't already have a saddle and isn't a baby (`!pig->hasSaddle() && !pig->isBaby()`). Calls `pig->setSaddle(true)` and decreases the item count. Once placed, you can't get it back.
+
+The `hurtEnemy` method also delegates to `interactEnemy`, so attacking a pig with a saddle in hand will try to saddle it too.
 
 ## CarrotOnAStickItem
 
@@ -120,8 +126,12 @@ Goes on pigs through `interactEnemy`. Once placed, you can't get it back.
 | ID | 398 |
 | Max Durability | 25 |
 | Stack Size | 1 |
+| Hand Equipped | Yes |
+| Mirrored Art | Yes |
+| Base Item Type | `eBaseItemType_rod` |
+| Material | `eMaterial_carrot` |
 
-Controls saddled pigs. When you use it while riding a pig, it boosts the pig's speed and costs some durability.
+Controls saddled pigs. When you use it while riding a pig, it checks `pig->getControlGoal()->canBoost()` and that the item has at least 7 durability remaining. If so, it calls `boost()` on the pig's control goal and hurts the item by 7 durability. If the item breaks (count reaches 0), it gets replaced with a `FishingRodItem` (the stick part).
 
 ## BottleItem (Glass Bottles)
 
@@ -131,32 +141,26 @@ Controls saddled pigs. When you use it while riding a pig, it boosts the pig's s
 |----------|-------|
 | ID | 374 |
 | Stack Size | 64 |
+| Base Item Type | `eBaseItemType_utensil` |
+| Material | `eMaterial_glass` |
 
-Right-click on a water source block to fill the bottle, turning it into a water bottle (potion with base aux value). This is the starting ingredient for potion brewing.
+Right-click on a water source block to fill the bottle, turning it into a water bottle (base potion). The `use` method raycasts from the player's point of view with `getPlayerPOVHitResult(level, player, true)` (the `true` means it also picks liquid blocks). If the hit block is water material, the bottle is consumed and a new `PotionItem` instance is created. If you have multiple bottles, the water bottle gets added to your inventory (or dropped if full).
 
-## MilkBucketItem
-
-**Files:** `Minecraft.World/MilkBucketItem.h`, `Minecraft.World/MilkBucketItem.cpp`
-
-| Property | Value |
-|----------|-------|
-| ID | 335 |
-| Stack Size | 1 |
-| Crafting Remainder | Empty Bucket |
-
-Clears all mob effects when you drink it. The crafting remaining item is set to the empty bucket.
+The `getIcon` method reuses the potion texture: `Item::potion->getIcon(0)`. The `registerIcons` method is empty because it shares the potion icon.
 
 ## Other Special Items
 
 | Item | ID | Class | Notes |
 |------|----|-------|-------|
-| Compass | 345 | `CompassItem` | Points toward world spawn; `eBaseItemType_pockettool` |
-| Clock | 347 | `ClockItem` | Shows time of day; `eBaseItemType_pockettool` |
-| Eye of Ender | 381 | `EnderEyeItem` | Locates strongholds; fills portal frames; `eBaseItemType_pockettool` |
-| Boat | 333 | `BoatItem` | Places a boat entity on water |
-| Minecart | 328 | `MinecartItem` | Places minecart on rails |
-| Chest Minecart | 342 | `MinecartItem` | Minecart with chest |
-| Furnace Minecart | 343 | `MinecartItem` | Minecart with furnace |
+| Compass | 345 | `CompassItem` | `eBaseItemType_pockettool`, `eMaterial_compass`; has per-player icons (`TEXTURE_PLAYER_ICON`) |
+| Clock | 347 | `ClockItem` | `eBaseItemType_pockettool`, `eMaterial_clock` |
+| Eye of Ender | 381 | `EnderEyeItem` | `eBaseItemType_pockettool`, `eMaterial_ender`; locates strongholds and fills portal frames |
+| Boat | 333 | `BoatItem` | Places a boat entity on water via raycast |
+| Minecart | 328 | `MinecartItem` | Type: `Minecart::RIDEABLE`; places minecart on rails |
+| Chest Minecart | 342 | `MinecartItem` | Type: `Minecart::CHEST` |
+| Furnace Minecart | 343 | `MinecartItem` | Type: `Minecart::FURNACE` |
+| Milk Bucket | 335 | `MilkBucketItem` | Clears all mob effects; crafting remainder: empty bucket. See [Decorative](/lce-docs/world/items/decorative/) |
+| Fishing Rod | 346 | `FishingRodItem` | `eBaseItemType_rod`, `eMaterial_wood`; casts and reels in fishing hook entity |
 
 ## MinecraftConsoles differences
 
@@ -164,19 +168,20 @@ MinecraftConsoles has some changes to the special items:
 
 ### Spawn eggs
 
-`MonsterPlacerItem` is renamed to `SpawnEggItem`. The spawn limit system is the same but adds `eSpawnResult_FailTooManyBats` for the new bat mob. The `use()` method gains a water-placement path (right-clicking water spawns the mob at the water surface) in addition to the existing block-face placement.
+`MonsterPlacerItem` is renamed to `SpawnEggItem` (`spawnEgg_Id = 383`). The spawn limit system is the same but adds `eSpawnResult_FailTooManyBats` for the new bat mob (inserted between `FailTooManySquid` and `FailTooManyWolves` in the enum). The `use()` method gains a water-placement path: right-clicking water spawns the mob at the water surface by raycasting with `getPlayerPOVHitResult(level, player, true)` and checking for water material. The class also adds a `DisplaySpawnError` helper method that consolidates the error message display logic.
 
 ### New minecart variants
 
-Three new minecart types are added:
+Two new minecart item types are added:
 
-| Item | Class | Description |
-|---|---|---|
-| `minecart_tnt` | `MinecartTNT` | TNT minecart that explodes when activated by a powered rail or damaged. Has a fuse timer and custom explosion logic with `primeFuse()` and `getFuse()`. |
-| `minecart_hopper` | `MinecartHopper` | Hopper minecart that sucks in items while moving. Extends `MinecartContainer` and `Hopper`. Has an enabled/disabled state and a cooldown timer. |
-| Spawner minecart | `MinecartSpawner` | Minecart with a mob spawner inside. Has a `MinecartMobSpawner` inner class that extends `BaseMobSpawner`. |
+| Item | ID | Minecart Type | Description |
+|------|-----|---------------|-------------|
+| `minecart_tnt` | 407 | `Minecart::TYPE_TNT` | TNT minecart that explodes when activated by a powered rail or damaged. Has a fuse timer and custom explosion logic with `primeFuse()` and `getFuse()`. |
+| `minecart_hopper` | 408 | `Minecart::TYPE_HOPPER` | Hopper minecart that sucks in items while moving. Extends `MinecartContainer` and `Hopper`. Has an enabled/disabled state and a cooldown timer. |
 
 `MinecartChest` and `MinecartFurnace` also get split into their own classes (they were handled generically in LCEMP's `Minecart`/`MinecartItem`).
+
+Note: The spawner minecart (`MinecartSpawner`) exists as an entity class but doesn't have a corresponding item for placement.
 
 ### New entities
 
@@ -200,3 +205,4 @@ MinecraftConsoles adds a full `Scoreboard` system with `Objective`, `ObjectiveCr
 - **`CarrotOnAStickItem`** works with the new horse entity in addition to pigs.
 - **Saddle** now also works on horses through the horse inventory menu.
 - **`SaddleItem::interactEnemy`** likely gains horse support (in addition to pig).
+- **`EmptyMapItem`** (ID 395) is split out as its own class. See [Decorative](/lce-docs/world/items/decorative/) for details.

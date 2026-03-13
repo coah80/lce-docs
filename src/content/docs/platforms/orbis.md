@@ -161,3 +161,37 @@ Three custom allocator files:
 - **NP Toolkit**: Modern PSN service integration replacing PS3's direct NP API calls
 - **PS Plus upsell**: Integrated subscription promotion for online features
 - **Voice pronunciation**: XML-based voice command recognition support
+
+## MinecraftConsoles Additions
+
+### Sony Shared Network Layer
+
+Like PS3, the PS4 networking code in MinecraftConsoles was refactored to extend shared base classes in `Common/Network/Sony/`. The PS4-specific `SQRNetworkManager_Orbis` extends the shared `SQRNetworkManager` with PS4-specific features like queued signalling events, party voice chat, and the NP Toolkit integration.
+
+The shared `SonyCommerce` class uses `#ifdef` branches to handle the API differences between PS3 (direct NP Commerce2 API) and PS4/Vita (NP Toolkit wrappers). On PS4, the PS3 constant names are `#define`'d to their NP Toolkit equivalents (e.g., `SCE_NP_COMMERCE2_CATEGORY_ID_LEN` maps to `SCE_TOOLKIT_NP_COMMERCE_CATEGORY_ID_LEN`).
+
+### 4JLibs Headers
+
+`Orbis/4JLibs/inc/` with 4J_Render.h, 4J_Input.h, 4J_Profile.h, 4J_Storage.h.
+
+### Iggy UI Library
+
+`Orbis/Iggy/` bundles:
+- `gdraw/gdraw_orbis.h/.cpp` (GNM graphics backend)
+- `include/iggy.h`, `include/gdraw.h`, `include/iggyexpruntime.h`, `include/iggyperfmon.h`, `include/iggyperfmon_orbis.h`, `include/rrCore.h`
+
+### Miles Sound System
+
+`Orbis/Miles/include/mss.h` and `rrCore.h` for audio.
+
+### Sentient Telemetry
+
+`Orbis/Sentient/` with the standard telemetry headers.
+
+### GameConfig
+
+`Orbis/GameConfig/Minecraft.spa.h` was added in MinecraftConsoles (not present in LCEMP's Orbis directory).
+
+### Media and Content
+
+`OrbisMedia/` with DLC, localization, and media assets. Also `PS4_GAME/` and `sce_sys/` for PlayStation system metadata at the Minecraft.Client root level.

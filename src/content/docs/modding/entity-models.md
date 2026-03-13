@@ -575,6 +575,99 @@ body->compile(1.0f/16.0f);
 
 If a part isn't compiled, `render()` will compile it on the fly. But this can cause visual glitches since the lighting state might not be set up correctly at that point.
 
+## The Face Mask System
+
+When two boxes share a face (like the inner and outer layers of a slime), you get z-fighting. The face mask lets you skip specific faces to avoid this. Use `addBoxWithMask()`:
+
+```cpp
+// Slime outer shell: skip the inner faces
+outer->addBoxWithMask(-4, 16, -4, 8, 8, 8, 0, 0b110111);  // skip bottom face
+```
+
+The mask is a 6-bit bitmask:
+
+| Bit | Value | Face |
+|-----|-------|------|
+| 0   | 1     | Right (+X) |
+| 1   | 2     | Left (-X) |
+| 2   | 4     | Top (+Y) |
+| 3   | 8     | Bottom (-Y) |
+| 4   | 16    | Front (-Z) |
+| 5   | 32    | Back (+Z) |
+
+Default is 63 (all faces). To hide a face, turn off its bit.
+
+## Named Texture Offsets
+
+The Dragon model uses named texture offsets instead of positional ones. This is handy for complex models where you want to refer to parts by string name:
+
+```cpp
+// In the Dragon model constructor:
+setMapTex(L"head", 112, 30);
+setMapTex(L"jaw", 176, 65);
+setMapTex(L"body", 0, 0);
+
+// Then when creating parts:
+head = new ModelPart(this, L"head");
+head->addBox(L"upperlip", -6, -1, -24, 12, 5, 16);
+head->addBox(L"upperhead", -8, -8, -10, 16, 16, 16);
+```
+
+The string-based approach uses `Model::mappedTexOffs` to look up texture coordinates by name. Regular models just pass integers to the `ModelPart` constructor and that works fine. Named offsets are only needed when your model has lots of parts and you want the code to be more readable.
+
+## Baby Variant Scaling
+
+When `Model::young` is true, the renderer applies a different scale to the head and body. The head gets scaled up relative to the body and shifted down. This is how baby animals get their big-head look without needing a separate model class.
+
+The scaling logic lives in `Model::render()`:
+
+```cpp
+if (young)
+{
+    // Scale head up, translate it
+    glPushMatrix();
+    glScalef(0.75f, 0.75f, 0.75f);
+    glTranslatef(0, yHeadOffs * scale, zHeadOffs * scale);
+    head->render(scale, usecompiled);
+    glPopMatrix();
+
+    // Scale body down
+    glPushMatrix();
+    glScalef(0.5f, 0.5f, 0.5f);
+    glTranslatef(0, 24 * scale, 0);
+    body->render(scale, usecompiled);
+    // ... legs ...
+    glPopMatrix();
+}
+```
+
+`yHeadOffs` and `zHeadOffs` control where the oversized head sits. Quadrupeds set these in their constructor to position the head forward and up from the body.
+
+## All Vanilla Model Sizes
+
+For reference, here are the texture sheet sizes used by every model:
+
+| Model | texWidth | texHeight |
+|-------|----------|-----------|
+| HumanoidModel | 64 | 32 |
+| QuadrupedModel | 64 | 32 |
+| ChickenModel | 64 | 32 |
+| WolfModel | 64 | 32 |
+| SpiderModel | 64 | 32 |
+| GhastModel | 64 | 32 |
+| SquidModel | 64 | 32 |
+| BlazeModel | 64 | 32 |
+| SilverfishModel | 64 | 32 |
+| VillagerModel | 64 | 64 |
+| VillagerGolemModel | 128 | 128 |
+| DragonModel | 256 | 256 |
+| SnowManModel | 64 | 32 |
+| SlimeModel | 64 | 32 |
+| EndermanModel | 64 | 32 |
+| BookModel | 64 | 32 |
+| ChestModel | 64 | 64 |
+| SignModel | 64 | 32 |
+
 ## Tips
 
 - **Keep boxes aligned to pixels.** Fractional positions work but make texture mapping harder to think about.
@@ -583,3 +676,5 @@ If a part isn't compiled, `render()` will compile it on the fly. But this can ca
 - **The scale is always `1.0f / 16.0f`.** Every model in the game uses this scale. One unit in model space equals one pixel, and 16 pixels equals one block.
 - **Compile after construction.** Don't skip the compile calls or you'll get first-frame glitches.
 - **Animation values reset each frame.** `setupAnim()` is called every frame, so set all rotation values fresh each time. Don't rely on values from the previous frame.
+- **Test with the debug renderer.** If your model looks wrong, temporarily set all rotations to 0 in `setupAnim` and check the T-pose first. Animation bugs and geometry bugs look similar but have different fixes.
+- **Match your texture sheet to the total UV space.** Add up the UV footprint of all your cubes (each is `(2d + 2w)` wide by `(d + h)` tall) and pick a sheet size that fits them all without overlap.

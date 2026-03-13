@@ -5,7 +5,7 @@ description: Index of all Tile (block) subclasses in LCE.
 
 In LCE, blocks are called "Tiles." Every block type is a subclass of `Tile` (defined in `Minecraft.World/Tile.h`). Some tiles inherit from intermediate base classes that share common behavior.
 
-## Inheritance Hierarchy
+## Inheritance Hierarchy (LCEMP)
 
 ```
 Tile
@@ -55,7 +55,42 @@ Tile
  +-- (direct Tile subclasses -- see table below)
 ```
 
-## Complete Tile Class Table
+## Changes in MinecraftConsoles
+
+The MinecraftConsoles repo refactored several parts of the tile hierarchy:
+
+```
+Tile
+ +-- BaseEntityTile (NEW - replaces some EntityTile usage)
+ |    +-- BeaconTile (NEW)
+ |    +-- DaylightDetectorTile (NEW)
+ |    +-- EnchantmentTableTile (moved from EntityTile)
+ |    +-- HopperTile (NEW)
+ |    +-- NoteBlockTile (replaces MusicTile)
+ +-- BaseRailTile (NEW - replaces RailTile as parent)
+ |    +-- DetectorRailTile (moved from RailTile)
+ |    +-- PoweredRailTile (NEW - replaces RailTile for powered/activator)
+ |    +-- RailTile (now extends BaseRailTile)
+ +-- BasePressurePlateTile (NEW)
+ |    +-- PressurePlateTile
+ |    +-- WeightedPressurePlateTile (NEW)
+ +-- ColoredTile (NEW - replaces ClothTile)
+ +-- ComparatorTile (NEW - extends DiodeTile + EntityTile)
+ +-- DiodeTile -> RepeaterTile (renamed)
+ +-- DropperTile (NEW)
+ +-- HayBlockTile (NEW)
+ +-- JukeboxTile (replaces RecordPlayerTile)
+ +-- NetherrackTile (replaces HellStoneTile)
+ +-- NetherWartTile (replaces NetherStalkTile)
+ +-- PoweredMetalTile (NEW)
+ +-- RotatedPillarTile (NEW)
+ |    +-- TreeTile (moved from direct Tile subclass)
+ +-- SoulSandTile (replaces HellSandTile)
+ +-- StoneButtonTile (NEW - extends ButtonTile)
+ +-- WoodButtonTile (NEW - extends ButtonTile)
+```
+
+## Complete Tile Class Table (LCEMP)
 
 | Class | Parent | Header File | Block(s) Implemented |
 |-------|--------|-------------|---------------------|
@@ -162,6 +197,37 @@ Tile
 
 **Total: 99 Tile classes** (including 8 abstract base classes)
 
+## New Tile Classes (MinecraftConsoles)
+
+These classes exist in the MinecraftConsoles repo but not in the LCEMP repo:
+
+| Class | Parent | Block(s) Implemented |
+|-------|--------|---------------------|
+| `BaseEntityTile` | `Tile` | Abstract base for newer tile entity blocks |
+| `BaseRailTile` | `Tile` | Abstract base for rail blocks |
+| `BasePressurePlateTile` | `Tile` | Abstract base for pressure plates |
+| `BeaconTile` | `BaseEntityTile` | Beacon |
+| `ColoredTile` | `Tile` | Wool, Stained Clay (replaces `ClothTile`) |
+| `ComparatorTile` | `DiodeTile` + `EntityTile` | Redstone Comparator (on/off) |
+| `DaylightDetectorTile` | `BaseEntityTile` | Daylight Sensor |
+| `DropperTile` | *(from DispenserTile)* | Dropper |
+| `HayBlockTile` | `Tile` | Hay Bale |
+| `HopperTile` | `BaseEntityTile` | Hopper |
+| `JukeboxTile` | *(replaces RecordPlayerTile)* | Jukebox |
+| `NetherrackTile` | `Tile` | Netherrack (replaces `HellStoneTile`) |
+| `NetherWartTile` | `Bush` | Nether Wart (replaces `NetherStalkTile`) |
+| `NoteBlockTile` | `BaseEntityTile` | Note Block (replaces `MusicTile`) |
+| `PoweredMetalTile` | `Tile` | Block of Redstone |
+| `PoweredRailTile` | `BaseRailTile` | Powered Rail, Activator Rail |
+| `RepeaterTile` | `DirectionalTile` | Redstone Repeater (renamed from `DiodeTile`) |
+| `RotatedPillarTile` | `Tile` | Abstract base for pillar blocks (logs, hay) |
+| `SoulSandTile` | `Tile` | Soul Sand (replaces `HellSandTile`) |
+| `StoneButtonTile` | `ButtonTile` | Stone Button |
+| `WeightedPressurePlateTile` | `BasePressurePlateTile` | Weighted Pressure Plate (light/heavy) |
+| `WoodButtonTile` | `ButtonTile` | Wooden Button |
+
+**Total in MinecraftConsoles: ~120 Tile classes** (including ~12 abstract base classes)
+
 ## Notes
 
 - `Bush` is declared in `Bush.h` / `Bush.cpp` and is a Tile subclass for plant-type blocks. It doesn't follow the `*Tile.h` naming convention.
@@ -169,5 +235,7 @@ Tile
 - `FallingTile` (in `FallingTile.h`) extends `Entity`, not `Tile`. It's the falling-block entity (sand, gravel in motion), not a block type.
 - The `Tile` base class itself is defined in `Tile.h` / `Tile.cpp` and holds the static tile registry (all block IDs are registered there).
 - Related tile items (like `ClothTileItem`, `StoneSlabTileItem`, `TreeTileItem`) handle aux-data variants and live in separate files.
+- In MinecraftConsoles, `TreeTile` extends `RotatedPillarTile` instead of `Tile` directly, which handles the log rotation based on placement axis.
+- `ComparatorTile` has dual inheritance from both `DiodeTile` and `EntityTile` because it needs repeater-like directional behavior plus a tile entity for storing signal strength.
 
 **Source directory:** `Minecraft.World/`

@@ -213,17 +213,19 @@ Compatibility is checked from the perspective of the enchantment that's already 
 
 ### Where Conflicts Are Enforced
 
-The conflict check happens inside `EnchantmentHelper::selectEnchantment()`. After the first enchantment is selected, the algorithm loops trying to add bonus enchantments. Each round, it removes any candidates that conflict with what's already been picked:
+Conflicts are enforced in two places:
+
+1. **Enchanting table**: `EnchantmentHelper::selectEnchantment()` removes incompatible candidates each round when building multi-enchantment results.
+2. **Anvil**: `RepairMenu::createResult()` checks `isCompatibleWith()` against all existing enchantments on the input item. Incompatible enchantments get skipped (but still charge a cost as an "incompatibility fee").
 
 ```cpp
-// For each candidate enchantment still in the pool
+// From selectEnchantment - enchanting table conflict check:
 for (auto it = availableEnchantments->begin();
      it != availableEnchantments->end();)
 {
     int nextEnchantment = it->first;
     bool valid = true;
 
-    // Check against every enchantment already selected
     for (auto resIt = results->begin();
          resIt != results->end(); ++resIt)
     {
@@ -358,7 +360,7 @@ When you increase the max level, you also need to make sure your `getMinCost()` 
 Here's a practical example. Say you want Sharpness to go up to level 10. The vanilla `DamageEnchantment` cost curve is:
 
 ```cpp
-// Vanilla Sharpness (type ALL): minCost = 1, levelCost = 11
+// Vanilla Sharpness (type ALL): minCost base = 1, levelCost = 11
 int DamageEnchantment::getMinCost(int level)
 {
     return minCost[type] + (level - 1) * levelCost[type];
@@ -449,6 +451,8 @@ int EnchantmentHelper::getEnchantmentLevel(
 }
 ```
 
+There's also an inventory-wide version that checks all items and returns the best (highest) level found.
+
 ### Writing Enchantments to an Item
 
 `EnchantmentHelper::setEnchantments()` takes a map of `{id: level}` and writes them all to the item's tag:
@@ -487,9 +491,12 @@ Enchanted books store their enchantments under the `"StoredEnchantments"` tag in
 When a player clicks a slot on the enchanting table, here's what happens:
 
 1. `EnchantmentMenu::clickMenuButton()` gets called with the slot index (0-2)
-2. It calls `EnchantmentHelper::enchantItem()` with the item and the pre-calculated cost
-3. `enchantItem()` calls `selectEnchantment()` to pick which enchantments and levels to apply
-4. Selected enchantments are applied via `item->enchant()` (or `EnchantedBookItem::addEnchantment()` for books)
+2. It checks `costs[i] > 0`, the item exists, and the player has enough levels (or is in creative)
+3. It calls `EnchantmentHelper::selectEnchantment()` to pick which enchantments and levels to apply
+4. **For books**: only one randomly chosen enchantment from the result is kept (`randomIndex = random.nextInt(size)`)
+5. **For regular items**: all selected enchantments are applied via `item->enchant()`
+6. The player's XP levels are withdrawn
+7. `slotsChanged()` is called to recalculate costs for any remaining operations
 
 ## How Enchantments Affect Gameplay
 
@@ -559,7 +566,6 @@ void ThornsEnchantment::doThornsAfterAttack(
 
     if (shouldHit(level, random))
     {
-        // 15% chance per level to reflect damage
         source->hurt(DamageSource::thorns(target),
             getDamage(level, random));
         source->playSound(eSoundType_DAMAGE_THORNS,
@@ -650,6 +656,75 @@ The `EnchantItemCommand` lets you apply enchantments via command. It calls `item
 ### Game Rules
 
 The `AddEnchantmentRuleDefinition` class lets game rules apply enchantments to items. It reads an `enchantmentId` and `enchantmentLevel` from the rule definition and applies them. It does cap the level at `getMaxLevel()` for the enchantment, so keep that in mind if you're relying on game rules to apply enchantments above the normal max.
+
+## Building Enchantments That Do New Things
+
+The vanilla enchantment system only has two built-in "effect channels": damage bonus (`getDamageBonus()`) and damage protection (`getDamageProtection()`). Everything else is handled by reading the enchantment level directly and hooking into specific game code.
+
+So if you want your enchantment to do something new (not just more damage or more protection), you need to:
+
+1. Create the enchantment class (for registration, costs, and compatibility)
+2. Add a helper method to `EnchantmentHelper` to read the level
+3. Hook into the relevant game code to use that level
+
+### The Pattern
+
+Every non-damage/non-protection enchantment follows this pattern:
+
+**Step 1: Enchantment class** (just for registration and table appearance)
+```cpp
+class MyEnchantment : public Enchantment
+{
+public:
+    MyEnchantment(int id, int frequency)
+        : Enchantment(id, frequency, EnchantmentCategory::weapon)
+    {
+        setDescriptionId(IDS_ENCHANTMENT_MY_ENCH);
+    }
+    int getMinCost(int level) { return 10 + (level - 1) * 15; }
+    int getMaxCost(int level) { return getMinCost(level) + 30; }
+    int getMaxLevel() { return 3; }
+};
+```
+
+**Step 2: Helper method** to read the level from items
+```cpp
+// EnchantmentHelper.h
+static int getMyEnchantmentLevel(shared_ptr<Inventory> inventory);
+
+// EnchantmentHelper.cpp
+int EnchantmentHelper::getMyEnchantmentLevel(
+    shared_ptr<Inventory> inventory)
+{
+    return getEnchantmentLevel(
+        Enchantment::myEnchantment->id,
+        inventory->getSelected());
+}
+```
+
+**Step 3: Hook into gameplay** wherever the effect should happen
+
+This is the creative part. Here are some example hooks:
+
+| What you want | Where to hook |
+|---|---|
+| Heal on hit | `Mob::doHurtTarget()` or the attack code after damage is dealt |
+| Freeze water on walk | `Player` movement tick, after position updates |
+| Double drops | The tile's `spawnResources()` method |
+| Speed boost | `Mob::getWalkingSpeedModifier()` |
+| Extra XP | The XP orb spawning code in `Mob::dropExperience()` |
+| Fire immunity | `Mob::hurt()` damage type check |
+| Teleport on hit | After the attack lands in the combat code |
+| Auto-smelt drops | The tile's `getDrops()` or `spawnResources()` method |
+
+### Where to Check: Held Item vs Armor
+
+Use the right lookup method:
+
+- **Held item**: `getEnchantmentLevel(id, inventory->getSelected())`
+- **Single armor piece**: `getEnchantmentLevel(id, armorItem)`
+- **Best level across all armor**: `getEnchantmentLevel(id, inventory->armor)` (the array version picks the highest)
+- **Any equipment slot**: `getEnchantmentLevel(id, mob->getEquipmentSlots())`
 
 ## Real Examples
 
@@ -786,7 +861,7 @@ Register it at ID 8 (first unused armor slot):
 frostWalker = new FrostWalkerEnchantment(8, FREQ_RARE);
 ```
 
-The actual water-freezing logic would go in the player's movement tick, checking `EnchantmentHelper::getEnchantmentLevel(Enchantment::frostWalker->id, ...)` on the player's boots.
+The actual water-freezing logic would go in the player's movement tick. Check for the enchantment on the boots, then scan nearby water blocks and replace them with ice. The radius could scale with the level (2 + level blocks).
 
 ### Example 3: Making Sharpness Go to Level 10
 
@@ -809,6 +884,52 @@ int DamageEnchantment::getMinCost(int level)
 ```
 
 The damage bonus scales automatically since `getDamageBonus()` uses the level directly in its formula. Sharpness X would give `floor(10 * 2.75) = 27` max bonus damage.
+
+### Example 4: Auto-Smelt Enchantment
+
+A tool enchantment that smelts blocks as you mine them. This one shows the full pattern for a non-combat enchantment:
+
+**Registration:**
+```cpp
+// Enchantment.h
+static Enchantment *autoSmelt;
+
+// Enchantment.cpp
+Enchantment *Enchantment::autoSmelt = NULL;
+
+// In staticCtor():
+autoSmelt = new AutoSmeltEnchantment(36, FREQ_RARE);
+```
+
+**The enchantment class** is minimal (just costs and compatibility):
+```cpp
+class AutoSmeltEnchantment : public Enchantment
+{
+public:
+    AutoSmeltEnchantment(int id, int freq)
+        : Enchantment(id, freq, EnchantmentCategory::digger) {
+        setDescriptionId(IDS_ENCHANTMENT_AUTO_SMELT);
+    }
+    int getMinCost(int level) { return 15; }
+    int getMaxCost(int level) { return 65; }
+    int getMaxLevel() { return 1; }
+    bool isCompatibleWith(Enchantment *other) const {
+        // Incompatible with Silk Touch
+        if (other->id == untouching->id) return false;
+        return Enchantment::isCompatibleWith(other);
+    }
+};
+```
+
+**The helper method:**
+```cpp
+static bool hasAutoSmelt(shared_ptr<Inventory> inventory) {
+    return getEnchantmentLevel(Enchantment::autoSmelt->id,
+        inventory->getSelected()) > 0;
+}
+```
+
+**The gameplay hook** goes in the tile mining code, where you'd check `hasAutoSmelt()` and replace drops with their smelted versions.
 
 ## Related Guides
 

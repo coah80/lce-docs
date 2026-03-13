@@ -7,7 +7,29 @@ LCE generates worlds through a multi-stage pipeline that turns a 64-bit seed int
 
 ## Chunk source hierarchy
 
-All chunk generators implement the `ChunkSource` interface, which defines how chunks get created, populated, and saved. The key methods are `getChunk()`, `postProcess()`, and `lightChunk()`.
+All chunk generators implement the `ChunkSource` interface, which defines how chunks get created, populated, and saved. The key methods are `getChunk()`, `create()`, `postProcess()`, and `lightChunk()`.
+
+```cpp
+class ChunkSource {
+    int m_XZSize;  // world size in chunks
+
+    virtual bool hasChunk(int x, int y) = 0;
+    virtual bool reallyHasChunk(int x, int y);    // 4J added
+    virtual LevelChunk *getChunk(int x, int z) = 0;
+    virtual LevelChunk *create(int x, int z) = 0;
+    virtual void postProcess(ChunkSource *parent, int x, int z) = 0;
+    virtual void lightChunk(LevelChunk *lc);       // 4J added
+    virtual bool saveAllEntities();                 // 4J added
+    virtual bool save(bool force, ProgressListener *progressListener) = 0;
+    virtual bool tick() = 0;
+    virtual bool shouldSave() = 0;
+    virtual LevelChunk **getCache();               // 4J added
+    virtual void dataReceived(int x, int z);       // 4J added
+    virtual wstring gatherStats() = 0;
+    virtual vector<Biome::MobSpawnerData *> *getMobsAt(...) = 0;
+    virtual TilePos *findNearestMapFeature(...) = 0;
+};
+```
 
 | Class | Dimension | Base block | Liquid |
 |---|---|---|---|
@@ -17,7 +39,27 @@ All chunk generators implement the `ChunkSource` interface, which defines how ch
 | `HellRandomLevelSource` | Nether | `Tile::hellRock` | `Tile::calmLava` |
 | `TheEndLevelRandomLevelSource` | The End | `Tile::whiteStone` | None |
 
-`CustomLevelSource` reads heightmap data from binary files (`heightmap.bin` and `waterheight.bin`) and uses those instead of noise-generated terrain. It's used for console-specific pre-authored worlds (content packages). `RandomLevelSource` does the full noise-driven terrain generation described below.
+`CustomLevelSource` reads heightmap data from binary files (`heightmap.bin` and `waterheight.bin`) and uses those instead of noise-generated terrain. It's used for console-specific pre-authored worlds (content packages). When the `_OVERRIDE_HEIGHTMAP` define is set (which it is for non-content-package builds), `CustomLevelSource` also has its own cave/canyon/structure features. `RandomLevelSource` does the full noise-driven terrain generation described below.
+
+### World size constants
+
+World size is defined by constants in `ChunkSource.h`:
+
+| Constant | Value | Description |
+|---|---|---|
+| `LEVEL_MAX_WIDTH` | 320 (large) or 54 (small) | Overworld size in chunks |
+| `LEVEL_MIN_WIDTH` | 54 | Minimum overworld size |
+| `LEVEL_LEGACY_WIDTH` | 54 | Legacy (pre-TU9) overworld size |
+| `HELL_LEVEL_MAX_SCALE` | 8 (large) or 3 (small) | Nether scale factor |
+| `HELL_LEVEL_MIN_SCALE` | 3 | Minimum nether scale |
+| `HELL_LEVEL_LEGACY_SCALE` | 3 | Legacy nether scale |
+| `HELL_LEVEL_MAX_WIDTH` | `LEVEL_MAX_WIDTH / HELL_LEVEL_MAX_SCALE` | Nether width in chunks |
+| `HELL_LEVEL_MIN_WIDTH` | 18 | Minimum nether width |
+| `END_LEVEL_SCALE` | 3 | End scale factor |
+| `END_LEVEL_MAX_WIDTH` | 18 | End width (fixed for all platforms) |
+| `END_LEVEL_MIN_WIDTH` | 18 | End minimum width |
+
+The large world constants use `_LARGE_WORLDS` compile-time define. When large worlds are enabled, `LEVEL_MAX_WIDTH = 5 * 64 = 320` chunks, and the Nether uses the full 1:8 scale from Java. On small worlds, the Nether scale is only 1:3 to keep it playable.
 
 ## Overworld chunk generation pipeline
 
@@ -144,7 +186,7 @@ int caves = random->nextInt(random->nextInt(random->nextInt(40) + 1) + 1);
 if (random->nextInt(15) != 0) caves = 0;
 ```
 
-This triple-nested random produces a heavily skewed distribution. Most chunks have no caves, but some can have many.
+This triple-nested random produces a heavily skewed distribution. Most chunks have no caves, but some can have many. There's a 14/15 chance of getting zero caves entirely.
 
 Each cave system starts at a random position. There's a 1-in-4 chance of creating a **room** (a wide spherical cavity), followed by 1-4 **tunnels** carved outward from that point.
 
@@ -156,24 +198,112 @@ Each cave system starts at a random position. There's a 1-in-4 chance of creatin
 - Steep tunnels decay their vertical angle more slowly (`0.92` vs `0.7`).
 - Blocks below Y=10 are replaced with lava instead of air.
 - Caves won't carve through water. If water is found in the carving region, that step is skipped.
+- Only carves through stone (`Tile::rock`), dirt (`Tile::dirt`), and grass (`Tile::grass`) blocks.
+- Grass blocks below carved space are restored when dirt gets exposed.
+
+The `addRoom` method creates a larger spheroid cavity. It takes a seed, position, and the block array, carving a roughly spherical space before spawning tunnels outward.
 
 ### CaveFeature (small caves)
 
-`CaveFeature` generates smaller ellipsoidal cavities. It picks two endpoints in a 16-block range and carves an ellipsoid along the line between them, with some random fuzziness that makes the edges irregular. It checks for liquid nearby and avoids carving near chunk boundaries.
+`CaveFeature` generates smaller ellipsoidal cavities. It picks two endpoints in a 16-block range and carves an ellipsoid along the line between them, with some random fuzziness that makes the edges irregular. It checks for liquid nearby and avoids carving near chunk boundaries. This is a `Feature` subclass (not a `LargeFeature`), so it operates within a single chunk.
 
 ### CanyonFeature
 
-`CanyonFeature` extends `LargeFeature` and carves narrow, tall ravines using the same tunnel-stepping algorithm but with a different Y-scale parameter to create the typical vertical slot shape.
+`CanyonFeature` extends `LargeFeature` and carves narrow, tall ravines using the same tunnel-stepping algorithm but with a different Y-scale parameter to create the typical vertical slot shape. It uses a pre-allocated `float rs[1024]` array for the ravine shape profile.
+
+### DungeonFeature
+
+`DungeonFeature` extends `LargeFeature` and provides an alternate cave/tunnel generation system. It has `addRoom()` and `addTunnel()` methods similar to `LargeCaveFeature` but with a different approach. Note: this is separate from the monster room spawner dungeons placed during post-processing.
 
 ### LargeHellCaveFeature (Nether)
 
-The Nether uses its own cave feature (`LargeHellCaveFeature`) with the same room-and-tunnel algorithm, adapted for the Nether's hellrock terrain and lava sea.
+The Nether uses its own cave feature (`LargeHellCaveFeature`) with the same room-and-tunnel algorithm, adapted for the Nether's hellrock terrain and lava sea. It extends `LargeFeature` directly (not `LargeCaveFeature`) and has its own `addRoom()` and `addTunnel()` methods.
 
 ## Feature placement
 
+### Feature base class
+
+All decorative world generation elements extend `Feature`:
+
+```cpp
+class Feature {
+    bool doUpdate;  // Whether to notify neighbors on block placement
+
+    virtual bool place(Level *level, Random *random, int x, int y, int z) = 0;
+    virtual bool placeWithIndex(Level *level, Random *random, int x, int y, int z,
+                                 int iIndex, int iRadius);  // For indexed placement (spikes)
+    virtual void init(double V1, double V2, double V3);      // Init with parameters
+
+protected:
+    virtual void placeBlock(Level *level, int x, int y, int z, int tile);
+    virtual void placeBlock(Level *level, int x, int y, int z, int tile, int data);
+};
+```
+
+The `doUpdate` flag controls whether `placeBlock()` sends neighbor update notifications. During bulk generation, this is usually `false` for performance.
+
+### Complete Feature class list
+
+| Feature class | File | What it generates |
+|---|---|---|
+| `OreFeature` | `OreFeature.h` | Ore veins (ellipsoidal clusters) |
+| `TreeFeature` | `TreeFeature.h` | Oak trees (configurable trunk/leaf, optional jungle vines) |
+| `BasicTree` | `BasicTree.h` | Fancy large oak trees (complex branching algorithm) |
+| `BirchFeature` | `BirchFeature.h` | Birch trees |
+| `PineFeature` | `PineFeature.h` | Pine trees (taiga) |
+| `SpruceFeature` | `SpruceFeature.h` | Spruce trees (taiga) |
+| `SwampTreeFeature` | `SwampTreeFeature.h` | Swamp trees with vines |
+| `MegaTreeFeature` | `MegaTreeFeature.h` | Large 2x2 trees (jungle) |
+| `GroundBushFeature` | `GroundBushFeature.h` | Small jungle bushes (1-block trunk, leaf dome) |
+| `HugeMushroomFeature` | `HugeMushroomFeature.h` | Giant mushrooms (brown=flat top, red=dome top) |
+| `FlowerFeature` | `FlowerFeature.h` | Flowers (any single-block plant) |
+| `TallGrassFeature` | `TallGrassFeature.h` | Tall grass patches |
+| `CactusFeature` | `CactusFeature.h` | Cactus columns |
+| `ReedsFeature` | `ReedsFeature.h` | Sugar cane |
+| `VinesFeature` | `VinesFeature.h` | Hanging vines on blocks |
+| `ClayFeature` | `ClayFeature.h` | Clay patches |
+| `SandFeature` | `SandFeature.h` | Sand/gravel patches |
+| `LakeFeature` | `LakeFeature.h` | Surface/underground lakes |
+| `SpringFeature` | `SpringFeature.h` | Water/lava springs |
+| `HellSpringFeature` | `HellSpringFeature.h` | Nether lava springs |
+| `HellFireFeature` | `HellFireFeature.h` | Nether random fire patches |
+| `LightGemFeature` | `LightGemFeature.h` | Glowstone clusters |
+| `HellPortalFeature` | `HellPortalFeature.h` | Nether portal placement |
+| `DungeonFeature` | `DungeonFeature.h` | Monster spawner rooms |
+| `DesertWellFeature` | `DesertWellFeature.h` | Desert wells |
+| `BonusChestFeature` | `BonusChestFeature.h` | Starting bonus chest |
+| `SpikeFeature` | `SpikeFeature.h` | End obsidian pillars |
+| `EndPodiumFeature` | `EndPodiumFeature.h` | End exit podium |
+
+### Tree feature details
+
+Each tree feature has different characteristics:
+
+| Feature | Constructor | Generates |
+|---|---|---|
+| `TreeFeature(doUpdate)` | Basic | Standard oak tree, 4+ blocks tall |
+| `TreeFeature(doUpdate, baseHeight, trunkType, leafType, addJungleFeatures)` | Configurable | Custom tree with specific blocks and optional vines |
+| `BasicTree(doUpdate)` | Complex | Fancy large oak with branches. Uses `init(height, width, foliageDensity)` |
+| `BirchFeature(doUpdate)` | Simple | Birch tree |
+| `PineFeature` | Simple | Pine tree (layered cone shape) |
+| `SpruceFeature(doUpdate)` | Simple | Spruce tree (taiga) |
+| `SwampTreeFeature` | Simple | Swamp oak with vines draped on leaves |
+| `MegaTreeFeature(doUpdate, baseHeight, trunkType, leafType)` | 2x2 trunk | Large jungle trees |
+| `GroundBushFeature(trunkType, leafType)` | Simple | Small 1-block jungle bushes |
+
+`BasicTree` is the most complex tree generator. It uses:
+- An `axisConversionArray` for 3D coordinate transforms
+- `foliageCoords` for cluster positions
+- `crossection()` for circular leaf layers
+- `limb()` and `taperedLimb()` for branch geometry
+- `treeShape()` and `foliageShape()` for overall proportions
+- `checkLine()` and `checkLocation()` for collision testing
+
+### BiomeDecorator `decorate()`
+
 `BiomeDecorator::decorate()` is called during post-processing and places features in this order:
 
-### Ore generation
+#### Ore generation
 
 `decorateOres()` places ore veins using `OreFeature`. Each vein picks two endpoints and carves an ellipsoidal shape between them, replacing the target block (default: stone) with the ore type.
 
@@ -190,7 +320,7 @@ The Nether uses its own cave feature (`LargeHellCaveFeature`) with the same room
 
 Lapis uses `decorateDepthAverage()` which samples `random->nextInt(span) + random->nextInt(span) + (mid - span)`, producing a triangular distribution centered on `genDepth/8`.
 
-### Surface features
+#### Surface features
 
 After ores, features are placed in order:
 
@@ -209,6 +339,14 @@ After ores, features are placed in order:
 13. **Water springs**: 50 attempts at random heights.
 14. **Lava springs**: 20 attempts biased toward lower Y.
 
+### Decoration helper methods
+
+| Method | Parameters | Behavior |
+|---|---|---|
+| `decorateDepthSpan(count, feature, y0, y1)` | count, feature, min Y, max Y | Places `count` times at random Y between y0 and y1 |
+| `decorateDepthAverage(count, feature, yMid, ySpan)` | count, feature, center Y, spread | Places near a center height (triangular distribution) |
+| `decorate(count, feature)` | count, feature | Places at surface height |
+
 ### Biome-specific overrides
 
 Several biomes change decorator counts by declaring their decorator class as a friend and tweaking the fields:
@@ -223,6 +361,14 @@ Several biomes change decorator counts by declaring their decorator class as a f
 | `JungleBiome` | `treeCount = 50`, `grassCount = 25`, `flowerCount = 4` |
 | `MushroomIslandBiome` | `hugeMushrooms = 1`, `mushroomCount = 1`, trees/flowers/grass all set to `-100` |
 | `BeachBiome` | `treeCount = -999`, `deadBushCount = 0`, `reedsCount = 0`, `cactusCount = 0`, sand/sand surface |
+
+### Special biome decorations
+
+Some biomes override `Biome::decorate()` to add features beyond what `BiomeDecorator` handles:
+
+- **DesertBiome**: 1/1000 chance per chunk to place a `DesertWellFeature`
+- **ExtremeHillsBiome**: Places emerald ore veins (3-8 per chunk at Y 4 to `genDepth/4`) when `GENERATE_EMERALD_ORE` is true
+- **JungleBiome**: Places 50 `VinesFeature` instances per chunk after base decoration
 
 ## Biome layer system
 
@@ -290,6 +436,8 @@ The `zoomLevel` is 4 for normal worlds and 6 for large biome worlds. Each zoom d
 
 Each layer uses a deterministic PRNG seeded from the world seed, the layer's `seedMixup` constant, and the (x, z) coordinates. The mixing function uses the LCG constant `6364136223846793005` with increment `1442695040888963407`. The `nextRandom(max)` method extracts bits via `(rval >> 24) % max`.
 
+The PS Vita build includes a special fast-divide optimization (`libdivide`) for the modulo operation in `nextRandom()`.
+
 ### Biome registry
 
 `Biome::biomes[256]` holds all 23 registered biomes (`BIOME_COUNT = 23`):
@@ -314,22 +462,38 @@ Structures extend `StructureFeature`, which extends `LargeFeature`. The system w
 | Village | `VillageFeature` | Needs `allowedBiomes` validation via `BiomeSource::containsOnly()`, accepts a `villageSizeModifier` |
 | Mine shaft | `MineShaftFeature` | Standard generation |
 | Nether fortress | `NetherBridgeFeature` | Nether-only, provides special mob spawning list (`bridgeEnemies`) |
-| Scattered features | `RandomScatteredLargeFeature` | Desert temples, jungle temples, witch huts |
+| Scattered features | `RandomScatteredLargeFeature` | Desert temples, jungle temples |
 
-`StructureFeature` keeps a `cachedStructures` map keyed by a 64-bit hash of chunk coordinates to prevent duplicate generation.
+`StructureFeature` keeps a `cachedStructures` map (unordered_map keyed by a 64-bit hash of chunk coordinates) to prevent duplicate generation.
+
+### Feature type enum
+
+```cpp
+enum EFeatureTypes {
+    eFeature_Mineshaft,
+    eFeature_NetherBridge,
+    eFeature_Temples,
+    eFeature_Stronghold,
+    eFeature_Village,
+};
+```
+
+This enum maps to values in the game rules XML and is used by `LevelGenerationOptions::isFeatureChunk()` to force structure placement at specific coordinates.
 
 ## Nether generation
 
 `HellRandomLevelSource` generates the Nether with these differences from the Overworld:
 
 - **Terrain shape:** Uses a cosine-based Y-offset array that creates the signature ceiling-and-floor shape. The `hs` (height scale) is `684.412 * 3`, making the vertical noise much more compressed.
+- **Five noise generators**: `lperlinNoise1` (16 octaves), `lperlinNoise2` (16), `perlinNoise1` (8), plus two extra: `perlinNoise2` (4) and `perlinNoise3` (4) for surface material placement.
 - **Lava sea** at Y=32 (instead of water at sea level).
-- **Surface materials:** Netherrack, soul sand, and gravel are placed using two additional 4-octave noise generators (`perlinNoise2`, `perlinNoise3`) that pick sand and gravel regions.
+- **Surface materials:** Netherrack, soul sand, and gravel are placed using the two additional 4-octave noise generators that pick sand and gravel regions.
 - **Nether wart:** 4J added a 1-in-16 chance of placing nether wart on soul sand surfaces outside of fortresses.
 - **Bedrock** on both floor (Y=0-4) and ceiling (Y=123-127).
 - **Boundary walls:** 4J builds bedrock walls around the Nether perimeter, with a randomized jagged edge.
 - **Cave carver:** `LargeHellCaveFeature` instead of `LargeCaveFeature`.
 - **World scale:** The Nether is 1/3 to 1/8 the Overworld size (`HELL_LEVEL_MAX_SCALE` is 3 on legacy, 8 on large worlds).
+- **Fortress**: `NetherBridgeFeature` is a member of `HellRandomLevelSource` and handles fortress placement.
 
 Post-processing places:
 - 8 lava spring attempts (`HellSpringFeature`)
@@ -343,21 +507,27 @@ Post-processing places:
 
 `TheEndLevelRandomLevelSource` generates The End dimension:
 
-- **Fixed size:** 18x18 chunks (`END_LEVEL_MIN_WIDTH`), regardless of world size.
+- **Fixed size:** 18x18 chunks (`END_LEVEL_MAX_WIDTH`), regardless of world size.
+- **Chunk parameters:** `CHUNK_HEIGHT = 4`, `CHUNK_WIDTH = 8` (reversed from the Overworld's 8 and 4).
 - **Island shape:** Uses a distance-based offset (`100 - sqrt(xd^2 + zd^2) * 8`) that creates a floating island tapering off with distance from the origin. This is clamped between -100 and 80.
 - **No sea level**: blocks below the island are just void (air).
 - **End stone** (`Tile::whiteStone`) is the only terrain block.
 - **Noise scale** is doubled (`s *= 2`) compared to the Overworld, giving rougher terrain.
+- **Three noise generators**: `lperlinNoise1`, `lperlinNoise2`, `perlinNoise1`, plus `scaleNoise`, `depthNoise`, and `forestNoise`.
 - **No caves or structures** are carved.
 
 The End's biome decorator (`TheEndBiomeDecorator`) places:
-- **8 obsidian spikes** in a circle of radius 40 around the origin, with increasing radii (2-4 blocks).
+- **8 obsidian spikes** in a circle of radius 40 around the origin, with increasing radii (2-4 blocks). Spike data is stored in a static `SpikeValA[8]` array with chunk coordinates, position, and radius.
 - **The Ender Dragon** at position (0, 128, 0) when chunk (0, 0) is processed.
 - **The exit podium** (`EndPodiumFeature`) at the origin, placed when chunk (-16, -16) is processed.
 
+The `SpikeFeature` supports both regular `place()` and `placeWithIndex()` for placing a specific spike with a given index and radius.
+
 ## Flat world generation
 
-`FlatLevelSource` generates superflat worlds using a `FlatLayer` configuration. The terrain is just a simple stack of configured block layers with no noise, caves, or terrain variation. Only village structures are generated if `generateStructures` is enabled.
+`FlatLevelSource` generates superflat worlds using a `FlatLayer` configuration. The terrain is just a simple stack of configured block layers with no noise, caves, or terrain variation. Only village structures are generated if `generateStructures` is enabled. It has a `VillageFeature` member but no other structure features.
+
+Like the other chunk sources, `FlatLevelSource` uses separate `random` and `pprandom` RNGs for thread-safe generation.
 
 ## Key source files
 
@@ -380,10 +550,31 @@ The End's biome decorator (`TheEndBiomeDecorator`) places:
 | `LargeHellCaveFeature.h` | Nether cave carver |
 | `CaveFeature.cpp/.h` | Small ellipsoidal cave feature |
 | `CanyonFeature.cpp/.h` | Ravine/canyon carver |
+| `DungeonFeature.cpp/.h` | Alternate cave/tunnel carver |
 | `Feature.cpp/.h` | Base class for all placed features |
 | `BiomeDecorator.cpp/.h` | Feature placement orchestrator |
 | `TheEndBiomeDecorator.cpp/.h` | End-specific decoration (spikes, dragon, podium) |
 | `OreFeature.cpp/.h` | Ore vein placement |
+| `TreeFeature.h` | Oak trees |
+| `BasicTree.h` | Fancy oak trees |
+| `BirchFeature.h` | Birch trees |
+| `PineFeature.h` | Pine trees |
+| `SpruceFeature.h` | Spruce trees |
+| `SwampTreeFeature.h` | Swamp trees |
+| `MegaTreeFeature.h` | Large jungle trees |
+| `GroundBushFeature.h` | Jungle bushes |
+| `HugeMushroomFeature.h` | Giant mushrooms |
+| `VinesFeature.h` | Vine placement |
+| `SpikeFeature.h` | End obsidian pillars |
+| `EndPodiumFeature.h` | End exit podium |
+| `LakeFeature.h` | Surface/underground lakes |
+| `SpringFeature.h` | Water/lava springs |
+| `HellSpringFeature.h` | Nether lava springs |
+| `HellFireFeature.h` | Nether fire patches |
+| `LightGemFeature.h` | Glowstone clusters |
+| `HellPortalFeature.h` | Nether portal placement |
+| `DesertWellFeature.h` | Desert wells |
+| `BonusChestFeature.h` | Starting bonus chest |
 | `Layer.cpp/.h` | Base biome layer + `getDefaultLayers()` pipeline |
 | `BiomeSource.cpp/.h` | Biome lookup with caching |
 | `Biome.h` | Biome registry and properties |
@@ -392,7 +583,7 @@ The End's biome decorator (`TheEndBiomeDecorator`) places:
 | `VillageFeature.h` | Village placement |
 | `MineShaftFeature.h` | Mine shaft placement |
 | `NetherBridgeFeature.h` | Nether fortress placement |
-| `RandomScatteredLargeFeature.h` | Desert/jungle temples and witch huts |
+| `RandomScatteredLargeFeature.h` | Desert/jungle temples |
 
 ## MinecraftConsoles Differences
 

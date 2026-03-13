@@ -3,7 +3,7 @@ title: Custom Trades
 description: How the villager trading system works in LCE and how to add custom trades.
 ---
 
-This guide covers the villager trading system in LCE. We'll look at how trade offers are built, how the `Merchant` interface works, and how you can add your own trades or even create custom merchant entities.
+This guide covers the villager trading system in LCE. We will look at how trade offers are built, how the `Merchant` interface works, every profession's trade pool in detail, and how you can add your own trades or even create custom merchant entities.
 
 ## Trading System Overview
 
@@ -106,13 +106,13 @@ This adds 2-12 extra uses to each locked trade.
 
 Villagers have 5 professions, each with different trade pools:
 
-| Constant | Value | Trades |
-|----------|-------|--------|
-| `PROFESSION_FARMER` | 0 | Wheat, wool, chicken, bread, melon, apple, arrows |
-| `PROFESSION_LIBRARIAN` | 1 | Paper, books, bookshelves, glass, compass, enchanted books |
-| `PROFESSION_PRIEST` | 2 | Eyes of ender, XP bottles, redstone, enchanted gear |
-| `PROFESSION_SMITH` | 3 | Coal, iron, gold, diamond, tools, armor |
-| `PROFESSION_BUTCHER` | 4 | Coal, pork, beef, saddles, leather armor, cooked meat |
+| Constant | Value | Skin |
+|----------|-------|------|
+| `PROFESSION_FARMER` | 0 | Brown robe |
+| `PROFESSION_LIBRARIAN` | 1 | White robe |
+| `PROFESSION_PRIEST` | 2 | Purple robe |
+| `PROFESSION_SMITH` | 3 | Black apron |
+| `PROFESSION_BUTCHER` | 4 | White apron |
 
 ## How Villager Trades Are Generated
 
@@ -129,22 +129,19 @@ MerchantRecipeList *Villager::getOffers(shared_ptr<Player> forPlayer)
 }
 ```
 
-The `addOffers()` method builds a pool of possible trades based on profession, then picks from them randomly. Here's the farmer's trade pool as an example:
+The `addOffers()` method builds a full pool of possible trades based on profession, then picks from them. Here is how it works:
 
-```cpp
-case PROFESSION_FARMER:
-    addItemForTradeIn(newOffers, Item::wheat_Id, random, getRecipeChance(.9f));
-    addItemForTradeIn(newOffers, Tile::cloth_Id, random, getRecipeChance(.5f));
-    addItemForTradeIn(newOffers, Item::chicken_raw_Id, random, getRecipeChance(.5f));
-    addItemForTradeIn(newOffers, Item::fish_cooked_Id, random, getRecipeChance(.4f));
-    addItemForPurchase(newOffers, Item::bread_Id, random, getRecipeChance(.9f));
-    addItemForPurchase(newOffers, Item::melon_Id, random, getRecipeChance(.3f));
-    addItemForPurchase(newOffers, Item::apple_Id, random, getRecipeChance(.3f));
-    // ...
-    break;
-```
+1. Create a temporary `newOffers` list
+2. Add all possible trades for this profession (each with a random chance of appearing)
+3. Shuffle the list randomly
+4. Add `addCount` trades from the shuffled list to the villager's permanent offers (only if they are new or better)
+5. If nothing was generated, fall back to a gold ingot trade-in
 
-Each trade has a chance of appearing (the float parameter). The `getRecipeChance()` method caps the chance at 0.9:
+The `addCount` parameter is 1, meaning each call adds at most 1 new trade. The first time generates the full pool and picks 1. After that, each trade refresh adds 1 more.
+
+### The Recipe Chance System
+
+Each trade in the pool has a base chance of appearing. The `getRecipeChance()` method applies a modifier and caps at 0.9:
 
 ```cpp
 float Villager::getRecipeChance(float baseChance)
@@ -158,25 +155,15 @@ float Villager::getRecipeChance(float baseChance)
 }
 ```
 
+The `baseRecipeChanceMod` starts at 0 and can shift over time. If the modified chance would exceed 0.9, it wraps back down.
+
 ### Trade-In vs Purchase
 
 There are two types of trades:
 
-**Trade-In** (`addItemForTradeIn`): Player gives items, gets 1 emerald. The quantity required comes from `MIN_MAX_VALUES`:
+**Trade-In** (`addItemForTradeIn`): Player gives items, gets 1 emerald. The quantity required comes from the `MIN_MAX_VALUES` table.
 
-```cpp
-void Villager::addItemForTradeIn(MerchantRecipeList *list, int itemId,
-                                  Random *random, float likelyHood)
-{
-    if (random->nextFloat() < likelyHood)
-    {
-        list->push_back(new MerchantRecipe(
-            getItemTradeInValue(itemId, random), Item::emerald));
-    }
-}
-```
-
-**Purchase** (`addItemForPurchase`): Player pays emeralds, gets an item. The cost comes from `MIN_MAX_PRICES`. Negative prices mean 1 emerald buys multiple items:
+**Purchase** (`addItemForPurchase`): Player pays emeralds, gets an item. The cost comes from the `MIN_MAX_PRICES` table. Negative prices mean 1 emerald buys multiple items.
 
 ```cpp
 void Villager::addItemForPurchase(MerchantRecipeList *list, int itemId,
@@ -189,6 +176,7 @@ void Villager::addItemForPurchase(MerchantRecipeList *list, int itemId,
         shared_ptr<ItemInstance> resultItem;
         if (purchaseCost < 0)
         {
+            // Negative: 1 emerald buys multiple items
             rubyItem = shared_ptr<ItemInstance>(
                 new ItemInstance(Item::emerald_Id, 1, 0));
             resultItem = shared_ptr<ItemInstance>(
@@ -196,6 +184,7 @@ void Villager::addItemForPurchase(MerchantRecipeList *list, int itemId,
         }
         else
         {
+            // Positive: multiple emeralds buy 1 item
             rubyItem = shared_ptr<ItemInstance>(
                 new ItemInstance(Item::emerald_Id, purchaseCost, 0));
             resultItem = shared_ptr<ItemInstance>(
@@ -206,45 +195,65 @@ void Villager::addItemForPurchase(MerchantRecipeList *list, int itemId,
 }
 ```
 
-### Price Tables
+## Every Profession's Trade Pool
 
-The `MIN_MAX_VALUES` table defines how many items a villager wants per emerald:
+Here is every trade for every profession, pulled directly from `Villager::addOffers()` in `Villager.cpp`.
 
-```cpp
-// In Villager::staticCtor()
-MIN_MAX_VALUES[Item::wheat_Id] = pair<int,int>(18, 22);
-MIN_MAX_VALUES[Item::coal_Id] = pair<int,int>(16, 24);
-MIN_MAX_VALUES[Item::ironIngot_Id] = pair<int,int>(8, 10);
-MIN_MAX_VALUES[Item::diamond_Id] = pair<int,int>(4, 6);
-MIN_MAX_VALUES[Item::paper_Id] = pair<int,int>(24, 36);
-// ...
-```
+### Farmer (Profession 0)
 
-The `MIN_MAX_PRICES` table defines emerald costs for purchases. Negative means the player gets multiple items per emerald:
+**Trade-Ins** (player gives items, gets 1 emerald):
 
-```cpp
-MIN_MAX_PRICES[Item::bread_Id] = pair<int,int>(-4, -2);      // 2-4 bread per emerald
-MIN_MAX_PRICES[Item::sword_iron_Id] = pair<int,int>(7, 11);  // 7-11 emeralds per sword
-MIN_MAX_PRICES[Item::saddle_Id] = pair<int,int>(6, 8);       // 6-8 emeralds per saddle
-// ...
-```
+| Item | Quantity per Emerald | Base Chance |
+|------|---------------------|-------------|
+| Wheat | 18-22 | 90% |
+| Wool (any color) | 14-22 | 50% |
+| Raw Chicken | 14-18 | 50% |
+| Cooked Fish | 9-13 | 40% |
 
-### Special Trades
+**Purchases** (player pays emeralds, gets items):
 
-Some trades are hardcoded outside the normal system. The farmer can trade gravel + emerald for flint:
+| Item | Price | Base Chance |
+|------|-------|-------------|
+| Bread | 1 emerald for 2-4 | 90% |
+| Melon | 1 emerald for 4-8 | 30% |
+| Apple | 1 emerald for 4-8 | 30% |
+| Cookie | 1 emerald for 7-10 | 30% |
+| Shears | 3-4 emeralds | 30% |
+| Flint & Steel | 3-4 emeralds | 30% |
+| Cooked Chicken | 1 emerald for 6-8 | 30% |
+| Arrow | 1 emerald for 8-12 | 50% |
 
-```cpp
-if (random->nextFloat() < .5f)
-{
-    newOffers->push_back(new MerchantRecipe(
-        shared_ptr<ItemInstance>(new ItemInstance(Tile::gravel, 10)),
-        shared_ptr<ItemInstance>(new ItemInstance(Item::emerald)),
-        shared_ptr<ItemInstance>(new ItemInstance(Item::flint_Id,
-            2 + random->nextInt(2), 0))));
-}
-```
+**Special Trade:**
 
-The librarian can offer enchanted books with randomized enchantments:
+| Input 1 | Input 2 | Output | Chance |
+|---------|---------|--------|--------|
+| 10 Gravel | 1 Emerald | 2-3 Flint | 50% |
+
+### Librarian (Profession 1)
+
+**Trade-Ins:**
+
+| Item | Quantity per Emerald | Base Chance |
+|------|---------------------|-------------|
+| Paper | 24-36 | 80% |
+| Book | 11-13 | 80% |
+
+**Purchases:**
+
+| Item | Price | Base Chance |
+|------|-------|-------------|
+| Bookshelf | 3-4 emeralds | 80% |
+| Glass | 1 emerald for 3-5 | 20% |
+| Compass | 10-12 emeralds | 20% |
+| Clock | 10-12 emeralds | 20% |
+
+**Special Trade:**
+
+| Input 1 | Input 2 | Output | Chance |
+|---------|---------|--------|--------|
+| 1 Book | Variable emeralds | Enchanted Book | 7% |
+
+The enchanted book trade picks a random enchantment from `Enchantment::validEnchantments` at a random level between its min and max. The emerald cost is `2 + random(5 + level*10) + 3*level`. So a level 1 enchantment costs 5-16 emeralds and a level 5 enchantment costs 17-67 emeralds.
 
 ```cpp
 if (random->nextFloat() < getRecipeChance(0.07f))
@@ -265,9 +274,225 @@ if (random->nextFloat() < getRecipeChance(0.07f))
 }
 ```
 
+### Priest (Profession 2)
+
+The priest has no trade-ins. All trades are purchases.
+
+**Purchases:**
+
+| Item | Price | Base Chance |
+|------|-------|-------------|
+| Eye of Ender | 7-11 emeralds | 30% |
+| XP Bottle | 1 emerald for 1-4 | 20% |
+| Redstone | 1 emerald for 1-4 | 40% |
+| Glowstone | 1 emerald for 1-3 | 30% |
+
+**Special Trades (Enchanted Gear):**
+
+The priest can offer enchanted iron and diamond gear. There are 8 possible items:
+
+| Item | Chance (each) |
+|------|--------------|
+| Iron Sword | 5% |
+| Diamond Sword | 5% |
+| Iron Chestplate | 5% |
+| Diamond Chestplate | 5% |
+| Iron Axe | 5% |
+| Diamond Axe | 5% |
+| Iron Pickaxe | 5% |
+| Diamond Pickaxe | 5% |
+
+Each one that appears costs 2-4 emeralds and the item is enchanted at level 5-19 (`5 + random(15)`):
+
+```cpp
+int enchantItems[] = {
+    Item::sword_iron_Id, Item::sword_diamond_Id,
+    Item::chestplate_iron_Id, Item::chestplate_diamond_Id,
+    Item::hatchet_iron_Id, Item::hatchet_diamond_Id,
+    Item::pickAxe_iron_Id, Item::pickAxe_diamond_Id
+};
+for (unsigned int i = 0; i < 8; ++i)
+{
+    int id = enchantItems[i];
+    if (random->nextFloat() < getRecipeChance(.05f))
+    {
+        newOffers->push_back(new MerchantRecipe(
+            shared_ptr<ItemInstance>(new ItemInstance(id, 1, 0)),
+            shared_ptr<ItemInstance>(
+                new ItemInstance(Item::emerald, 2 + random->nextInt(3), 0)),
+            EnchantmentHelper::enchantItem(random,
+                shared_ptr<ItemInstance>(new ItemInstance(id, 1, 0)),
+                5 + random->nextInt(15))));
+    }
+}
+```
+
+### Smith (Profession 3)
+
+**Trade-Ins:**
+
+| Item | Quantity per Emerald | Base Chance |
+|------|---------------------|-------------|
+| Coal | 16-24 | 70% |
+| Iron Ingot | 8-10 | 50% |
+| Gold Ingot | 8-10 | 50% |
+| Diamond | 4-6 | 50% |
+
+**Purchases (Tools):**
+
+| Item | Price (emeralds) | Base Chance |
+|------|-----------------|-------------|
+| Iron Sword | 7-11 | 50% |
+| Diamond Sword | 12-14 | 50% |
+| Iron Axe | 6-8 | 30% |
+| Diamond Axe | 9-12 | 30% |
+| Iron Pickaxe | 7-9 | 50% |
+| Diamond Pickaxe | 10-12 | 50% |
+| Iron Shovel | 4-6 | 20% |
+| Diamond Shovel | 7-8 | 20% |
+| Iron Hoe | 4-6 | 20% |
+| Diamond Hoe | 7-8 | 20% |
+
+**Purchases (Armor):**
+
+| Item | Price (emeralds) | Base Chance |
+|------|-----------------|-------------|
+| Iron Boots | 4-6 | 20% |
+| Diamond Boots | 7-8 | 20% |
+| Iron Helmet | 4-6 | 20% |
+| Diamond Helmet | 7-8 | 20% |
+| Iron Chestplate | 10-14 | 20% |
+| Diamond Chestplate | 16-19 | 20% |
+| Iron Leggings | 8-10 | 20% |
+| Diamond Leggings | 11-14 | 20% |
+| Chain Boots | 5-7 | 10% |
+| Chain Helmet | 5-7 | 10% |
+| Chain Chestplate | 11-15 | 10% |
+| Chain Leggings | 9-11 | 10% |
+
+The smith has the biggest trade pool. With 4 trade-ins and 22 purchases, there are 26 possible trades.
+
+### Butcher (Profession 4)
+
+**Trade-Ins:**
+
+| Item | Quantity per Emerald | Base Chance |
+|------|---------------------|-------------|
+| Coal | 16-24 | 70% |
+| Raw Porkchop | 14-18 | 50% |
+| Raw Beef | 14-18 | 50% |
+
+**Purchases:**
+
+| Item | Price | Base Chance |
+|------|-------|-------------|
+| Saddle | 6-8 emeralds | 10% |
+| Leather Chestplate | 4-5 emeralds | 30% |
+| Leather Boots | 2-4 emeralds | 30% |
+| Leather Helmet | 2-4 emeralds | 30% |
+| Leather Leggings | 2-4 emeralds | 30% |
+| Cooked Porkchop | 1 emerald for 5-7 | 30% |
+| Cooked Beef | 1 emerald for 5-7 | 30% |
+
+### Fallback Trade
+
+If the profession's trade pool generates zero trades (all random chances failed), the code falls back to a guaranteed gold ingot trade-in:
+
+```cpp
+if (newOffers->empty())
+{
+    addItemForTradeIn(newOffers, Item::goldIngot_Id, random, 1.0f);
+}
+```
+
+This uses 8-10 gold ingots per emerald and has a 100% chance of appearing.
+
+## Complete Price Tables
+
+### MIN_MAX_VALUES (Trade-In Quantities)
+
+How many items the villager wants per emerald:
+
+| Item | Min | Max |
+|------|-----|-----|
+| Wheat | 18 | 22 |
+| Wool | 14 | 22 |
+| Raw Chicken | 14 | 18 |
+| Cooked Fish | 9 | 13 |
+| Coal | 16 | 24 |
+| Iron Ingot | 8 | 10 |
+| Gold Ingot | 8 | 10 |
+| Diamond | 4 | 6 |
+| Paper | 24 | 36 |
+| Book | 11 | 13 |
+| Ender Pearl | 3 | 4 |
+| Eye of Ender | 2 | 3 |
+| Raw Porkchop | 14 | 18 |
+| Raw Beef | 14 | 18 |
+| Wheat Seeds | 34 | 48 |
+| Melon Seeds | 30 | 38 |
+| Pumpkin Seeds | 30 | 38 |
+| Rotten Flesh | 36 | 64 |
+
+:::note
+Wheat Seeds, Melon Seeds, Pumpkin Seeds, and Rotten Flesh are in the `MIN_MAX_VALUES` table but are not used by any profession's `addOffers()` code. They are leftover from Java Edition's more complex trading system.
+:::
+
+### MIN_MAX_PRICES (Purchase Costs)
+
+Positive values are emeralds per item. Negative values mean 1 emerald buys that many items.
+
+| Item | Min | Max | Meaning |
+|------|-----|-----|---------|
+| Bread | -4 | -2 | 2-4 bread per emerald |
+| Melon | -8 | -4 | 4-8 melon per emerald |
+| Apple | -8 | -4 | 4-8 apple per emerald |
+| Cookie | -10 | -7 | 7-10 cookies per emerald |
+| Cooked Chicken | -8 | -6 | 6-8 per emerald |
+| Arrow | -12 | -8 | 8-12 arrows per emerald |
+| Cooked Porkchop | -7 | -5 | 5-7 per emerald |
+| Cooked Beef | -7 | -5 | 5-7 per emerald |
+| XP Bottle | -4 | -1 | 1-4 per emerald |
+| Redstone | -4 | -1 | 1-4 per emerald |
+| Glowstone | -3 | -1 | 1-3 per emerald |
+| Glass | -5 | -3 | 3-5 per emerald |
+| Shears | 3 | 4 | 3-4 emeralds each |
+| Flint & Steel | 3 | 4 | 3-4 emeralds each |
+| Iron Sword | 7 | 11 | 7-11 emeralds |
+| Diamond Sword | 12 | 14 | 12-14 emeralds |
+| Iron Axe | 6 | 8 | 6-8 emeralds |
+| Diamond Axe | 9 | 12 | 9-12 emeralds |
+| Iron Pickaxe | 7 | 9 | 7-9 emeralds |
+| Diamond Pickaxe | 10 | 12 | 10-12 emeralds |
+| Iron Shovel | 4 | 6 | 4-6 emeralds |
+| Diamond Shovel | 7 | 8 | 7-8 emeralds |
+| Iron Hoe | 4 | 6 | 4-6 emeralds |
+| Diamond Hoe | 7 | 8 | 7-8 emeralds |
+| Iron Boots | 4 | 6 | 4-6 emeralds |
+| Diamond Boots | 7 | 8 | 7-8 emeralds |
+| Iron Helmet | 4 | 6 | 4-6 emeralds |
+| Diamond Helmet | 7 | 8 | 7-8 emeralds |
+| Iron Chestplate | 10 | 14 | 10-14 emeralds |
+| Diamond Chestplate | 16 | 19 | 16-19 emeralds |
+| Iron Leggings | 8 | 10 | 8-10 emeralds |
+| Diamond Leggings | 11 | 14 | 11-14 emeralds |
+| Chain Boots | 5 | 7 | 5-7 emeralds |
+| Chain Helmet | 5 | 7 | 5-7 emeralds |
+| Chain Chestplate | 11 | 15 | 11-15 emeralds |
+| Chain Leggings | 9 | 11 | 9-11 emeralds |
+| Leather Chestplate | 4 | 5 | 4-5 emeralds |
+| Leather Boots | 2 | 4 | 2-4 emeralds |
+| Leather Helmet | 2 | 4 | 2-4 emeralds |
+| Leather Leggings | 2 | 4 | 2-4 emeralds |
+| Bookshelf | 3 | 4 | 3-4 emeralds |
+| Saddle | 6 | 8 | 6-8 emeralds |
+| Compass | 10 | 12 | 10-12 emeralds |
+| Clock | 10 | 12 | 10-12 emeralds |
+| Eye of Ender | 7 | 11 | 7-11 emeralds |
+
 ## The Trading UI Flow
 
-When a player right-clicks a villager, here's what happens:
+When a player right-clicks a villager, here is what happens:
 
 1. `Villager::interact()` sets the trading player and opens the trade UI:
 ```cpp
@@ -375,7 +600,7 @@ void Villager::staticCtor()
 
 ## Creating a Custom Merchant Entity
 
-You can make any entity into a merchant. It needs to implement the `Merchant` interface and trigger the trade UI. Here's a skeleton:
+You can make any entity into a merchant. It needs to implement the `Merchant` interface and trigger the trade UI. Here is a skeleton:
 
 ### Header
 
@@ -452,22 +677,6 @@ bool MyMerchant::interact(shared_ptr<Player> player)
     return PathfinderMob::interact(player);
 }
 
-void MyMerchant::setTradingPlayer(shared_ptr<Player> player)
-{
-    tradingPlayer = weak_ptr<Player>(player);
-}
-
-shared_ptr<Player> MyMerchant::getTradingPlayer()
-{
-    return tradingPlayer.lock();
-}
-
-MerchantRecipeList *MyMerchant::getOffers(shared_ptr<Player> forPlayer)
-{
-    if (offers == NULL) buildOffers();
-    return offers;
-}
-
 void MyMerchant::buildOffers()
 {
     offers = new MerchantRecipeList();
@@ -504,7 +713,6 @@ void MyMerchant::notifyTrade(MerchantRecipe *activeRecipe)
 }
 
 void MyMerchant::notifyTradeUpdated(shared_ptr<ItemInstance> item) {}
-
 void MyMerchant::overrideOffers(MerchantRecipeList *recipeList) {}
 
 int MyMerchant::getDisplayName()
@@ -563,12 +771,14 @@ Offers (CompoundTag)
 
 ### Key Source Files
 
-- `Minecraft.World/Merchant.h` for the trading interface
-- `Minecraft.World/Villager.cpp` for trade generation, profession pools, and price tables
-- `Minecraft.World/MerchantRecipe.cpp` for individual trade logic and use tracking
-- `Minecraft.World/MerchantRecipeList.cpp` for recipe matching and serialization
-- `Minecraft.World/MerchantMenu.cpp` for the trading UI container
-- `Minecraft.World/MerchantContainer.cpp` for slot management and recipe resolution
-- `Minecraft.World/MerchantResultSlot.cpp` for payment deduction on trade completion
-- `Minecraft.World/ClientSideMerchant.cpp` for client-side trade proxy
-- `Minecraft.World/TradeWithPlayerGoal.cpp` for the AI that keeps villagers still while trading
+| File | What it does |
+|---|---|
+| `Minecraft.World/Merchant.h` | Trading interface |
+| `Minecraft.World/Villager.cpp` | Trade generation, profession pools, price tables, `addOffers()` |
+| `Minecraft.World/MerchantRecipe.cpp` | Individual trade logic and use tracking |
+| `Minecraft.World/MerchantRecipeList.cpp` | Recipe matching and serialization |
+| `Minecraft.World/MerchantMenu.cpp` | Trading UI container |
+| `Minecraft.World/MerchantContainer.cpp` | Slot management and recipe resolution |
+| `Minecraft.World/MerchantResultSlot.cpp` | Payment deduction on trade completion |
+| `Minecraft.World/ClientSideMerchant.cpp` | Client-side trade proxy |
+| `Minecraft.World/TradeWithPlayerGoal.cpp` | AI that keeps villagers still while trading |

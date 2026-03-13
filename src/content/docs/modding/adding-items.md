@@ -5,7 +5,7 @@ description: Step-by-step guide to adding new items to LCE.
 
 Items in LCE are managed by the `Item` class defined in `Minecraft.World/Item.h`. Every holdable object (tools, food, materials, armor) is an `Item` subclass registered in `Item::staticCtor()`. This guide covers how to create and register new items based on the actual source code.
 
-## Overview of the Item System
+## Overview of the item system
 
 The `Item` base class gives you:
 
@@ -21,11 +21,14 @@ Item::Item(int id) : id( 256 + id )
 {
     maxStackSize = 64;  // MAX_STACK_SIZE from Container
     maxDamage = 0;
-    // ...
+    craftingRemainingItem = NULL;
+    tabToDisplayOn = NULL;
+    rarity = Item::eMinecraftRarity::common;
+    // Writes itself into items[this->id]
 }
 ```
 
-## Step 1: Create an Item Subclass
+## Step 1: Create an item subclass
 
 Create a header and implementation file in `Minecraft.World/`.
 
@@ -105,7 +108,7 @@ bool MyCustomItem::hurtEnemy(shared_ptr<ItemInstance> itemInstance,
 
 ## Step 2: Register in Item::staticCtor()
 
-Add your item to `Item::staticCtor()` in `Item.cpp`. You'll also need a static pointer and ID constant in `Item.h`.
+Add your item to `Item::staticCtor()` in `Item.cpp`. You will also need a static pointer and ID constant in `Item.h`.
 
 **In `Item.h`**, add:
 
@@ -132,11 +135,11 @@ Item::myCustomItem = ( new MyCustomItem(151) )  // 256 + 151 = 407
 
 Remember: the constructor parameter is `desired_id - 256`. So for item ID 407, pass 151.
 
-## Step 3: Set Properties
+## Step 3: Set properties
 
-All property setters return `Item*` for chaining.
+All property setters return `Item*` for chaining. Here is every setter available on the `Item` class.
 
-### Stack Size
+### Stack size
 
 ```cpp
 ->setMaxStackSize(16)   // Default is 64
@@ -168,11 +171,15 @@ Tier-based durability for tools (from `Item::Tier`):
 ->handEquipped()                                // Render held in hand like a tool
 ```
 
-### Creative Inventory
+`handEquipped()` sets `isHandEquipped = true`, which makes the item render at an angle in the player's hand instead of flat.
+
+### Creative inventory
 
 ```cpp
 ->setBaseItemTypeAndMaterial(eBaseItemType_treasure, eMaterial_diamond)
 ```
+
+This controls where your item shows up in the creative inventory on the console crafting UI.
 
 Common `eBaseItemType` values for items:
 
@@ -207,41 +214,56 @@ Common `eMaterial` values:
 | `eMaterial_chain` | Chain armor |
 | `eMaterial_emerald` | Emerald items |
 
-### Crafting Remainder
+### Rarity
+
+```cpp
+->setRarity(Item::eMinecraftRarity::rare)     // Aqua-colored name
+->setRarity(Item::eMinecraftRarity::epic)     // Magenta-colored name
+```
+
+Default is `common` (white name). The `uncommon` rarity gives a yellow name.
+
+### Crafting remainder
 
 ```cpp
 ->setCraftingRemainingItem(Item::bucket_empty)  // Leaves empty bucket after crafting
 ```
 
-### Potion Brewing
+When this item is used as an ingredient in a recipe, the crafting remainder item goes back into the crafting grid.
+
+### Stacked by data
+
+```cpp
+->setStackedByData(true)  // Items with different aux values stack separately
+```
+
+Used by golden apples (regular vs enchanted) and other items where aux value matters for stacking.
+
+### Potion brewing
 
 ```cpp
 ->setPotionBrewingFormula(PotionBrewing::MOD_REDSTONE)  // Acts as brewing ingredient
 ```
 
-## Creating Tool Items
+## Creating tool items
 
 Tools use the `Item::Tier` system for durability, speed, and damage. Each tool type has its own subclass.
 
 ### Weapon (Sword)
 
-From `WeaponItem.h`:
-
 ```cpp
 class WeaponItem : public Item
 {
-    int damage;
+    int damage;            // 4 + tier->getAttackDamageBonus()
     const Tier *tier;
 public:
     WeaponItem(int id, const Tier *tier);
-    virtual bool hurtEnemy(...);   // Damages item by 1 per hit
-    virtual bool mineBlock(...);   // Damages item by 2 per block mined
-    virtual int getAttackDamage(shared_ptr<Entity> entity);
-    virtual bool canDestroySpecial(Tile *tile);  // Swords cut webs
+    // hurtEnemy: damages item by 1 per hit
+    // mineBlock: damages item by 2 per block mined
+    // getAttackDamage: returns damage
+    // canDestroySpecial: true for webs
 };
 ```
-
-The constructor sets `maxStackSize = 1`, durability from the tier, and `damage = 4 + tier->getAttackDamageBonus()`.
 
 Registration example:
 
@@ -255,15 +277,14 @@ Item::sword_iron = ( new WeaponItem(11, _Tier::IRON) )
 
 ### Pickaxe
 
-From `PickaxeItem.h`:
-
 ```cpp
 class PickaxeItem : public DiggerItem
 {
 public:
     PickaxeItem(int id, const Tier *tier);
-    virtual bool canDestroySpecial(Tile *tile);
-    virtual float getDestroySpeed(shared_ptr<ItemInstance> itemInstance, Tile *tile);
+    // Base attack damage: 2 + tier bonus
+    // canDestroySpecial: tier level checks for specific ores
+    // getDestroySpeed: tier speed on diggable tiles + metal/stone materials
 };
 ```
 
@@ -277,11 +298,13 @@ Item::pickAxe_diamond = ( new PickaxeItem(22, _Tier::DIAMOND) )
     ->setUseDescriptionId(IDS_DESC_PICKAXE);
 ```
 
-Other tool types follow the same pattern: `ShovelItem`, `HatchetItem` (axes), and `HoeItem`.
+### Shovel, Axe, Hoe
 
-## Creating Armor Items
+Same pattern: `ShovelItem(id, tier)` with base attack 1, `HatchetItem(id, tier)` with base attack 3, `HoeItem(id, tier)` with no attack bonus. See [Tools & Weapons](/lce-docs/world/items/tools/) for full details on each.
 
-`ArmorItem` takes an armor material, a texture index, and a slot:
+## Creating armor items
+
+`ArmorItem` takes an armor material, a render index, and a slot:
 
 ```cpp
 class ArmorItem : public Item
@@ -292,19 +315,21 @@ public:
     static const int SLOT_LEGS = 2;
     static const int SLOT_FEET = 3;
 
-    ArmorItem(int id, const ArmorMaterial *armorType, int icon, int slot);
+    ArmorItem(int id, const ArmorMaterial *armorType, int renderIndex, int slot);
+    // Durability = healthPerSlot[slot] * material->getDurabilityMultiplier()
+    // Defense from material->slotProtections[slot]
 };
 ```
 
 Armor materials defined in `ArmorItem::ArmorMaterial`:
 
-| Material | Used For |
-|----------|----------|
-| `ArmorMaterial::CLOTH` | Leather armor |
-| `ArmorMaterial::CHAIN` | Chain armor |
-| `ArmorMaterial::IRON` | Iron armor |
-| `ArmorMaterial::GOLD` | Gold armor |
-| `ArmorMaterial::DIAMOND` | Diamond armor |
+| Material | Dur. Mult. | Defense (H/C/L/B) | Enchantability |
+|----------|-----------|-------------------|----------------|
+| `CLOTH` | 5 | 1/3/2/1 | 15 |
+| `CHAIN` | 15 | 2/5/4/1 | 12 |
+| `IRON` | 15 | 2/6/5/2 | 9 |
+| `GOLD` | 7 | 2/5/3/1 | 25 |
+| `DIAMOND` | 33 | 3/8/6/3 | 10 |
 
 Registration example (iron helmet):
 
@@ -317,9 +342,9 @@ Item::helmet_iron = (ArmorItem *)( ( new ArmorItem(50,
     ->setUseDescriptionId(IDS_DESC_HELMET_IRON) );
 ```
 
-Note the cast to `ArmorItem *`. This is needed because the chained setters return `Item*`.
+Note the cast to `ArmorItem *`. This is needed because the chained setters return `Item*`, but the static pointer is `ArmorItem *`.
 
-## Creating Food Items
+## Creating food items
 
 `FoodItem` adds eating behavior. Constructor:
 
@@ -363,14 +388,14 @@ Item::porkChop_raw = ( new FoodItem(63, 3, FoodConstants::FOOD_SATURATION_LOW, t
     ->setDescriptionId(IDS_ITEM_PORKCHOP_RAW)
     ->setUseDescriptionId(IDS_DESC_PORKCHOP_RAW);
 
-// Food with negative effect
+// Food with negative effect (30% chance of Hunger for 30 seconds)
 Item::chicken_raw = (new FoodItem(109, 2, FoodConstants::FOOD_SATURATION_LOW, true))
     ->setEatEffect(MobEffect::hunger->id, 30, 0, .3f)
     ->setTextureName(L"chickenRaw")
     ->setDescriptionId(IDS_ITEM_CHICKEN_RAW)
     ->setUseDescriptionId(IDS_DESC_CHICKEN_RAW);
 
-// Food with poison effect
+// Food with guaranteed poison effect
 Item::spiderEye = (new FoodItem(119, 2, FoodConstants::FOOD_SATURATION_GOOD, false))
     ->setEatEffect(MobEffect::poison->id, 5, 0, 1.0f)
     ->setTextureName(L"spiderEye")
@@ -387,11 +412,11 @@ Item::apple_gold = ( new GoldenAppleItem(66, 4,
     ->setDescriptionId(IDS_ITEM_APPLE_GOLD);
 ```
 
-The eating duration is a constant `EAT_DURATION = (int)(20 * 1.6)` (about 32 ticks).
+The eating duration is a constant `EAT_DURATION = (int)(20 * 1.6)` (about 32 ticks, roughly 1.6 seconds).
 
-## Creating Simple Material Items
+## Creating simple material items
 
-A lot of items have no special behavior. They're just `new Item(id)` with properties set:
+A lot of items have no special behavior. They are just `new Item(id)` with properties set:
 
 ```cpp
 // Simple crafting material
@@ -417,26 +442,28 @@ Item::bucket_empty = ( new BucketItem(69, 0) )
     ->setMaxStackSize(16);
 ```
 
-## Key Virtual Methods Reference
+## Key virtual methods reference
 
-| Method | When Called |
-|--------|------------|
-| `use(itemInstance, level, player)` | Right-click with item in hand (not aiming at a block) |
-| `useOn(itemInstance, player, level, x, y, z, face, ...)` | Right-click on a block |
-| `hurtEnemy(itemInstance, mob, attacker)` | Hit a mob with the item |
-| `mineBlock(itemInstance, level, tile, x, y, z, owner)` | Break a block with the item |
-| `getAttackDamage(entity)` | Query attack damage |
-| `getDestroySpeed(itemInstance, tile)` | Query mining speed against a tile |
-| `canDestroySpecial(tile)` | Whether this item can harvest the tile |
-| `useTimeDepleted(itemInstance, level, player)` | Eating/drinking/blocking timer finishes |
-| `getUseAnimation(itemInstance)` | Returns `UseAnim_eat`, `UseAnim_block`, etc. |
-| `getUseDuration(itemInstance)` | How long in ticks the use action takes |
-| `releaseUsing(itemInstance, level, player, durationLeft)` | Use action interrupted (e.g., bow release) |
-| `inventoryTick(itemInstance, level, owner, slot, selected)` | Called each tick while in inventory |
-| `getEnchantmentValue()` | Enchantability for the enchanting table |
-| `isValidRepairItem(source, repairItem)` | Whether repairItem can repair this item on an anvil |
+| Method | When Called | Default Return |
+|--------|------------|----------------|
+| `use(itemInstance, level, player)` | Right-click with item in hand (not on a block) | Returns `itemInstance` unchanged |
+| `useOn(itemInstance, player, level, x, y, z, face, ...)` | Right-click on a block | Returns `false` |
+| `hurtEnemy(itemInstance, mob, attacker)` | Hit a mob with the item | Returns `false` |
+| `mineBlock(itemInstance, level, tile, x, y, z, owner)` | Break a block with the item | Returns `true`, no durability cost |
+| `getAttackDamage(entity)` | Query attack damage | Returns `1` |
+| `getDestroySpeed(itemInstance, tile)` | Query mining speed against a tile | Returns `1.0` |
+| `canDestroySpecial(tile)` | Whether this item can harvest the tile | Returns `false` |
+| `useTimeDepleted(itemInstance, level, player)` | Eating/drinking/blocking timer finishes | Returns `itemInstance` |
+| `getUseAnimation(itemInstance)` | Returns `UseAnim_eat`, `UseAnim_block`, etc. | Returns `UseAnim_none` |
+| `getUseDuration(itemInstance)` | How long in ticks the use action takes | Returns `0` |
+| `releaseUsing(itemInstance, level, player, durationLeft)` | Use action interrupted (e.g., bow release) | Does nothing |
+| `inventoryTick(itemInstance, level, owner, slot, selected)` | Called each tick while in inventory | Does nothing |
+| `getEnchantmentValue()` | Enchantability for the enchanting table | Returns `0` |
+| `isValidRepairItem(source, repairItem)` | Whether repairItem can repair this on an anvil | Returns `false` |
+| `isFoil(itemInstance)` | Whether to render with enchantment glint | Returns `itemInstance->isEnchanted()` |
+| `getRarity(itemInstance)` | Color tier of the item name | Returns `this->rarity` |
 
-## Complete Example: Adding a Ruby Item
+## Complete example: Adding a ruby item
 
 **`Item.h`** additions:
 
@@ -460,7 +487,9 @@ Item::ruby = ( new Item(151) )  // 256 + 151 = 407
 
 This creates a simple gem item, similar to how emeralds and diamonds are registered. Pair it with a [Ruby Ore block](/lce-docs/modding/adding-blocks/) that drops this item.
 
-## Related Guides
+## Related guides
 
 - [Getting Started](/lce-docs/modding/getting-started/) for environment setup and the staticCtor pattern
 - [Adding Blocks](/lce-docs/modding/adding-blocks/) to create blocks that drop your custom items
+- [Adding Recipes](/lce-docs/modding/adding-recipes/) to make your items craftable
+- [Item System Overview](/lce-docs/world/items/overview/) for the full Item class reference

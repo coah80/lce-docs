@@ -187,3 +187,44 @@ Bundled `zlib.h` and `zconf.h` headers rather than using system zlib, allowing f
 - **Save data delete dialog**: Full save management with user-facing delete confirmation
 - **Build configuration**: `Conf.h` for Vita-specific build options, `configuration.psp2path` for SDK paths
 - **Rename utility**: `GameConfig/rename.py` script for batch file operations
+
+## MinecraftConsoles Additions
+
+### Sony Shared Network Layer
+
+Like the other Sony platforms, the Vita networking code in MinecraftConsoles extends shared base classes from `Common/Network/Sony/`. The Vita is unique because `CPlatformNetworkManagerSony` has `#ifdef __PSVITA__` sections that add ad-hoc networking support:
+
+```cpp
+#ifdef __PSVITA__
+bool usingAdhocMode() { return m_bUsingAdhocMode; }
+bool setAdhocMode(bool bAdhoc);
+void startAdhocMatching();
+bool checkValidInviteData(const INVITE_INFO* pInviteInfo);
+#endif
+```
+
+The shared `SQRNetworkManager` base class also includes Vita-specific `#ifdef` sections for `HelloSyncInfo` (used by ad-hoc) and adjusts the RUDP thread priority (500 instead of PS3's 999).
+
+### 4JLibs Headers
+
+`PSVita/4JLibs/inc/` with 4J_Render.h, 4J_Input.h, 4J_Profile.h, 4J_Storage.h.
+
+### Iggy UI Library
+
+`PSVita/Iggy/` bundles:
+- `gdraw/gdraw_psp2.h/.cpp` (GXM graphics backend, PSP2 is the Vita's internal codename)
+- `include/iggy.h`, `include/gdraw.h`, `include/iggyexpruntime.h`, `include/iggyperfmon.h`, `include/iggyperfmon_psp2.h`, `include/rrCore.h`
+
+### Miles Sound System
+
+`PSVita/Miles/include/mss.h` and `rrCore.h` for audio.
+
+### Sentient Telemetry
+
+`PSVita/Sentient/` with the standard telemetry headers.
+
+### Media and Content
+
+`PSVitaMedia/` with DLC, localization, media, tutorial assets, and a compiled `Minecraft.Client.self` binary (a pre-built Vita executable). Also includes `Sound/` and `Tutorial/` subdirectories.
+
+The Vita also has `PSVita/app/` and `PSVita/Builds/` directories for build configuration and packaging.

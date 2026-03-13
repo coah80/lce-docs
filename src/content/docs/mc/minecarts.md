@@ -9,7 +9,7 @@ This page covers the minecart entity system in MinecraftConsoles, including the 
 
 **Source files:** `Minecart.h/cpp`
 
-All minecart variants inherit from `Minecart`, which extends `Entity`.
+All minecart variants inherit from `Minecart`, which extends `Entity`. The entity type enum is `eTYPE_MINECART`.
 
 ### Type constants
 
@@ -35,24 +35,53 @@ All minecart variants inherit from `Minecart`, which extends `Entity`.
 
 ### Factory method
 
-`createMinecart()` is a static factory that creates the right variant based on the type integer.
+`createMinecart()` is a static factory that creates the right variant based on the type integer. Takes `(Level*, double x, double y, double z, int type)`.
 
 ### Core behavior
 
-- **Collision**: Minecarts have both a collide-against box (for other entities pushing them) and a collide box (for physics). They are pushable.
+- **Collision**: Minecarts have both a collide-against box (`getCollideAgainstBox()` for other entities pushing them) and a collide box (`getCollideBox()` for physics). They are pushable (`isPushable()` returns `true`).
 - **Ride height**: `getRideHeight()` sets the passenger offset.
-- **Damage**: `hurt()` animates the hurt effect and accumulates damage. `destroy()` is called when the minecart breaks; variants override this to drop their specific loot.
-- **Movement**: `tick()` handles interpolation, rail following, and natural slowdown. `moveAlongTrack()` does rail-specific movement using an exit direction lookup table (`EXITS`). `comeOffTrack()` handles derailed movement with speed capping.
-- **Activation**: `activateMinecart()` is called when the minecart passes over an activator rail. The base implementation does nothing; TNT and hopper minecarts override it.
+- **Damage**: `hurt()` animates the hurt effect and accumulates damage. `destroy()` is called when the minecart breaks; variants override this to drop their specific loot. `animateHurt()` triggers the visual hurt animation.
+- **Movement**: `tick()` handles interpolation, rail following, and natural slowdown. `moveAlongTrack()` does rail-specific movement using a static exit direction lookup table (`EXITS[]`). `comeOffTrack()` handles derailed movement with speed capping.
+- **Activation**: `activateMinecart(int xt, int yt, int zt, bool state)` is called when the minecart passes over an activator rail. The base implementation does nothing; TNT and hopper minecarts override it.
 - **Entity pushing**: `push()` handles minecart-to-entity and minecart-to-minecart collisions, with a `m_bHasPushedCartThisTick` guard (a 4J addition) to prevent double-pushing in one tick.
+- **Natural slowdown**: `applyNaturalSlowdown()` applies friction (protected virtual, overridden by container and furnace variants).
+- **Pickability**: `isPickable()` returns `true` (can be hit by the player).
+- **Removal**: `remove()` handles entity removal.
+
+### Rail movement details
+
+The static `EXITS` array stores exit direction vectors for each rail direction, as `int[10][2][3]`. This maps rail shape to the two possible exit directions, each with an X/Y/Z offset.
+
+`getPosOffs()` and `getPos()` compute smooth interpolated positions along the rail for rendering.
 
 ### Client interpolation
 
-`lerpTo()` and `lerpMotion()` handle smooth position and rotation interpolation over a given number of steps, using stored `lx`, `ly`, `lz`, `lyr`, `lxr` values.
+`lerpTo()` and `lerpMotion()` handle smooth position and rotation interpolation over a given number of steps, using stored `lx`, `ly`, `lz`, `lyr`, `lxr` values. The `lSteps` counter tracks remaining interpolation frames. Motion interpolation uses `lxd`, `lyd`, `lzd`.
 
 ### Custom display
 
-Each variant provides `getDefaultDisplayTile()`, `getDefaultDisplayData()`, and `getDefaultDisplayOffset()`. The display can be overridden at runtime via `setDisplayTile()`, `setDisplayData()`, and `setDisplayOffset()`, with `hasCustomDisplay()` tracking whether a custom override is active.
+Each variant provides `getDefaultDisplayTile()`, `getDefaultDisplayData()`, and `getDefaultDisplayOffset()`. The display can be overridden at runtime via `setDisplayTile()`, `setDisplayData()`, and `setDisplayOffset()`, with `hasCustomDisplay()` tracking whether a custom override is active. `setCustomDisplay(bool)` toggles the override flag.
+
+### Custom naming
+
+- `setCustomName(wstring)` / `getCustomName()` / `hasCustomName()` for custom display names
+- `getAName()` returns the display name (custom name if set, otherwise default)
+
+### Synched data setup
+
+`defineSynchedData()` (protected) registers all six data IDs. 4J added `makeStepSound()` as a protected virtual returning `false`.
+
+### Save/load
+
+`addAdditonalSaveData()` / `readAdditionalSaveData()` handle base minecart serialization. The type and custom display settings are persisted.
+
+### Other
+
+- `getShadowHeightOffs()` returns the shadow Y offset
+- `flipped` boolean tracks orientation
+- `soundUpdater` is a `Tickable*` for sound effects
+- `getType()` is pure virtual, each variant returns its type constant
 
 ## MinecartContainer
 
@@ -81,7 +110,7 @@ xd *= keep
 zd *= keep
 ```
 
-So a fuller container minecart slows down faster (lower `keep` multiplier).
+So a fuller container minecart slows down faster (lower `keep` multiplier). An empty container keeps 98% + 1.5% of its speed per tick, while a full container keeps only 98%.
 
 ### Player interaction
 
@@ -95,7 +124,7 @@ Items are saved as a `"Items"` list tag, with each entry containing a `"Slot"` b
 
 **Source files:** `MinecartChest.h/cpp`
 
-The chest minecart is the simplest container variant.
+The chest minecart is the simplest container variant. Entity type: `eTYPE_MINECART_CHEST`.
 
 | Property | Value |
 |----------|-------|
@@ -112,7 +141,7 @@ When destroyed, it calls `MinecartContainer::destroy()` (dropping all items) and
 
 **Source files:** `MinecartHopper.h/cpp`
 
-The hopper minecart combines `MinecartContainer` with the `Hopper` interface, so it can suck in items while moving.
+The hopper minecart combines `MinecartContainer` with the `Hopper` interface, so it can suck in items while moving. Entity type: `eTYPE_MINECART_HOPPER`.
 
 | Property | Value |
 |----------|-------|
@@ -163,7 +192,7 @@ Saves and loads `"TransferCooldown"` in addition to the base container data.
 
 **Source files:** `MinecartFurnace.h/cpp`
 
-The furnace minecart is a self-propelled minecart that doesn't have an inventory.
+The furnace minecart is a self-propelled minecart that doesn't have an inventory. Entity type: `eTYPE_MINECART_FURNACE`.
 
 | Property | Value |
 |----------|-------|
@@ -175,7 +204,7 @@ The furnace minecart is a self-propelled minecart that doesn't have an inventory
 
 The furnace minecart uses a simple fuel counter (`int fuel`) and tracks its push direction (`xPush`, `zPush`).
 
-- **Synched data**: `DATA_ID_FUEL` (ID 16) stores a byte indicating whether the furnace has fuel, synced to clients for rendering.
+- **Synched data**: `DATA_ID_FUEL` (ID 16) stores a byte indicating whether the furnace has fuel, synced to clients for rendering the lit/unlit state.
 - **Adding fuel**: Right-clicking (`interact()`) with coal adds `TICKS_PER_SECOND * 180` ticks of fuel (3 minutes at 20 TPS = 3600 ticks). The push direction is set toward the player's position relative to the minecart.
 - **Tick**: Each tick, fuel decrements by 1. When fuel hits zero, push forces are cleared. While fueled, large smoke particles spawn above the minecart (25% chance per tick).
 
@@ -204,7 +233,7 @@ When destroyed (not by explosion), the minecart drops a furnace block as loot.
 
 **Source files:** `MinecartSpawner.h/cpp`
 
-The spawner minecart carries a mob spawner that runs while the minecart moves.
+The spawner minecart carries a mob spawner that runs while the minecart moves. Entity type: `eTYPE_MINECART_SPAWNER`.
 
 | Property | Value |
 |----------|-------|
@@ -216,8 +245,14 @@ The spawner minecart carries a mob spawner that runs while the minecart moves.
 `MinecartMobSpawner` is a private inner class extending `BaseMobSpawner`. It bridges the spawner logic to the minecart entity:
 
 - `getLevel()` returns the minecart's level.
-- `getX()`, `getY()`, `getZ()` return the minecart's floored position.
-- `broadcastEvent()` sends entity events through the minecart.
+- `getX()`, `getY()`, `getZ()` return the minecart's floored position (integer).
+- `broadcastEvent(int id)` sends entity events through the minecart.
+
+The `spawner` field is a `BaseMobSpawner*` pointer to the inner class instance.
+
+### Construction
+
+Two constructors: `MinecartSpawner(Level*)` for default creation and `MinecartSpawner(Level*, double x, double y, double z)` for positioned creation. The destructor cleans up the spawner.
 
 ### Tick
 
@@ -227,6 +262,10 @@ The spawner minecart carries a mob spawner that runs while the minecart moves.
 
 `handleEntityEvent()` forwards events to the spawner's `onEventTriggered()`, which handles client-side spawn particle effects.
 
+### Public accessor
+
+`getSpawner()` returns the `BaseMobSpawner*` pointer.
+
 ### NBT
 
 The spawner's data is saved and loaded via `spawner->save(tag)` and `spawner->load(tag)`, embedding the spawner configuration directly in the minecart's compound tag.
@@ -235,7 +274,7 @@ The spawner's data is saved and loaded via `spawner->save(tag)` and `spawner->lo
 
 **Source files:** `MinecartTNT.h/cpp`
 
-The TNT minecart explodes under various conditions.
+The TNT minecart explodes under various conditions. Entity type: `eTYPE_MINECART_TNT`.
 
 | Property | Value |
 |----------|-------|
@@ -246,10 +285,12 @@ The TNT minecart explodes under various conditions.
 
 ### Priming
 
-The fuse starts at `-1` (not primed). The minecart can be primed by:
+The `fuse` field starts at `-1` (not primed, set in the private `_init()` method). The minecart can be primed by:
 
 - **Activator rail**: `activateMinecart()` calls `primeFuse()` when `state` is true and the fuse isn't already active.
 - **Programmatic**: `primeFuse()` sets `fuse = 80`, broadcasts the prime event, and plays the fuse sound. Priming is gated by the `eGameHostOption_TNT` game option.
+
+Status checks: `isPrimed()` returns whether the fuse is active, `getFuse()` returns the current fuse value.
 
 ### Tick behavior
 
@@ -263,7 +304,7 @@ Also, if the minecart collides horizontally (`horizontalCollision`) with enough 
 
 ### Explosion
 
-`explode()` creates a level explosion with power based on speed:
+`explode(double speedSqr)` (protected) creates a level explosion with power based on speed:
 
 ```
 speed = sqrt(speedSqr), capped at 5
@@ -274,18 +315,27 @@ The explosion can start fires (`true` parameter). The minecart is removed after 
 
 ### Fall damage
 
-`causeFallDamage()` triggers an explosion when the fall distance is 3 or more blocks, with power scaled by `(distance / 10)^2`.
+`causeFallDamage(float distance)` (protected) triggers an explosion when the fall distance is 3 or more blocks, with power scaled by `(distance / 10)^2`.
 
 ### Destruction
 
-When destroyed by damage:
+When destroyed by damage (`destroy(DamageSource*)`):
 
 - If TNT is disabled or the source is not an explosion: drops a TNT block.
 - If the source is fire, an explosion, or the minecart has speed: explodes.
 
 ### Explosion resistance override
 
-When primed, the TNT minecart reduces explosion resistance of rail tiles to 0 and prevents rails from being destroyed by the explosion. This keeps the track intact beneath the detonation.
+When primed, the TNT minecart overrides two explosion methods:
+
+- `getTileExplosionResistance()` reduces explosion resistance of rail tiles to 0
+- `shouldTileExplode()` prevents rails from being destroyed by the explosion
+
+This keeps the track intact beneath the detonation.
+
+### Entity events
+
+`handleEntityEvent(byte)` handles the prime event (ID 10) on the client side, triggering visual effects.
 
 ### NBT
 

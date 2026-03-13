@@ -162,7 +162,16 @@ The key idea: divide the world into a grid of `townSpacing` chunks, pick one ran
 
 ### Random chance (mineshafts)
 
-Mineshafts just use a flat probability check. Simple and effective for structures that should be scattered everywhere underground.
+Mineshafts use a probability check that scales with distance from origin:
+
+```cpp
+bool MineShaftFeature::isFeatureChunk(int x, int z, bool bIsSuperflat) {
+    return random->nextInt(100) == 0
+        && random->nextInt(80) < max(abs(x), abs(z));
+}
+```
+
+The first gate is 1-in-100. The second check means mineshafts are more likely the further you go from spawn. At chunk (0,0), the second check almost always fails (needs random < 0). At chunk (80,0), it's a guaranteed pass.
 
 ### Fixed position (nether fortress)
 
@@ -173,11 +182,33 @@ bool NetherBridgeFeature::isFeatureChunk(int x, int z, bool bIsSuperflat) {
     if (!isSpotSelected) {
         random->setSeed(level->getSeed());
         random->nextInt();
-        int chunk = random->nextInt(49);  // 7x7 grid
-        netherFortressPos = new ChunkPos(chunk % 7, chunk / 7);
+        // 7x7 grid of possible chunks
+        int chunk = random->nextInt(49);
+        int xCoord = chunk % 7;
+        int zCoord = chunk / 7;
+        netherFortressPos = new ChunkPos(xCoord, zCoord);
         isSpotSelected = true;
     }
-    return (x == netherFortressPos->x && z == netherFortressPos->z);
+
+    if (x == netherFortressPos->x && z == netherFortressPos->z)
+        return true;
+
+    // On large worlds, extra fortresses can spawn via
+    // a region-based 1-in-3 chance per 16-chunk cell
+    #ifdef _LARGE_WORLDS
+    if (level->dimension->getXZSize() > 30) {
+        int cx = x >> 4;
+        int cz = z >> 4;
+        random->setSeed(cx ^ (cz << 4) ^ level->getSeed());
+        random->nextInt();
+        if (random->nextInt(3) != 0) return false;
+        if (x != ((cx << 4) + 4 + random->nextInt(8))) return false;
+        if (z != ((cz << 4) + 4 + random->nextInt(8))) return false;
+        return true;
+    }
+    #endif
+
+    return false;
 }
 ```
 
@@ -936,6 +967,266 @@ generateBox(level, chunkBB, x0, y0, z0, x1, y1, z1,
 
 The `isEdge` parameter tells you whether the current block is on the outer surface of the box, so you can use different materials for walls vs interior.
 
+## Every built-in structure analyzed
+
+Now that you know the system, here is a detailed breakdown of every structure that ships with LCE.
+
+### Mineshafts (`MineShaftFeature`)
+
+**Placement:** Random chance. `random->nextInt(100) == 0 && random->nextInt(80) < max(abs(x), abs(z))`. This means mineshafts are more common further from spawn. The double random gate makes them rare in the first place (1 in 100 chunks pass the first check), and the second check scales with distance.
+
+**Start:** `MineShaftStart` creates a `MineShaftRoom` (a random-sized dirt room, 7-13 blocks wide, at y=50-60) and calls `addChildren`. The whole thing gets moved below sea level with `moveBelowSeaLevel(level, random, 10)`.
+
+**Piece types:**
+
+| Piece | Chance | Description |
+|---|---|---|
+| `MineShaftCorridor` | 70% | The standard tunnel. 3 wide, variable length. Can have rails (`hasRails`) or be a spider corridor (`spiderCorridor`) with cobwebs and cave spider spawners. |
+| `MineShaftStairs` | 10% | A staircase that goes up or down, connecting corridors at different heights. |
+| `MineShaftCrossing` | 20% | A 2-4 way intersection. Can be two-floored (`isTwoFloored`). |
+| `MineShaftRoom` | start only | The initial dirt room that everything branches from. |
+
+**Depth limit:** 8. Distance limit: 5 chunks (80 blocks) from the start piece in X or Z.
+
+**Loot table (11 items):**
+
+| Item | Count | Weight |
+|---|---|---|
+| Iron Ingot | 1-5 | 10 |
+| Gold Ingot | 1-3 | 5 |
+| Redstone | 4-9 | 5 |
+| Lapis Lazuli | 4-9 | 5 |
+| Diamond | 1-2 | 3 |
+| Coal | 3-8 | 10 |
+| Bread | 1-3 | 15 |
+| Iron Pickaxe | 1 | 1 |
+| Rail | 4-8 | 1 |
+| Melon Seeds | 2-4 | 10 |
+| Pumpkin Seeds | 2-4 | 10 |
+
+Plus a random enchanted book gets added through `addToTreasure`.
+
+---
+
+### Nether Fortress (`NetherBridgeFeature`)
+
+**Placement:** On small console worlds, the fortress position is forced. The game picks one of 49 chunks in a 7x7 grid using `random->nextInt(49)` seeded from the world seed. This guarantees exactly one fortress per small nether. On large worlds (`_LARGE_WORLDS`), extra fortresses can also spawn using the Java-style algorithm (1 in 3 chance per 16x16 chunk region).
+
+**Mob spawns:** The fortress maintains its own enemy list used for spawn checks inside the bounding box:
+- Blaze (weight 10, group 2-3)
+- Zombie Pigman (weight 10, group 4)
+- Magma Cube (weight 3, group 4)
+
+**Start:** `NetherBridgeStart` creates a `BridgeCrossing` as the starting piece. After recursive generation, the whole structure is positioned with `moveInsideHeights(level, random, 48, 70)`, placing it between y=48 and y=70.
+
+**Piece system:** The fortress uses two separate weight lists for bridge pieces and castle pieces:
+
+**Bridge pieces (6 types):**
+
+| Piece | Weight | Max | Allow Repeat | Size |
+|---|---|---|---|---|
+| `BridgeStraight` | 30 | unlimited | yes | 5x10x19 |
+| `BridgeCrossing` | 10 | 4 | no | 19x10x19 |
+| `MonsterThrone` | 15 | 2 | no | 7x8x9 |
+| `CastleEntrance` | 15 | 1 | no | 13x14x13 |
+| `RoomCrossing` | 10 | 4 | no | 7x9x7 |
+| `StairsRoom` | 10 | 3 | no | 7x11x7 |
+
+**Castle pieces (7 types):**
+
+| Piece | Weight | Max | Allow Repeat | Size |
+|---|---|---|---|---|
+| `CastleStalkRoom` | 30 | 2 | no | 13x14x13 |
+| `CastleSmallCorridorPiece` | 25 | unlimited | yes | 5x7x5 |
+| `CastleSmallCorridorCrossingPiece` | 15 | 5 | no | 5x7x5 |
+| `CastleSmallCorridorRightTurnPiece` | 5 | 10 | no | 5x7x5 |
+| `CastleSmallCorridorLeftTurnPiece` | 5 | 10 | no | 5x7x5 |
+| `CastleCorridorStairsPiece` | 10 | 3 | yes | 5x14x10 |
+| `CastleCorridorTBalconyPiece` | 7 | 2 | no | 9x7x9 |
+
+4J increased the weights for `MonsterThrone` (was 5, now 15) and `CastleEntrance` (was 5, now 15) to make sure blazes and nether wart always appear. Without them, brewing would be impossible. `CastleStalkRoom` was also bumped (5 to 30) since it grows the nether wart.
+
+**Depth limit:** 30. Distance limit: 7 chunks (112 blocks) from the start. When nothing fits, a `BridgeEndFiller` (dead end wall, 5x10x8) caps the corridor.
+
+**The `allowInRow` flag:** Bridge pieces have an extra `allowInRow` boolean. When set to true, the same piece type can appear back-to-back. Only `BridgeStraight`, `CastleSmallCorridorPiece`, and `CastleCorridorStairsPiece` allow this. Everything else forces a different piece type after each placement.
+
+---
+
+### Stronghold (`StrongholdFeature`)
+
+**Placement:** Fixed count based on world size. Java gets 3 strongholds, console gets just 1 (`strongholdPos_length = 1`). The position is picked by generating a random angle, computing a distance from origin (tuned for console world size), and then using `BiomeSource::findBiome()` to nudge it into a valid biome.
+
+On small console saves (pre-TU9), the distance formula is `(1.25 + random) * (5 + random(7))`. Post-TU9, it was tightened to `(1.25 + random) * (3 + random(4))` to keep the stronghold further from the world edge. Large worlds use the original Java distance of `(1.25 + random) * 32`.
+
+The code retries up to `MAX_STRONGHOLD_ATTEMPTS` times (10 on old-gen, 30 on new-gen) to find a valid biome. If it never finds one, it still stores the last attempted position so the Eye of Ender works.
+
+**Allowed biomes:** Desert, Forest, Extreme Hills, Swampland, Taiga, Ice Plains, Ice Mountains, Desert Hills, Forest Hills, Smaller Extreme Hills, Taiga Hills, Jungle, Jungle Hills.
+
+**Start:** `StrongholdStart` creates a `StairsDown` as the entry. After recursive piece generation, the whole structure is moved underground with `moveBelowSeaLevel(level, random, 10)`. The code regenerates the entire stronghold (destroying and re-creating `StrongholdStart`) until the portal room piece exists.
+
+**Piece weights (11 types):**
+
+| Piece | Weight | Max | Size | Special |
+|---|---|---|---|---|
+| `Straight` | 40 | unlimited | 5x5x7 | Can branch left/right randomly |
+| `PrisonHall` | 5 | 5 | 9x5x11 | Iron bars cells |
+| `LeftTurn` | 20 | unlimited | 5x5x5 | |
+| `RightTurn` | 20 | unlimited | 5x5x5 | |
+| `RoomCrossing` | 10 | 6 | 11x7x11 | Has 3 room variants with fountains/pillars |
+| `StraightStairsDown` | 5 | 5 | 5x11x8 | |
+| `StairsDown` | 5 | 5 | 5x11x5 | |
+| `FiveCrossing` | 5 | 4 | 10x9x11 | 5 exits, configurable per side |
+| `ChestCorridor` | 5 | 4 | 5x5x7 | Contains a loot chest |
+| `Library` | 10 | 2 | 14x6(or 11)x15 | Only at depth > 4. Can be tall or short. |
+| `PortalRoom` | 20 | 1 | 11x8x16 | Only at depth > 5. End portal + silverfish spawner. |
+
+**Door types:** Each stronghold piece has a random door type: `OPENING` (no door), `WOOD_DOOR`, `GRATES` (iron bars), or `IRON_DOOR`.
+
+**`SmoothStoneSelector`:** The stronghold has its own `BlockSelector` that randomly picks between stone bricks, mossy stone bricks, and cracked stone bricks. This gives the walls their weathered look.
+
+**Loot tables:**
+
+ChestCorridor (14 items):
+
+| Item | Count | Weight |
+|---|---|---|
+| Ender Pearl | 1 | 10 |
+| Diamond | 1-3 | 3 |
+| Iron Ingot | 1-5 | 10 |
+| Gold Ingot | 1-3 | 5 |
+| Redstone | 4-9 | 5 |
+| Bread | 1-3 | 15 |
+| Apple | 1-3 | 15 |
+| Iron Pickaxe | 1 | 5 |
+| Iron Sword | 1 | 5 |
+| Iron Chestplate | 1 | 5 |
+| Iron Helmet | 1 | 5 |
+| Iron Leggings | 1 | 5 |
+| Iron Boots | 1 | 5 |
+| Golden Apple | 1 | 1 |
+
+Library (4 items):
+
+| Item | Count | Weight |
+|---|---|---|
+| Book | 1-3 | 20 |
+| Paper | 2-7 | 20 |
+| Map | 1 | 1 |
+| Compass | 1 | 1 |
+
+RoomCrossing (7 items): Iron Ingot (1-5, w10), Gold Ingot (1-3, w5), Redstone (4-9, w5), Coal (3-8, w10), Bread (1-3, w15), Apple (1-3, w15), Iron Pickaxe (1, w1).
+
+---
+
+### Village (`VillageFeature`)
+
+**Placement:** Grid-based, spacing of 16 chunks on console (32 on superflat or large worlds), minimum separation of 8 chunks. Only spawns in plains and desert biomes. 4J added a bounds check in `isValid()` to reject villages that extend past the world edge. Villages need more than 2 non-road pieces to be considered valid.
+
+**Start:** `VillageStart` creates a `Well` as the center piece. The well spawns roads, and roads spawn buildings. Two separate queues (`pendingRoads` and `pendingHouses`) are processed in random order, with roads getting priority.
+
+**Piece weights (9 building types):**
+
+| Piece | Weight | Max (base) | Size | Spawns |
+|---|---|---|---|---|
+| `SimpleHouse` | 4 | 2-4 + villageSize scaling | 5x6x5 | Generic villager |
+| `SmallTemple` | 20 | 0-1 + villageSize | 5x12x9 | Priest |
+| `BookHouse` | 20 | 0-2 + villageSize | 9x9x6 | Librarian |
+| `SmallHut` | 3 | 2-5 + villageSize scaling | 4x6x5 | Generic villager |
+| `PigHouse` | 15 | 0-2 + villageSize | 9x7x11 | Butcher |
+| `DoubleFarmland` | 3 | 1-4 + villageSize | 13x4x9 | No villagers |
+| `Farmland` | 3 | 2-4 + villageSize scaling | 7x4x9 | No villagers |
+| `Smithy` | 15 | 0-1 + villageSize | 10x6x7 | Blacksmith |
+| `TwoRoomHouse` | 8 | 0-3 + villageSize scaling | 9x7x12 | Generic villager |
+
+Max counts are randomized with `Mth::nextInt(random, min, max)` where both min and max scale with `villageSize`. Pieces with a max of 0 get removed from the set.
+
+**Biome-aware blocks:** Village pieces override `biomeBlock()` and `biomeData()` to swap materials based on biome. In desert villages, wooden planks become sandstone, cobblestone becomes sandstone, logs become sandstone, and so on.
+
+**Smithy loot table (13 items):**
+
+| Item | Count | Weight |
+|---|---|---|
+| Diamond | 1-3 | 3 |
+| Iron Ingot | 1-5 | 10 |
+| Gold Ingot | 1-3 | 5 |
+| Bread | 1-3 | 15 |
+| Apple | 1-3 | 15 |
+| Iron Pickaxe | 1 | 5 |
+| Iron Sword | 1 | 5 |
+| Iron Chestplate | 1 | 5 |
+| Iron Helmet | 1 | 5 |
+| Iron Leggings | 1 | 5 |
+| Iron Boots | 1 | 5 |
+| Obsidian | 3-7 | 5 |
+| Sapling | 3-7 | 5 |
+
+**Villager professions:** Each building type overrides `getVillagerProfession()` to spawn the right villager type. The `SmallTemple` spawns priests, `BookHouse` spawns librarians, `PigHouse` spawns butchers, and `Smithy` spawns blacksmiths. Other buildings spawn generic villagers.
+
+**Depth limit:** 50. Road depth starts at 3.
+
+---
+
+### Desert Temple and Jungle Temple (`RandomScatteredLargeFeature`)
+
+**Placement:** Grid-based, spacing of 32 chunks, minimum separation of 8. Only spawns in desert, desert hills, and jungle biomes. The biome at the chunk center determines which temple type to create.
+
+**Desert Pyramid (`DesertPyramidPiece`):**
+- Size: 21x15x21.
+- Single-piece structure (no `addChildren`).
+- Built from sandstone with smooth sandstone pillars and hieroglyph decorations.
+- Orange and blue wool decorations in a diamond pattern on the floor.
+- Two towers with sandstone stairs.
+- Underground tomb at y=-14 with a stone pressure plate on top of TNT and 4 loot chests in the cardinal directions.
+- Ground height is averaged across the bounding box using `updateAverageGroundHeight()`.
+
+**Desert Pyramid loot (6 items):**
+
+| Item | Count | Weight |
+|---|---|---|
+| Diamond | 1-3 | 3 |
+| Iron Ingot | 1-5 | 10 |
+| Gold Ingot | 2-7 | 15 |
+| Emerald | 1-3 | 2 |
+| Bone | 4-6 | 20 |
+| Rotten Flesh | 3-7 | 16 |
+
+Plus an enchanted book. Each of the 4 chests gets 2-6 rolls.
+
+**Jungle Temple (`JunglePyramidPiece`):**
+- Size: 12x10x15.
+- Uses the `MossStoneSelector` for walls (40% cobblestone, 60% mossy cobblestone).
+- Multi-story with interior stairs.
+- Two tripwire traps with redstone circuits leading to arrow dispensers.
+- A main chest behind one of the traps.
+- A hidden room accessible via three levers, with sticky pistons and a repeater circuit. Opening it reveals a second chest.
+
+**Jungle Temple loot:** Same table as desert pyramid (6 items, same weights). Dispenser arrows: weight 30, count 2-7.
+
+**`MossStoneSelector`:** The jungle temple's custom `BlockSelector`. On each call, `random->nextFloat() < 0.4f` picks `stoneBrick_Id` (cobblestone), otherwise `mossStone_Id`. This creates the overgrown look.
+
+---
+
+### The `findCollisionPiece` check
+
+Every structure uses `StructurePiece::findCollisionPiece()` before adding a new piece. It loops through all existing pieces and returns the first one whose bounding box overlaps the proposed box. If the result is not NULL, the new piece is rejected. This keeps corridors and rooms from overlapping each other.
+
+### The `edgesLiquid` check
+
+Many pieces call `edgesLiquid()` at the start of `postProcess()`. This checks all 6 faces of the piece's bounding box for any liquid blocks (water or lava). If liquid is found, `postProcess()` returns false, which removes the piece from the structure. This is how mineshafts avoid generating tunnels that open directly into underground lava pools.
+
+### The `isOkBox` helper
+
+Strongholds, villages, and nether fortresses all add a custom `isOkBox()` check (a 4J addition). This takes the proposed bounding box plus the start room, and uses `findCollisionPiece()` plus an optional world-bounds check to decide if the piece can be placed.
+
+### Feature position tracking
+
+4J added `app.AddTerrainFeaturePosition()` calls in every `createStructureStart()` method. This registers the structure's chunk position with the game's terrain feature tracking system, which is used by:
+- Eye of Ender (for strongholds, via `getNearestGeneratedFeature()`)
+- Debug displays
+- Save file metadata
+
+The `getNearestGeneratedFeature()` method on `StructureFeature` searches all cached structures and the `getGuesstimatedFeaturePositions()` fallback to find the closest instance of a structure type to a given world position.
+
 ## Key source files
 
 - `Minecraft.World/StructureFeature.h/.cpp` for the base feature class
@@ -943,10 +1234,12 @@ The `isEdge` parameter tells you whether the current block is on the outer surfa
 - `Minecraft.World/StructurePiece.h/.cpp` for the piece base class and all placement helpers
 - `Minecraft.World/BoundingBox.h` for the spatial bounds used everywhere
 - `Minecraft.World/Direction.h` for orientation constants
-- `Minecraft.World/WeighedTreasure.h` for the loot table system
-- `Minecraft.World/MineShaftFeature.h` and `MineShaftPieces.h/.cpp` for a clean example of a full structure
-- `Minecraft.World/NetherBridgeFeature.h/.cpp` and `NetherBridgePieces.h` for the weight-based piece system
-- `Minecraft.World/VillageFeature.h/.cpp` for grid-based placement with biome checks
-- `Minecraft.World/StrongholdFeature.h/.cpp` for biome-seeking placement
-- `Minecraft.World/ScatteredFeaturePieces.h/.cpp` for simple single-piece structures (temples)
+- `Minecraft.World/WeighedTreasure.h/.cpp` for the loot table system and item rolling
+- `Minecraft.World/MineShaftFeature.h/.cpp` and `MineShaftPieces.h/.cpp` for a clean example of a full structure
+- `Minecraft.World/MineShaftStart.cpp` for the mineshaft initialization
+- `Minecraft.World/NetherBridgeFeature.h/.cpp` and `NetherBridgePieces.h/.cpp` for the weight-based piece system with dual piece lists
+- `Minecraft.World/VillageFeature.h/.cpp` and `VillagePieces.h/.cpp` for grid-based placement with biome checks and biome-aware block swapping
+- `Minecraft.World/StrongholdFeature.h/.cpp` and `StrongholdPieces.h/.cpp` for biome-seeking placement and the portal room guarantee
+- `Minecraft.World/ScatteredFeaturePieces.h/.cpp` for single-piece structures (temples) with traps and loot
+- `Minecraft.World/RandomScatteredLargeFeature.h/.cpp` for temple placement and biome-based type selection
 - `Minecraft.World/RandomLevelSource.h/.cpp` for where structures get registered

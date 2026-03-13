@@ -441,6 +441,33 @@ In multiplayer, the host sends texture pack info to joining clients. There are t
 
 When a client joins a game with a texture pack, the server sends the pack ID and the client selects it locally. If the client doesn't have the DLC pack installed, it falls back to the default.
 
+## Colour Tables
+
+Texture packs can include custom colour tables that change biome tinting across the entire game. The colour table is loaded via `TexturePack::loadColourTable()` and accessed through `TexturePack::getColourTable()`.
+
+The `ColourTable` class (in `Common/Colours/`) provides biome-specific color lookup. The `eMinecraftColour` enum in `App_enums.h` defines every colour ID, covering:
+
+- Grass tint per biome
+- Foliage tint per biome
+- Water tint per biome
+- Sky color per biome
+- Fog color per biome
+- Particle colors (nether portal, redstone, etc.)
+
+Mashup packs use colour tables to give the whole world a different feel. For example, the Skyrim mashup pack changes grass and foliage colors to look more like Skyrim's landscape.
+
+If you're making a texture pack and want to change biome colors, create a `colours.col` file and include it in your pack. The format is a binary file with one RGBA value per colour ID.
+
+## Web Skins
+
+The `TexturePackRepository` supports web skins through `selectWebSkin()` and `isUsingWebSkin()`. Web skins are player textures loaded from an HTTP URL rather than from a DLC pack. They work through the `HttpTexture` system in `Textures`.
+
+When a web skin is active, `isUsingWebSkin()` returns true and the player's skin is loaded from the URL stored in the repository. This is how online skin selection works in the LCE menus.
+
+## FileTexturePack
+
+The `FileTexturePack` class exists but is mostly stubbed on console. It's designed to load textures from a zip file, which is how Java Edition resource packs work. On console, DLC packs took over this role entirely. If you're building a PC port, `FileTexturePack` is where you'd implement zip-based resource pack loading.
+
 ## Key Source Files
 
 | File | What it does |

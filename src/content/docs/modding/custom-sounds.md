@@ -604,6 +604,68 @@ void Warden::performRoarAttack()
 
 Add the corresponding events to the Miles soundbank with paths like `Minecraft/mob.warden.ambient`, and you're good to go.
 
+## Custom SoundType for blocks
+
+If the built-in sound types (stone, wood, grass, etc.) don't fit your block, you can create a custom one:
+
+```cpp
+// In Tile.cpp, alongside the other static SoundType definitions:
+Tile::SOUND_CRYSTAL = new Tile::SoundType(
+    eMaterialSoundType_STONE,         // base material (for step sound fallback)
+    0.8f,                              // volume
+    1.5f,                              // pitch
+    eSoundType_RANDOM_GLASS,          // custom break sound
+    eSoundType_STEP_STONE             // custom place sound
+);
+```
+
+Then use it on your tile:
+
+```cpp
+Tile::crystalBlock = (new CrystalTile(200))
+    ->setDestroyTime(1.0f)
+    ->setSoundType(Tile::SOUND_CRYSTAL)
+    ->setTextureName(L"crystal");
+```
+
+The `eMATERIALSOUND_TYPE` controls which step and dig sounds the base class uses. The last two parameters let you override the break and place sounds independently.
+
+## Sound pitch and volume
+
+Both `volume` and `pitch` are floats. Volume ranges from 0.0 (silent) to around 4.0 (very loud; default is 1.0). Pitch ranges from about 0.5 (deep) to 2.0 (high; default is 1.0).
+
+Baby mobs automatically get a higher pitch through `getVoicePitch()`, which returns a randomized value between about 1.3 and 1.7 for young entities.
+
+The randomization in `getVoicePitch()` prevents sounds from being monotonous:
+
+```cpp
+float Mob::getVoicePitch()
+{
+    return (random->nextFloat() - random->nextFloat()) * 0.2f + 1.0f;
+}
+```
+
+## The MAX_SAME_SOUNDS_PLAYING limit
+
+The engine tracks how many copies of each sound are currently playing in `CurrentSoundsPlaying[]`. The cap is 8. If you try to play a 9th copy of the same sound, it gets dropped silently.
+
+This matters most for ambient sounds in dense mob farms. If you have 20 zombies in a small area, only 8 zombie ambient sounds will play at once. The rest get culled.
+
+## Clip distance from game code
+
+When game code plays a sound through `Level::playSound()`, the default clip distance is 16 blocks. But `LevelRenderer::playSound()` lets you override it:
+
+```cpp
+// Normal sound: audible within 16 blocks
+level->playSound(x, y, z, eSoundType_RANDOM_CLICK, 1.0f, 1.0f);
+
+// Long-range sound: audible within 100 blocks
+levelRenderer->playSound(eSoundType_MOB_ENDERDRAGON_GROWL,
+    x, y, z, 1.0f, 1.0f, 100.0f);
+```
+
+Thunder uses the special value of 10000 blocks, which the custom falloff function treats as "no attenuation at all."
+
 ## Key files reference
 
 | File | Purpose |
