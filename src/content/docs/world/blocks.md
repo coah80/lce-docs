@@ -146,8 +146,8 @@ All tiles are statically initialized in `Tile::staticCtor()`:
 | 24 | sandStone | `SandStoneTile` | 0.8s | 3 variants |
 | 25 | musicBlock | `MusicTile` | 0.8s | Note block, TileEntity |
 | 26 | bed | `BedTile` | 0.2s | 2-block, head/foot |
-| 27 | goldenRail | `RailTile` | — | Powered rail |
-| 28 | detectorRail | `DetectorRailTile` | — | Emits signal on entity |
+| 27 | goldenRail | `RailTile` | 0.7s | Powered rail |
+| 28 | detectorRail | `DetectorRailTile` | 0.7s | Emits signal on entity |
 | 29 | pistonStickyBase | `PistonBaseTile` | — | Sticky piston |
 | 30 | web | `WebTile` | 4.0s | Slows entities |
 | 31 | tallgrass | `TallGrass` | 0.0s | 3 types: shrub/grass/fern |
@@ -204,7 +204,7 @@ All tiles are statically initialized in `Tile::staticCtor()`:
 | 82 | clay | `ClayTile` | 0.6s | Drops clay balls |
 | 83 | reeds | `ReedTile` | 0.0s | Sugar cane, grows to 3 |
 | 84 | recordPlayer | `RecordPlayerTile` | 2.0s | Jukebox, TileEntity |
-| 85 | fence | `FenceTile` | — | Oak fence |
+| 85 | fence | `FenceTile` | 2.0s | Oak fence |
 | 86 | pumpkin | `PumpkinTile` | 1.0s | Rotatable |
 | 87 | hellRock | `HellStoneTile` | 0.4s | Netherrack |
 | 88 | hellSand | `HellSandTile` | 0.5s | Soul sand, slows entities |
@@ -218,10 +218,10 @@ All tiles are statically initialized in `Tile::staticCtor()`:
 | 96 | trapdoor | `TrapDoorTile` | — | Wood trapdoor |
 | 97 | monsterStoneEgg | `StoneMonsterTile` | 0.75s | Silverfish stone |
 | 98 | stoneBrickSmooth | `SmoothStoneBrickTile` | 1.5s | Stone bricks |
-| 99 | hugeMushroom1 | `HugeMushroomTile` | — | Huge brown mushroom |
-| 100 | hugeMushroom2 | `HugeMushroomTile` | — | Huge red mushroom |
-| 101 | ironFence | `ThinFenceTile` | — | Iron bars |
-| 102 | thinGlass | `ThinFenceTile` | — | Glass pane |
+| 99 | hugeMushroom1 | `HugeMushroomTile` | 0.2s | Huge brown mushroom |
+| 100 | hugeMushroom2 | `HugeMushroomTile` | 0.2s | Huge red mushroom |
+| 101 | ironFence | `ThinFenceTile` | 5.0s | Iron bars |
+| 102 | thinGlass | `ThinFenceTile` | 0.3s | Glass pane |
 | 103 | melon | `MelonTile` | 1.0s | Melon block |
 | 104 | pumpkinStem | `StemTile` | 0.0s | Grows pumpkins |
 | 105 | melonStem | `StemTile` | 0.0s | Grows melons |
@@ -232,7 +232,7 @@ All tiles are statically initialized in `Tile::staticCtor()`:
 | 110 | mycel | `MycelTile` | 0.6s | Mycelium |
 | 111 | waterLily | `WaterlilyTile` | 0.0s | Lily pad |
 | 112 | netherBrick | `Tile` | 2.0s | Nether brick block |
-| 113 | netherFence | `FenceTile` | — | Nether brick fence |
+| 113 | netherFence | `FenceTile` | 2.0s | Nether brick fence |
 | 114 | stairs_netherBricks | `StairTile` | — | Nether brick stairs |
 | 115 | netherStalk | `NetherStalkTile` | 0.0s | Nether wart, 4 stages |
 | 116 | enchantTable | `EnchantmentTableTile` | 5.0s | TileEntity |
@@ -364,6 +364,13 @@ class Material {
 | `clay` | Yes | No | No | No | Push |
 | `portal` | No | No | No | No | Block |
 | `cake` | Yes | No | No | No | Destroy |
+| `sponge` | Yes | No | No | No | Push |
+| `decoration` | No | No | No | No | Destroy |
+| `clothDecoration` | No | No | Yes | No | Push |
+| `buildable_glass` | Yes | No | No | No | Push |
+| `coral` | Yes | No | No | No | Destroy |
+| `vegetable` | Yes | No | No | No | Destroy |
+| `egg` | Yes | No | No | No | Destroy |
 | `web` | Yes | No | No | No | Destroy |
 | `piston` | Yes | No | No | No | Block |
 
