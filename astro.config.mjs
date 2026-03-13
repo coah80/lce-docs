@@ -8,6 +8,12 @@ export default defineConfig({
 	integrations: [
 		starlight({
 			title: 'LCE Docs',
+			favicon: '/favicon.png',
+			head: [
+				{ tag: 'link', attrs: { rel: 'icon', href: '/lcemp-docs/favicon.png', type: 'image/png' } },
+				{ tag: 'meta', attrs: { property: 'og:image', content: 'https://coah80.github.io/lcemp-docs/og-image.png' } },
+				{ tag: 'meta', attrs: { name: 'twitter:image', content: 'https://coah80.github.io/lcemp-docs/og-image.png' } },
+			],
 			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/coah80/lcemp-docs' }],
 			sidebar: [
 				{
