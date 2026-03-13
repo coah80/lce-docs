@@ -3,11 +3,18 @@ title: Introduction
 description: What LCE is and what this documentation covers.
 ---
 
+:::note[Credits]
+These docs were very much based on [LCEMP](https://github.com/coah80/LCEMP) and [MinecraftConsoles](https://github.com/smartcmd/MinecraftConsoles), and they helped a bunch with stuff. So go star those repos NOW!
+:::
+
 ## What is LCE?
 
-LCE (**Legacy Console Edition Multiplayer**) is a source fork of Minecraft Legacy Console Edition that adds working LAN multiplayer and better PC compatibility. It was created by **notpies**.
+LCE (**Legacy Console Edition**) is the version of Minecraft that **4J Studios** built for Microsoft and Mojang. They ported Minecraft's Java Edition codebase to C++11 and shipped it on Xbox 360, Xbox One (Durango), PS3, PS4 (Orbis), PS Vita, Wii U, and Nintendo Switch. It ran from 2012 until it was discontinued in favor of Bedrock Edition, but a lot of people still think it was the best version of Minecraft.
 
-The original Legacy Console Edition (or "LCE" in the community) was built by **4J Studios** for Microsoft and Mojang. They ported Minecraft's Java Edition codebase to C++11 and shipped it on Xbox 360, Xbox One (Durango), PS3, PS4 (Orbis), PS Vita, Wii U, and Nintendo Switch. The LCEMP fork takes that C++ codebase and adds a Windows 64-bit build target with real multiplayer networking over TCP/Winsock.
+The C++ codebase that powers LCE is what this entire documentation site is about. Two community forks make that codebase available to work with:
+
+- **[LCEMP](https://github.com/coah80/LCEMP)** (by notpies) - A source fork based on roughly TU9 / 1.2.2 that adds working LAN multiplayer and a Windows 64-bit build target
+- **[MinecraftConsoles](https://github.com/smartcmd/MinecraftConsoles)** (by smartcmd) - A more advanced fork based on roughly TU19 / 1.6.4 with horses, the Wither boss, beacons, hoppers, scoreboards, and an entity attribute system
 
 :::caution
 This is NOT the full Minecraft LCE source code. You need to provide the required asset files yourself. See the [Building & Compiling](/lce-docs/overview/building/) page for details.
@@ -15,7 +22,7 @@ This is NOT the full Minecraft LCE source code. You need to provide the required
 
 ## Version Baseline
 
-LCEMP is based on roughly the **TU9 / 1.2.2** era of Legacy Console Edition. That means it has content up through:
+The LCEMP fork is based on roughly the **TU9 / 1.2.2** era of Legacy Console Edition. That means it has content up through:
 
 - The End dimension and Ender Dragon boss fight
 - Enchanting and brewing systems
@@ -25,7 +32,7 @@ LCEMP is based on roughly the **TU9 / 1.2.2** era of Legacy Console Edition. Tha
 - Ocelots, iron golems, snow golems
 - All enchantments through TU9 (no Wither, no horses, no beacons)
 
-A later version of the same codebase, **MinecraftConsoles** (roughly TU19 / 1.6.4 era), exists with more content like the Wither boss, horses, beacons, hoppers, scoreboards, and an entity attribute system. The docs reference MinecraftConsoles differences where relevant.
+MinecraftConsoles goes further to roughly TU19 / 1.6.4, adding the Wither boss, horses, beacons, hoppers, scoreboards, and more. The docs reference MinecraftConsoles differences where relevant.
 
 ## LCEMP Features
 

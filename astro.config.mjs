@@ -8,6 +8,9 @@ export default defineConfig({
 	integrations: [
 		starlight({
 			title: 'LCE Docs',
+			components: {
+				Banner: './src/components/Banner.astro',
+			},
 			favicon: '/favicon.png',
 			head: [
 				{ tag: 'link', attrs: { rel: 'icon', href: '/lce-docs/favicon.png', type: 'image/png' } },
@@ -152,6 +155,18 @@ export default defineConfig({
 								{ label: 'Multiplayer & Packets', slug: 'modding/multiplayer' },
 							],
 						},
+					],
+				},
+				{
+					label: 'Mod Templates',
+					items: [
+						{ label: 'Random Wooden House', slug: 'templates/random-house' },
+						{ label: 'Purple Dimension', slug: 'templates/purple-dimension' },
+						{ label: 'Ruby Ore & Tools', slug: 'templates/ruby-tools' },
+						{ label: 'Custom Mob', slug: 'templates/custom-mob' },
+						{ label: 'Enchantment & Potion', slug: 'templates/enchantment-potion' },
+						{ label: 'Custom Workbench', slug: 'templates/custom-workbench' },
+						{ label: 'Textures from Scratch', slug: 'templates/texture-tutorial' },
 					],
 				},
 				{

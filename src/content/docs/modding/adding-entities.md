@@ -455,7 +455,7 @@ The `setId` function registers your entity in five maps at once:
 | `numClassMap` | Numeric ID | `eINSTANCEOF` |
 | `classNumMap` | `eINSTANCEOF` | Numeric ID |
 
-The six-argument version also adds the mob to `idsSpawnableInCreative` for the spawn egg UI.
+The seven-argument version also adds the mob to `idsSpawnableInCreative` for the spawn egg UI.
 
 ### Numeric ID Conventions
 
