@@ -1,22 +1,35 @@
 ---
 title: Special Items
-description: Spawn eggs, enchanted books, and other items with unique behaviors in LCE.
+description: Spawn eggs, enchanted books, skulls, flint and steel, saddles, and other items with unique mechanics.
 ---
+
+Special items have unique mechanics that do not fit neatly into the tool, armor, food, or combat categories.
 
 ## MonsterPlacerItem (Spawn Eggs)
 
-**File:** `Minecraft.World/MonsterPlacerItem.h`, `Minecraft.World/MonsterPlacerItem.cpp`
+**Files:** `Minecraft.World/MonsterPlacerItem.h`, `Minecraft.World/MonsterPlacerItem.cpp`
 
-Uses `auxValue` to determine mob type. ID: **383**. Has two sprite layers for the egg's base and overlay colors.
+| Property | Value |
+|----------|-------|
+| ID | 383 |
+| Stack Size | 16 |
+| Stacked By Data | Yes |
+| Sprite Layers | 2 (base + overlay) |
 
-### Spawn Limit Checks
+Uses `auxValue` to determine mob type. The item name is dynamically constructed by looking up the entity name via `EntityIO::getNameId()` and inserting it into a `{*CREATURE*}` placeholder.
 
-Spawn eggs enforce population limits with detailed failure codes:
+Egg colors are read from `EntityIO::idsSpawnableInCreative` -- each spawnable mob entry has `eggColor1` (base) and `eggColor2` (overlay spot color).
 
-| Result | Meaning |
-|--------|---------|
+Note: The stack size is 16 on LCE (vs. 64 on PC), as noted in the source: *"brought forward. It is 64 on PC, but we'll never be able to place that many."*
+
+### Spawn Limit System
+
+Before spawning, the `canSpawn` method checks entity-type-specific population limits. This is a **LCE-specific** addition to prevent excessive entity counts on console hardware.
+
+| Result Code | Meaning |
+|-------------|---------|
 | `eSpawnResult_OK` | Spawn succeeded |
-| `eSpawnResult_FailTooManyPigsCowsSheepCats` | Passive mob limit |
+| `eSpawnResult_FailTooManyPigsCowsSheepCats` | Passive mob limit (pigs, cows, sheep, ocelots) |
 | `eSpawnResult_FailTooManyChickens` | Chicken limit |
 | `eSpawnResult_FailTooManySquid` | Squid limit |
 | `eSpawnResult_FailTooManyWolves` | Wolf limit |
@@ -24,48 +37,123 @@ Spawn eggs enforce population limits with detailed failure codes:
 | `eSpawnResult_FailTooManyAnimals` | Global animal limit |
 | `eSpawnResult_FailTooManyMonsters` | Monster limit |
 | `eSpawnResult_FailTooManyVillagers` | Villager limit |
-| `eSpawnResult_FailCantSpawnInPeaceful` | Hostile mob on Peaceful |
+| `eSpawnResult_FailCantSpawnInPeaceful` | Hostile mob on Peaceful difficulty |
 
-The static method `spawnMobAt(Level*, int mobId, double x, double y, double z, int *piResult)` handles the actual spawning with result reporting (the `piResult` parameter was added by 4J Studios). A companion static method `canSpawn(int auxVal, Level*, int *piResult)` is used by dispensers.
+Each failure code triggers a localized message to the player (e.g., `IDS_MAX_CHICKENS_SPAWNED`).
+
+The `canSpawn` method dispatches by entity type using a switch:
+- `eTYPE_CHICKEN`, `eTYPE_WOLF`, `eTYPE_VILLAGER`, `eTYPE_MUSHROOMCOW`, `eTYPE_SQUID` each have dedicated checks
+- Other animals matching `eTYPE_ANIMALS_SPAWN_LIMIT_CHECK` fall through to the generic passive mob limit
+- Monsters matching `eTYPE_MONSTER` check difficulty (Peaceful rejects hostile mobs) then the monster population limit
+
+### Placement Behavior
+
+When used on a block face:
+1. Position is offset by the face direction via `Facing::STEP_X/Y/Z`
+2. Special case: using on a fence or nether fence adds a 0.5 Y offset
+3. `spawnMobAt` creates the entity, sets a random Y rotation, marks it as despawn-protected, and calls `finalizeMobSpawn`
+4. In Creative mode, the item is not consumed
+5. In debug mode, using on a mob spawner tile sets the spawner's entity type
+
+### Dispenser Support
+
+The static `canSpawn` method (4J addition) allows dispensers to use spawn eggs, performing the same population limit checks.
 
 ## EnchantedBookItem
 
-**File:** `Minecraft.World/EnchantedBookItem.h`, `Minecraft.World/EnchantedBookItem.cpp`
+**Files:** `Minecraft.World/EnchantedBookItem.h`, `Minecraft.World/EnchantedBookItem.cpp`
 
-Stores enchantments in NBT under the `StoredEnchantments` tag (separate from regular enchantments). Always has a foil effect (`isFoil` returns true). Stack size is 1. ID: **403**.
+| Property | Value |
+|----------|-------|
+| ID | 403 |
+| Stack Size | 1 |
+| Foil Effect | Always (`isFoil` returns `true`) |
+| Enchantable | No (`isEnchantable` returns `false`) |
+| NBT Tag | `StoredEnchantments` |
+| Rarity | `uncommon` (if has enchantments), `common` (if empty) |
 
-Key methods:
-- `getEnchantments()` -- reads the `StoredEnchantments` list tag
-- `addEnchantment()` -- appends an enchantment to the stored list
-- `createForEnchantment()` -- creates a book with a specific enchantment
-- `createForRandomLoot()` -- generates a randomly enchanted book for dungeon chests
-- `createForRandomTreasure()` -- creates a `WeighedTreasure` entry for loot tables
+Stores enchantments in NBT under the `StoredEnchantments` tag (separate from the regular `ench` tag used by tools and armor). The `addEnchantment` method either upgrades an existing enchantment's level or appends a new one.
 
-## CoalItem
+### Key Methods
 
-**Files:** `Minecraft.World/CoalItem.h`, `Minecraft.World/CoalItem.cpp`
+| Method | Purpose |
+|--------|---------|
+| `getEnchantments(item)` | Reads the `StoredEnchantments` list tag from NBT |
+| `addEnchantment(item, enchant)` | Adds or upgrades an enchantment in the stored list |
+| `createForEnchantment(enchant)` | Creates a book with a specific enchantment |
+| `createForEnchantment(enchant, items)` | Creates books for all levels of an enchantment |
+| `createForRandomLoot(random)` | Picks a random valid enchantment at a random level for dungeon chests |
+| `createForRandomTreasure(random)` | Creates a `WeighedTreasure` entry for weighted loot tables |
+| `createForRandomTreasure(random, min, max, weight)` | Same with custom count range and weight |
 
-Differentiates Coal (aux 0) and Charcoal (aux 1) via `auxValue`. ID: **263**.
+The tooltip displays all stored enchantments using `Enchantment::getFullname()`.
 
-## DyePowderItem
+## FlintAndSteelItem
 
-**Files:** `Minecraft.World/DyePowderItem.h`, `Minecraft.World/DyePowderItem.cpp`
+**Files:** `Minecraft.World/FlintAndSteelItem.h`, `Minecraft.World/FlintAndSteelItem.cpp`
 
-16 colors differentiated by `auxValue`. Includes bone meal (aux 15) with special fertilizer behavior. ID: **351**.
+| Property | Value |
+|----------|-------|
+| ID | 259 |
+| Max Durability | 64 |
+| Stack Size | 1 |
 
-## ComplexItem / MapItem
+Places fire on the adjacent block face. Consumes 1 durability per use.
 
-**Files:** `Minecraft.World/ComplexItem.h`, `Minecraft.World/MapItem.h`
+## SaddleItem
 
-`ComplexItem` sets `isComplex() = true` for special network handling. `MapItem` extends it, providing 128x128 pixel maps with data stored in `MapItemSavedData` and updates via `getUpdatePacket()`. ID: **358**.
+**Files:** `Minecraft.World/SaddleItem.h`, `Minecraft.World/SaddleItem.cpp`
+
+| Property | Value |
+|----------|-------|
+| ID | 329 |
+| Stack Size | 1 |
+
+Equips on pigs via `interactEnemy`. Cannot be recovered after placement.
+
+## CarrotOnAStickItem
+
+**Files:** `Minecraft.World/CarrotOnAStickItem.h`, `Minecraft.World/CarrotOnAStickItem.cpp`
+
+| Property | Value |
+|----------|-------|
+| ID | 398 |
+| Max Durability | 25 |
+| Stack Size | 1 |
+
+Controls saddled pigs. When used while riding a pig, boosts the pig's speed. Consumes durability on boost.
+
+## BottleItem (Glass Bottles)
+
+**Files:** `Minecraft.World/BottleItem.h`, `Minecraft.World/BottleItem.cpp`
+
+| Property | Value |
+|----------|-------|
+| ID | 374 |
+| Stack Size | 64 |
+
+Right-click on a water source block fills the bottle, converting it into a water bottle (potion with base aux value). Used as the starting ingredient for potion brewing.
+
+## MilkBucketItem
+
+**Files:** `Minecraft.World/MilkBucketItem.h`, `Minecraft.World/MilkBucketItem.cpp`
+
+| Property | Value |
+|----------|-------|
+| ID | 335 |
+| Stack Size | 1 |
+| Crafting Remainder | Empty Bucket |
+
+Clears all mob effects when consumed. The crafting remaining item is set to the empty bucket.
 
 ## Other Special Items
 
-| Item Class | Item | ID | Notes |
-|------------|------|----|-------|
-| `SaddleItem` | Saddle | 329 | Equips on pigs; stack size 1 |
-| `CompassItem` | Compass | 345 | Points toward world spawn |
-| `ClockItem` | Clock | 347 | Shows time of day |
-| `EnderEyeItem` | Eye of Ender | 381 | Locates strongholds and fills portal frames |
-| `CarrotOnAStickItem` | Carrot on a Stick | 398 | Controls saddled pigs |
-| `BottleItem` | Glass Bottle | 374 | Collects water for brewing |
+| Item | ID | Class | Notes |
+|------|----|-------|-------|
+| Compass | 345 | `CompassItem` | Points toward world spawn; `eBaseItemType_pockettool` |
+| Clock | 347 | `ClockItem` | Shows time of day; `eBaseItemType_pockettool` |
+| Eye of Ender | 381 | `EnderEyeItem` | Locates strongholds; fills portal frames; `eBaseItemType_pockettool` |
+| Boat | 333 | `BoatItem` | Places a boat entity on water |
+| Minecart | 328 | `MinecartItem` | Places minecart on rails |
+| Chest Minecart | 342 | `MinecartItem` | Minecart with chest |
+| Furnace Minecart | 343 | `MinecartItem` | Minecart with furnace |

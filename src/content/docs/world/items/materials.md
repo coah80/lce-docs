@@ -1,72 +1,109 @@
 ---
-title: Raw Materials & Crafting Ingredients
-description: Ingots, diamonds, redstone, glowstone dust, string, leather, and other crafting materials.
+title: Raw Materials
+description: Ingots, gems, redstone dust, glowstone dust, and other crafting ingredients registered as simple Item instances.
 ---
 
-These items serve primarily as crafting ingredients, raw materials, or intermediary components. They use the base `Item` class or simple subclasses with minimal custom behavior.
+Raw materials are the crafting ingredients and resource items in LCE. Most are registered as plain `Item` instances in `Item::staticCtor()` with no special subclass behavior. A few have dedicated classes for placement or potion brewing.
 
-## Ore Products & Ingots
+## Simple Material Items
 
-| ID | Item | Type | Notes |
-|----|------|------|-------|
-| 263 | Coal | CoalItem | Coal (aux 0) and Charcoal (aux 1) via aux value |
-| 264 | Diamond | Item | Repairs diamond tools/armor |
-| 265 | Iron Ingot | Item | Repairs iron tools/armor |
-| 266 | Gold Ingot | Item | Repairs gold tools/armor |
-| 371 | Gold Nugget | Item | 9 craft into 1 gold ingot |
-| 388 | Emerald | Item | Villager trading currency |
-| 405 | Nether Brick (item) | Item | Used in nether brick recipes |
-| 406 | Nether Quartz | Item | Used in quartz block recipes |
+These items are registered as `new Item(id)` with builder-pattern configuration. They have no special `useOn`, `use`, or other overridden behavior beyond their stack and texture settings.
 
-## Crafting Components
+| Item | ID | Class | Notes |
+|------|----|-------|-------|
+| Diamond | 264 | `Item` | Repair item for Diamond tier |
+| Iron Ingot | 265 | `Item` | Repair item for Iron tier; `eBaseItemType_ingot` |
+| Gold Ingot | 266 | `Item` | Repair item for Gold tier; `eBaseItemType_ingot` |
+| Stick | 280 | `Item` | Crafting ingredient for tools, torches, fences |
+| Bowl | 281 | `Item` | Crafting ingredient for mushroom stew |
+| Feather | 288 | `Item` | Crafting ingredient for arrows |
+| Gunpowder | 289 | `Item` | Brewing formula: `MOD_GUNPOWDER` |
+| Wheat | 296 | `Item` | Crafting ingredient for bread, cake |
+| Flint | 318 | `Item` | Crafting ingredient for flint and steel, arrows |
+| Leather | 334 | `Item` | Repair item for Leather armor |
+| Brick | 336 | `Item` | Crafting ingredient for brick blocks |
+| Clay Ball | 337 | `Item` | Smelts into brick |
+| Paper | 339 | `Item` | Crafting ingredient for books, maps |
+| Slime Ball | 341 | `Item` | Crafting ingredient for sticky pistons, magma cream |
+| Glowstone Dust | 348 | `Item` | Brewing formula: `MOD_GLOWSTONE` |
+| Bone | 352 | `Item` | Crafts into bone meal (dye aux 15) |
+| Sugar | 353 | `Item` | Brewing formula: `MOD_SUGAR` |
+| Blaze Rod | 369 | `Item` | Crafts into blaze powder |
+| Ghast Tear | 370 | `Item` | Brewing formula: `MOD_GHASTTEARS` |
+| Gold Nugget | 371 | `Item` | 9 craft into gold ingot |
+| Fermented Spider Eye | 376 | `Item` | Brewing formula: `MOD_FERMENTEDEYE` |
+| Blaze Powder | 377 | `Item` | Brewing formula: `MOD_BLAZEPOWDER` |
+| Magma Cream | 378 | `Item` | Brewing formula: `MOD_MAGMACREAM` |
+| Glistering Melon | 382 | `Item` | Brewing formula: `MOD_SPECKLEDMELON` |
+| Emerald | 388 | `Item` | Villager trading currency |
+| Nether Brick (item) | 405 | `Item` | Crafts into nether brick blocks |
+| Nether Quartz | 406 | `Item` | Crafts into quartz blocks |
 
-| ID | Item | Type | Notes |
-|----|------|------|-------|
-| 280 | Stick | Item | Fundamental crafting ingredient |
-| 288 | Feather | Item | Arrow crafting |
-| 289 | Gunpowder | Item | TNT, fire charges; brewing formula `MOD_GUNPOWDER` |
-| 296 | Wheat | Item | Bread, cake crafting |
-| 318 | Flint | Item | Arrow and flint & steel crafting |
-| 334 | Leather | Item | Leather armor, books; repairs leather armor |
-| 336 | Brick | Item | Brick block crafting |
-| 337 | Clay Ball | Item | Brick smelting |
-| 339 | Paper | Item | Maps, books |
-| 341 | Slime Ball | Item | Sticky pistons, leads |
-| 352 | Bone | Item | Bone meal (dye) source |
-| 353 | Sugar | Item | Cake, pumpkin pie; brewing formula `MOD_SUGAR` |
+## Special Material Classes
 
-## Nether & Brewing Materials
+These materials have dedicated subclasses with extra behavior.
 
-| ID | Item | Type | Notes |
-|----|------|------|-------|
-| 348 | Glowstone Dust | Item | Brewing formula `MOD_GLOWSTONE` |
-| 369 | Blaze Rod | Item | Blaze powder, brewing stands |
-| 370 | Ghast Tear | Item | Brewing formula `MOD_GHASTTEARS` |
-| 376 | Fermented Spider Eye | Item | Brewing formula `MOD_FERMENTEDEYE` |
-| 377 | Blaze Powder | Item | Brewing formula `MOD_BLAZEPOWDER` |
-| 378 | Magma Cream | Item | Brewing formula `MOD_MAGMACREAM` |
-| 382 | Glistering Melon | Item | Brewing formula `MOD_SPECKLEDMELON` |
+### CoalItem
 
-## Redstone Components
+**Files:** `Minecraft.World/CoalItem.h`, `Minecraft.World/CoalItem.cpp`
 
-| ID | Item | Type | Notes |
-|----|------|------|-------|
-| 331 | Redstone | RedStoneItem | Places redstone dust; brewing formula `MOD_REDSTONE` |
+| Property | Value |
+|----------|-------|
+| ID | 263 |
+| Stacked By Data | Yes |
 
-## Seeds
+Uses `auxValue` to differentiate Coal (0) and Charcoal (1). Each variant has its own texture and description string.
 
-| ID | Item | Type | Notes |
-|----|------|------|-------|
-| 295 | Wheat Seeds | SeedItem | Plants wheat on farmland |
-| 361 | Pumpkin Seeds | SeedItem | Plants pumpkin stem on farmland |
-| 362 | Melon Seeds | SeedItem | Plants melon stem on farmland |
-| 372 | Nether Wart | SeedItem | Plants on soul sand; brewing formula `MOD_NETHERWART` |
+### RedStoneItem
 
-## Utility Items
+**Files:** `Minecraft.World/RedStoneItem.h`, `Minecraft.World/RedStoneItem.cpp`
 
-| ID | Item | Type | Notes |
-|----|------|------|-------|
-| 329 | Saddle | SaddleItem | Equips on pigs; stack size 1 |
-| 374 | Glass Bottle | BottleItem | Collects water for brewing |
-| 381 | Eye of Ender | EnderEyeItem | Locates strongholds, fills portal frames |
-| 398 | Carrot on a Stick | CarrotOnAStickItem | Controls saddled pigs |
+| Property | Value |
+|----------|-------|
+| ID | 331 |
+| Brewing Formula | `MOD_REDSTONE` |
+
+Overrides `useOn` to place redstone dust tile (`Tile::redStoneDust`) on the target block face. Also serves as a potion brewing ingredient.
+
+### SeedItem
+
+**Files:** `Minecraft.World/SeedItem.h`, `Minecraft.World/SeedItem.cpp`
+
+Seeds are plantable items that place crop tiles on farmland.
+
+| Item | ID | Places |
+|------|----|--------|
+| Wheat Seeds | 295 | Wheat crop tile |
+| Pumpkin Seeds | 361 | Stem tile (pumpkin) |
+| Melon Seeds | 362 | Stem tile (melon) |
+| Nether Wart | 372 | Nether stalk tile; brewing formula: `MOD_NETHERWART` |
+
+### Arrow
+
+| Property | Value |
+|----------|-------|
+| ID | 262 |
+| Class | `Item` |
+
+A simple item with no special behavior. Consumed by `BowItem` when firing. See [Combat Items](/lcemp-docs/world/items/combat/) for bow mechanics.
+
+## Potion Brewing Ingredients
+
+Several material items are tagged with potion brewing formulas via `setPotionBrewingFormula()`. These items can be placed in a brewing stand to modify potions.
+
+| Item | ID | Brewing Formula |
+|------|-----|----------------|
+| Gunpowder | 289 | `MOD_GUNPOWDER` |
+| Redstone | 331 | `MOD_REDSTONE` |
+| Glowstone Dust | 348 | `MOD_GLOWSTONE` |
+| Sugar | 353 | `MOD_SUGAR` |
+| Ghast Tear | 370 | `MOD_GHASTTEARS` |
+| Nether Wart | 372 | `MOD_NETHERWART` |
+| Spider Eye | 375 | `MOD_SPIDEREYE` |
+| Fermented Spider Eye | 376 | `MOD_FERMENTEDEYE` |
+| Blaze Powder | 377 | `MOD_BLAZEPOWDER` |
+| Magma Cream | 378 | `MOD_MAGMACREAM` |
+| Glistering Melon | 382 | `MOD_SPECKLEDMELON` |
+| Golden Carrot | 396 | `MOD_GOLDENCARROT` |
+
+See [Effects (Potions)](/lcemp-docs/world/effects/) for the full potion system.
