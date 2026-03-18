@@ -340,8 +340,7 @@ In your mob's constructor, add it to the goal selector:
 MyGuardMob::MyGuardMob(Level *level) : Monster(level)
 {
     this->defineSynchedData();
-    registerAttributes();
-    setHealth(getMaxHealth());
+    health = getMaxHealth();
 
     goalSelector.addGoal(0, new FloatGoal(this));
     goalSelector.addGoal(1, new GuardAreaGoal(this, spawnX, spawnY, spawnZ, 16.0, 1.2));
@@ -370,7 +369,7 @@ This split means you can change targeting logic without touching attack logic, a
 targetSelector.addGoal(1, new OwnerHurtByTargetGoal(this));   // Defend my owner
 targetSelector.addGoal(2, new OwnerHurtTargetGoal(this));     // Attack what my owner attacks
 targetSelector.addGoal(3, new HurtByTargetGoal(this, true));  // Fight back if hit
-targetSelector.addGoal(4, new NonTameRandomTargetGoal(this, typeid(Sheep), 200, false)); // Hunt sheep
+targetSelector.addGoal(4, new NonTameRandomTargetGoal(this, typeid(Sheep), 16, 200, false)); // Hunt sheep
 
 // Action: how do I fight?
 goalSelector.addGoal(3, new LeapAtTargetGoal(this, 0.4));     // Pounce

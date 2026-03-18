@@ -3,7 +3,7 @@ title: Custom Sounds & Music
 description: How the LCE sound system works and how to add your own sounds and music.
 ---
 
-LCE uses the **Miles Sound System** (MSS) for all audio on console platforms. Sounds are stored in a compiled soundbank (`Minecraft.msscmp`), and music tracks are streamed from `.binka` files on disk. The engine supports full 3D positional audio, distance-based falloff, splitscreen listener handling, and per-domain music selection.
+The original console builds used the **Miles Sound System** (MSS) for audio, with sounds stored in a compiled soundbank (`Minecraft.msscmp`) and music tracks streamed from `.binka` files on disk. LCEMP has replaced Miles with **miniaudio**, a single-header C audio library. The engine supports full 3D positional audio, distance-based falloff, splitscreen listener handling, and per-domain music selection.
 
 This guide covers the whole audio pipeline, from how the sound system boots up to how you add your own custom sounds and music tracks.
 
@@ -164,9 +164,6 @@ In `Minecraft.World/SoundTypes.h`, add your new entry. Put it right before `eSou
 enum eSOUND_TYPE
 {
     // ... existing sounds ...
-    eSoundType_RANDOM_LEVELUP,
-    eSoundType_FIRE_NEWIGNITE,
-
     // your new sound
     eSoundType_MOB_CUSTOM_AMBIENT,
 
@@ -181,9 +178,6 @@ In `Minecraft.Client/Common/Audio/SoundNames.cpp`, add the matching string at th
 ```cpp
 const WCHAR *ConsoleSoundEngine::wchSoundNames[eSoundType_MAX] = {
     // ... must match enum order exactly ...
-    L"random.levelup",
-    L"fire.newignite",
-
     // your new sound
     L"mob.custom.ambient",
 };
@@ -191,7 +185,7 @@ const WCHAR *ConsoleSoundEngine::wchSoundNames[eSoundType_MAX] = {
 
 ### Step 3: Add to the soundbank
 
-The audio data itself lives in `Minecraft.msscmp`, which is a compiled Miles soundbank. You need to add a new event named `Minecraft/mob.custom.ambient` to the bank using the Miles Sound Studio tools. The event name must match the string you put in `wchSoundNames[]` (with dots converted to slashes).
+In the original console builds, the audio data lived in `Minecraft.msscmp`, a compiled Miles soundbank. You would add a new event named `Minecraft/mob.custom.ambient` to the bank using Miles Sound Studio tools. In LCEMP (which uses miniaudio), you instead provide the audio file directly on disk. The event name must match the string you put in `wchSoundNames[]` (with dots converted to slashes for path resolution).
 
 The `ConvertSoundPathToName()` function handles the conversion from the dot-separated wide string to the slash-separated event name that Miles expects.
 
@@ -602,7 +596,7 @@ void Warden::performRoarAttack()
 }
 ```
 
-Add the corresponding events to the Miles soundbank with paths like `Minecraft/mob.warden.ambient`, and you're good to go.
+In the original console builds, you would add the corresponding events to the Miles soundbank with paths like `Minecraft/mob.warden.ambient`. In LCEMP, provide the audio files directly and make sure the path resolution matches the `wchSoundNames[]` entries.
 
 ## Custom SoundType for blocks
 

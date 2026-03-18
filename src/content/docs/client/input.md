@@ -39,26 +39,27 @@ extern KeyboardMouseInput g_KBMInput;
 
 #### Key constants
 
-| Constant | Key | Value |
-|---|---|---|
-| `KEY_FORWARD` | W | `'W'` |
-| `KEY_BACKWARD` | S | `'S'` |
-| `KEY_LEFT` | A | `'A'` |
-| `KEY_RIGHT` | D | `'D'` |
-| `KEY_JUMP` | Space | `VK_SPACE` |
-| `KEY_SNEAK` | Left Shift | `VK_LSHIFT` |
-| `KEY_SPRINT` | Left Ctrl | `VK_LCONTROL` |
-| `KEY_INVENTORY` | E | `'E'` |
-| `KEY_DROP` | Q | `'Q'` |
-| `KEY_CRAFTING` | Tab | `VK_TAB` |
-| `KEY_CRAFTING_ALT` | R | `'R'` |
-| `KEY_CONFIRM` | Enter | `VK_RETURN` |
-| `KEY_CANCEL` | Backspace | `VK_BACK` |
-| `KEY_PAUSE` | Escape | `VK_ESCAPE` |
-| `KEY_THIRD_PERSON` | F5 | `VK_F5` |
-| `KEY_DEBUG_INFO` | F3 | `VK_F3` |
+| Constant | Key | Value | Mutable? |
+|---|---|---|---|
+| `KEY_FORWARD` | W | `'W'` | Yes |
+| `KEY_BACKWARD` | S | `'S'` | Yes |
+| `KEY_LEFT` | A | `'A'` | Yes |
+| `KEY_RIGHT` | D | `'D'` | Yes |
+| `KEY_JUMP` | Space | `VK_SPACE` | Yes |
+| `KEY_SNEAK` | Left Shift | `VK_LSHIFT` | Yes |
+| `KEY_SPRINT` | Left Ctrl | `VK_LCONTROL` | Yes |
+| `KEY_INVENTORY` | E | `'E'` | Yes |
+| `KEY_DROP` | Q | `'Q'` | Yes |
+| `KEY_CRAFTING` | Tab | `VK_TAB` | Yes |
+| `KEY_CRAFTING_ALT` | R | `'R'` | No (const) |
+| `KEY_CONFIRM` | Enter | `VK_RETURN` | Yes |
+| `KEY_CANCEL` | Backspace | `VK_BACK` | No (const) |
+| `KEY_PAUSE` | Escape | `VK_ESCAPE` | Yes |
+| `KEY_THIRD_PERSON` | F5 | `VK_F5` | Yes |
+| `KEY_DEBUG_INFO` | F3 | `VK_F3` | Yes |
+| `KEY_VOICE` | (varies) | (varies) | Yes |
 
-These are hardcoded `static const int` values on the class. They aren't remappable through the input system itself, but the `Options` class has a separate `KeyMapping` system for the Java-style key bindings (see below).
+Most of these are `static int` (not const), so they can be remapped at runtime. Only `KEY_CRAFTING_ALT` and `KEY_CANCEL` are `static const int`. The `Options` class has a separate `KeyMapping` system for the Java-style key bindings (see below).
 
 `MAX_KEYS` = 256 covers all Windows virtual key codes.
 
@@ -112,6 +113,7 @@ Mouse position is tracked separately:
 | `SetWindowFocused(bool)` | Track window focus state. `IsWindowFocused()` queries. |
 | `SetKBMActive(bool)` | Mark keyboard/mouse as the active input device. `IsKBMActive()` queries. |
 | `SetScreenCursorHidden(bool)` | Screen-level cursor hide request. `IsScreenCursorHidden()` queries. |
+| `HadRawMouseInput()` | Returns `m_hadRawMouseInput`, true when raw mouse delta was received this tick. Useful for detecting mouse activity independently of keyboard. |
 | `HasAnyInput()` | Returns `m_hasInput`, which is true when any key or mouse event has happened. Used for auto-detecting whether to switch between controller and keyboard/mouse input modes. |
 
 ## Controller input (EControllerActions)

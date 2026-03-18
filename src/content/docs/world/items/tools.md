@@ -57,7 +57,7 @@ The `getTierItemId()` method figures out which item can repair a tool on the anv
 | Diamond | Diamond (264) |
 | Gold | Gold Ingot (266) |
 
-If none of the checks match (like for a custom tier), it returns `-1` meaning no repair item.
+If none of the checks match (like for a custom tier), it returns `0` meaning no repair item.
 
 ## WeaponItem (Swords)
 
@@ -313,8 +313,8 @@ Shears do not override `getEnchantmentValue()`, so they return 0 from the base `
 
 Right-click toggles between casting and reeling:
 
-1. **If the player already has a fishing hook out:** calls `FishingHook::retrieve()` on the hook entity. The return value becomes the durability damage. Then it plays the `random.bow` sound at pitch 0.4.
-2. **If no hook is out:** creates a new `FishingHook` entity and adds it to the level. Plays the `random.bow` sound at pitch 0.5. Does not cost durability.
+1. **If the player already has a fishing hook out (reeling in):** calls `FishingHook::retrieve()` on the hook entity. The return value becomes the durability damage. Then calls `player->swing()`. No sound is played.
+2. **If no hook is out (casting):** creates a new `FishingHook` entity and adds it to the level. Plays the `random.bow` sound at volume 0.5 with a calculated pitch of `0.4f / (random * 0.4f + 0.8f)`. Does not cost durability.
 
 ### Cast icon
 

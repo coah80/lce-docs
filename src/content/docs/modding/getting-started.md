@@ -52,14 +52,51 @@ LCEMP/
 All game content (blocks, items, entities) lives in the `Minecraft.World/` directory. When you add new files:
 
 1. Create your `.h` and `.cpp` files in `Minecraft.World/`
-2. Add them to the `MINECRAFT_WORLD_SOURCES` list in `cmake/Sources.cmake`
-3. Include the right aggregate headers in your `.cpp` (see below)
+2. Add the `.cpp` file to `cmake/Sources.cmake` (see below)
+3. Add your `.h` file to the right umbrella header (see below)
+4. Include the right umbrella headers in your `.cpp`
 
 If your mod needs rendering changes (new entity renderer, new block render shape, new particle), you will also need files in `Minecraft.Client/`. Add those to `MINECRAFT_CLIENT_SOURCES` in `Sources.cmake`.
 
-### Aggregate Headers
+### Adding Files to Sources.cmake
 
-The codebase uses aggregate include headers to pull in related classes. Your `.cpp` files will usually start with one or more of these:
+This is the part most people trip on. Open `cmake/Sources.cmake` and you'll see two big lists: `MINECRAFT_WORLD_SOURCES` and `MINECRAFT_CLIENT_SOURCES`. Only `.cpp` files go here, not headers. Each entry is a quoted relative path, one per line:
+
+```cmake
+set(MINECRAFT_WORLD_SOURCES
+        "AABB.cpp"
+        "Abilities.cpp"
+        "AbstractContainerMenu.cpp"
+        # ... hundreds more ...
+        "MyCustomTile.cpp"          # <-- add yours here
+)
+```
+
+The list is roughly alphabetical, so slot your file in the right spot. For files in `Minecraft.Client/`, some live in subdirectories:
+
+```cmake
+set(MINECRAFT_CLIENT_SOURCES
+        "AbstractTexturePack.cpp"
+        "Common/Audio/SoundEngine.cpp"
+        "Common/UI/UIScene.cpp"
+        # ...
+)
+```
+
+CMake prepends the module directory automatically (`Minecraft.World/` or `Minecraft.Client/`), so you just write the filename or subdirectory path relative to that folder.
+
+After changing `Sources.cmake`, you need to re-run CMake to regenerate the build:
+
+```bash
+cd build
+cmake ..
+```
+
+If you're using Visual Studio, it will usually detect the change and prompt you to reload. If it doesn't, re-run CMake manually.
+
+### Umbrella Headers
+
+The codebase uses umbrella headers (also called aggregate headers) to pull in related classes. Instead of including every individual header, you include one umbrella and it pulls in everything for that subsystem. Your `.cpp` files will usually start with one or more of these:
 
 ```cpp
 #include "stdafx.h"                            // Precompiled header (always first)
@@ -72,10 +109,24 @@ The codebase uses aggregate include headers to pull in related classes. Your `.c
 #include "net.minecraft.world.item.crafting.h" // Recipe classes
 #include "net.minecraft.world.item.enchantment.h" // Enchantment classes
 #include "net.minecraft.world.level.biome.h"   // Biome classes
+#include "net.minecraft.world.level.dimension.h" // Dimension classes
 #include "com.mojang.nbt.h"                    // NBT serialization
 ```
 
-These mirror the original Java package structure. Each one pulls in a batch of related headers so you don't have to include them individually.
+These mirror the original Java package structure. Each one is just a small file that includes all the headers in that subsystem. For example, `net.minecraft.world.level.dimension.h` looks like this:
+
+```cpp
+#pragma once
+
+#include "Dimension.h"
+#include "HellDimension.h"
+#include "NormalDimension.h"
+#include "TheEndDimension.h"
+```
+
+**When you create a new class, add your header to the matching umbrella header.** If you make a new tile called `RubyOreTile`, add `#include "RubyOreTile.h"` to `net.minecraft.world.level.tile.h`. If you make a new monster, add it to `net.minecraft.world.entity.monster.h`. This way, any `.cpp` file that already includes the umbrella header will automatically see your new class.
+
+If you skip this step, other files that need your class won't find it, and you'll get "no such file or directory" errors when they try to include it through the umbrella.
 
 ## The Static Constructor Pattern
 
@@ -128,6 +179,24 @@ void MinecraftWorld_RunStaticCtors()
 ```
 
 **The order inside the braces matters.** Materials must exist before Tiles. Tiles must exist before Items (because `Item::staticCtor` references tiles). Items must exist before Recipes. Don't rearrange these unless you know what you're doing.
+
+### Where to Register What
+
+Here's the quick reference. When you add something new, put your registration code in the matching `staticCtor()`:
+
+| You're adding... | Register it in... | File |
+|---|---|---|
+| A new block (tile) | `Tile::staticCtor()` | `Tile.cpp` |
+| A new item | `Item::staticCtor()` | `Item.cpp` |
+| A new crafting recipe | `Recipes` constructor | `Recipes.cpp` |
+| A new smelting recipe | `FurnaceRecipes` constructor | `FurnaceRecipes.cpp` |
+| A new entity type | `EntityIO::staticCtor()` | `EntityIO.cpp` |
+| A new tile entity type | `TileEntity::staticCtor()` | `TileEntity.cpp` |
+| A new biome | `Biome::staticCtor()` | `Biome.cpp` |
+| A new enchantment | `Enchantment::staticCtor()` | `Enchantment.cpp` |
+| A new packet type | `Packet::staticCtor()` | `Packet.cpp` |
+
+You don't need to touch `Minecraft.World.cpp` unless you're adding an entirely new system that needs its own `staticCtor()` call in `MinecraftWorld_RunStaticCtors()`. For tiles, items, entities, and everything else listed above, just add your code inside the existing `staticCtor()` for that system.
 
 ### The Builder Pattern
 
@@ -303,7 +372,7 @@ Item::Item(int id) : id(256 + id)
 
 So `new Item(4)` creates an item with internal `id == 260`. This offset keeps item IDs separate from tile IDs (tiles use 0 through 255 in the item array, items start at 256).
 
-Check `Item.h` for existing ID constants to avoid collisions. The codebase uses IDs up to about `emerald_Id` (388 internal, 132 constructor param).
+Check `Item.h` for existing ID constants to avoid collisions. The codebase uses IDs up to about `netherQuartz_Id` (406 internal, 150 constructor param). Music disc records use IDs in the 2256-2267 range, so avoid those too.
 
 ### Step 2: Choose or Create a Subclass
 
@@ -361,9 +430,15 @@ Item::myFood = (new MyFood(200))
     ->setUseDescriptionId(IDS_DESC_APPLE);
 ```
 
-### Step 4: Add to Sources.cmake
+### Step 4: Add to Umbrella Header and Sources.cmake
 
-Add your `.cpp` file to `MINECRAFT_WORLD_SOURCES` in `cmake/Sources.cmake`.
+If you made a new `.h` file for an Item subclass, add it to the item umbrella header `net.minecraft.world.item.h`:
+
+```cpp
+#include "MyFood.h"
+```
+
+Then add your `.cpp` file to `MINECRAFT_WORLD_SOURCES` in `cmake/Sources.cmake`. Only `.cpp` files go here, not headers.
 
 ### Tool Tiers
 
@@ -748,6 +823,48 @@ The texture name you pass to `setTextureName` needs to match an entry in the res
 
 The `setDescriptionId()` and `setUseDescriptionId()` methods take integer string IDs (like `IDS_TILE_STONE`, `IDS_DESC_STONE`). These map to localized strings in the resource system. For testing, reuse existing string IDs. For a proper mod, you'd need to add new string entries to the localization tables.
 
+## Common Build Errors
+
+When you're starting out, you'll hit build errors. Here's what the most common ones mean and how to fix them.
+
+### "unresolved external symbol" / "undefined reference to X"
+
+You wrote a function or method in a `.h` file but the `.cpp` file that defines it isn't in the build. Open `cmake/Sources.cmake` and make sure your `.cpp` file is listed in the right source list (`MINECRAFT_WORLD_SOURCES` or `MINECRAFT_CLIENT_SOURCES`). Then re-run CMake.
+
+This also happens if you declare a static member in a header but forget to define it in the `.cpp`:
+
+```cpp
+// In MyTile.h:
+static Tile *myTile;           // declared
+
+// In MyTile.cpp (easy to forget this part):
+Tile *Tile::myTile = NULL;     // defined
+```
+
+### "cannot open include file" / "no such file or directory"
+
+The compiler can't find a header you're trying to include. Common causes:
+
+- **Typo in the filename.** Double-check the exact spelling and case.
+- **Forgot to add your header to the umbrella header.** If another `.cpp` file includes `net.minecraft.world.level.tile.h` expecting to find your tile class, but you didn't add your header to that umbrella, it won't be found.
+- **Wrong path.** Headers in `Minecraft.World/` can be included directly by name. Headers in subdirectories need the relative path (like `"x64headers/SomeHeader.h"`).
+
+### "redefinition of" / "already defined in"
+
+Your header is getting included more than once without a guard. Make sure every `.h` file starts with `#pragma once`. If you already have it, check whether you accidentally defined a function body in the header that's getting compiled into multiple `.cpp` files. Move the definition to a `.cpp` file, or mark it `inline`.
+
+### "cannot convert from X to Y"
+
+A type mismatch. The most common ones in this codebase:
+
+- **`shared_ptr` vs raw pointer.** Entities and players use `shared_ptr<>`. If a function expects `shared_ptr<Player>` and you're passing a raw `Player *`, use `shared_from_this()` or wrap it.
+- **`int` vs `unsigned int`.** Some tile/item IDs are signed, some are unsigned. Cast if needed.
+- **`wchar_t *` vs `std::wstring`.** String literals in this codebase use `L"wide strings"`. If a function wants `std::wstring`, the literal will convert automatically. Going the other way, use `.c_str()`.
+
+### "stdafx.h not found" or weird errors at the top of a .cpp file
+
+Every `.cpp` file in this project must have `#include "stdafx.h"` as the very first include. Not second, not after your own headers. First. This is the precompiled header and MSVC will ignore everything above it.
+
 ## Common Pitfalls
 
 ### Tile isn't showing up in-game
@@ -770,15 +887,54 @@ The `setDescriptionId()` and `setUseDescriptionId()` methods take integer string
 - Keep the call order in `MinecraftWorld_RunStaticCtors()` intact
 - Materials before Tiles before Items before Recipes
 
-### Build errors after adding files
-- Make sure your `.cpp` file is listed in `cmake/Sources.cmake`
-- Make sure `#include "stdafx.h"` is the first include in every `.cpp`
-- Regenerate the CMake build after changing `Sources.cmake`
-
 ### Multiplayer desync
 - If you add a new tile or item, all players need the same build
 - New packets need matching IDs on both sides
 - `SynchedEntityData` field IDs must be consistent
+
+## Testing Your Changes
+
+### Build and run
+
+After making changes, rebuild and run:
+
+```bash
+cd build
+cmake --build . --config Debug
+```
+
+Use Debug mode while developing. It enables debug menus and assertions that will catch problems early. Once everything works, switch to Release for performance.
+
+Run the game from Visual Studio (F5) or from the command line:
+
+```bash
+Minecraft.Client.exe
+```
+
+### What to check in-game
+
+**For new blocks:** Open creative mode, find your block in the inventory (or use `/give` if you set up commands). Place it, break it, check that the right item drops. Look at the texture. Walk into it to test collision.
+
+**For new items:** Check that it appears in the creative inventory. If it's a food item, eat it. If it's a tool, try mining with it. If it's armor, equip it and check the defense value.
+
+**For new entities:** Spawn it with a spawn egg (if you registered one) or through debug menus. Watch its AI. Does it pathfind? Does it attack? Does it drop loot when killed? Save and reload the world to test serialization.
+
+**For recipes:** Open a crafting table and check that your recipe shows up with the right ingredients and result.
+
+### Smoke test before big changes
+
+Before you start adding something new, do a quick sanity check: change something small in the existing code (like the destroy time of stone), build, run, and verify the change works in-game. This confirms your build pipeline is set up correctly. If that small change doesn't work, fix your setup before writing new code.
+
+### Multiplayer testing
+
+To test with two players on the same machine, run two instances with different names:
+
+```bash
+Minecraft.Client.exe -name Host
+Minecraft.Client.exe -name Client -ip 127.0.0.1
+```
+
+The first instance hosts. The second connects to it over localhost. Both need the same build.
 
 ## Tips
 

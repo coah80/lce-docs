@@ -47,6 +47,7 @@ Entity (abstract)
 │   ├── BossMob
 │   │   └── EnderDragon
 │   └── Player (+ CommandSender interface)
+├── BossMobPart (multi-part hitbox for bosses)
 ├── ItemEntity (dropped items)
 ├── ExperienceOrb
 ├── HangingEntity (abstract)
@@ -59,9 +60,18 @@ Entity (abstract)
 ├── Minecart
 ├── Boat
 ├── EnderCrystal
-└── Projectiles (Arrow, Fireball, SmallFireball, Snowball,
-    ThrownEnderpearl, EyeOfEnderSignal, ThrownPotion,
-    ThrownExpBottle, DragonFireball)
+├── Arrow
+├── Fireball
+│   ├── SmallFireball
+│   └── DragonFireball
+├── Throwable (hand-thrown projectiles)
+│   ├── Snowball
+│   ├── ThrownEgg
+│   ├── ThrownEnderpearl
+│   ├── ThrownPotion
+│   └── ThrownExpBottle
+├── FishingHook
+└── EyeOfEnderSignal
 ```
 
 ### Base Class Responsibilities
@@ -79,6 +89,8 @@ Each base class adds a layer of functionality:
 | `Monster` | Hostile behavior, burns in daylight, dark spawn checks via `isDarkEnoughToSpawn()`, attack damage, difficulty scaling |
 | `FlyingMob` | No gravity, flying movement physics, no fall damage |
 | `BossMob` | Boss bar, special death handling |
+| `Throwable` | Base for hand-thrown projectiles. Adds owner tracking, `shoot()`, gravity, `onHit()` (pure virtual), and tile collision |
+| `Fireball` | Base for fireball projectiles. Adds owner tracking, `shoot()` via power vector, `onHit()`, trail particles, and deflection via `hurt()` |
 
 ### Marker Interfaces
 
@@ -762,6 +774,16 @@ The `Sensing` class is a simple optimization. Every tick, it clears its `seen` a
 | `Wolf` | 8/20 | `TamableAnimal` | Tameable, sittable, dyeable collar, angry mode |
 | `Ozelot` | 10 | `TamableAnimal` | Tameable, 4 cat types, no fall damage |
 | `Villager` | 20 | `AgableMob` + `Npc` + `Merchant` | 5 professions, trading, breeding |
+
+Villager professions are stored in synch data ID 16 as an integer:
+
+| Constant | Value | Trades |
+|---|---|---|
+| `PROFESSION_FARMER` | 0 | Wheat, carrots, potatoes |
+| `PROFESSION_LIBRARIAN` | 1 | Books, paper, enchanted books |
+| `PROFESSION_PRIEST` | 2 | Ender pearls, redstone, glowstone |
+| `PROFESSION_SMITH` | 3 | Armor, tools, weapons |
+| `PROFESSION_BUTCHER` | 4 | Raw meat, cooked meat |
 
 ### Hostile Mobs (Monsters)
 

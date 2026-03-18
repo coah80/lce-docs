@@ -24,7 +24,7 @@ The networking code is split across two layers:
 - `INetworkPlayer`: abstract player interface with methods for sending data, checking RTT, and managing socket state
 - Platform implementations: `CPlatformNetworkManagerXbox`, `CPlatformNetworkManagerDurango`, `CPlatformNetworkManagerSony`, `CPlatformNetworkManagerStub`
 
-The relationship between these layers is documented in `/Users/cole/Documents/LCEMP/Minecraft.Client/Network Implementation Notes.txt`:
+The relationship between these layers looks like this:
 
 ```
 Game --> GameNetworkManager <--> NetworkPlayerInterface    (platform independent)

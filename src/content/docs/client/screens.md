@@ -165,6 +165,11 @@ protected:
 
 The active screen is set via `Minecraft::setScreen(Screen*)`. When a screen is active, it gets input events and renders on top of the game world. Setting the screen to `NULL` returns to gameplay.
 
+A couple of methods worth noting that aren't obvious from the main lifecycle:
+- **`setSize(int width, int height)`** resizes the screen without a full reinit (calls `init()` internally to rebuild buttons)
+- **`tabPressed()`** handles tab key navigation (used in multiplayer for player list)
+- **`clickedButton`** is a private field that tracks which button is being held down for drag-release behavior. The base `mouseClicked` sets it, and `mouseReleased` fires `buttonClicked` only if the button is still under the cursor.
+
 ### GuiComponent
 
 The base class for all GUI elements, with primitive drawing operations:
@@ -345,7 +350,21 @@ Chat messages are stored per player (`vector<GuiMessage> guiMessages[XUSER_MAX_C
 
 ### AchievementPopup
 
-A separate component that renders achievement toast notifications above the HUD.
+A separate component that renders achievement toast notifications above the HUD:
+
+```cpp
+class AchievementPopup : public GuiComponent {
+    void popup(Achievement *ach);     // show a timed achievement toast
+    void permanent(Achievement *ach); // show a persistent helper popup
+    void render();
+};
+```
+
+It tracks a `startTime` to know when to fade out. `isHelper` controls whether it stays on screen permanently (used for tutorial-like prompts) vs timing out normally.
+
+### ScreenSizeCalculator
+
+`ScreenSizeCalculator` handles the scaling math for GUI elements across different display resolutions. It figures out the effective GUI dimensions based on the `guiScale` option (Auto, Small, Normal, Large) and the actual screen resolution.
 
 ## Console UI system (Common/UI/)
 
@@ -627,6 +646,10 @@ The SWF communicates back to C++ through external function calls. The `externalC
 | `UIScene_Timer` | Timer overlay |
 | `UIScene_ReinstallMenu` | Reinstall prompt |
 | `UIScene_LeaderboardsMenu` | Leaderboards display |
+| `UIScene_PartnernetPassword` | Partnernet password entry (enum value 0, Xbox devkit builds) |
+| `UIScene_SocialPost` | Social media sharing prompt |
+| `UIScene_NewUpdateMessage` | Title update notification |
+| `UIScene_TextEntry` | Generic text entry (uses `UIScene_Keyboard` internally) |
 
 #### Debug (non-final builds only)
 
@@ -636,6 +659,45 @@ The SWF communicates back to C++ through external function calls. The `externalC
 | `UIScene_DebugOptions` | Debug settings |
 | `UIScene_DebugCreateSchematic` | Debug schematic creation |
 | `UIScene_DebugSetCamera` | Debug camera placement |
+
+### UIComponents
+
+Components are persistent overlay scenes that live on a layer but don't participate in the navigation stack (no push/pop). They are shown and hidden directly through `UIController::showComponent()`.
+
+| Component | Purpose |
+|---|---|
+| `UIComponent_TutorialPopup` | Tutorial hint popup with icon, title, and description. Manages fade timers and can shift the scene behind it to stay visible. |
+| `UIComponent_Chat` | In-game chat overlay. Shows chat history and handles text input. |
+| `UIComponent_Panorama` | Animated background panorama on the main menu screen. |
+| `UIComponent_Logo` | The Minecraft logo component shown on the title screen. |
+| `UIComponent_MenuBackground` | Dimmed background behind menus. |
+| `UIComponent_PressStartToPlay` | "Press Start" prompt for each quadrant in splitscreen. |
+| `UIComponent_Tooltips` | Controller button prompts at the bottom of the screen (A: Select, B: Back, etc.). Managed by the `UIController::SetTooltips()` API. |
+| `UIComponent_DebugUIConsole` | Debug console for logging (non-final builds). |
+| `UIComponent_DebugUIMarketingGuide` | Marketing screenshot guide overlay (non-final builds). |
+
+Components all inherit from `UIScene` but override `stealsFocus()`, `hasFocus()`, and `hidesLowerScenes()` to return false, so they don't interfere with normal navigation.
+
+### The HUD scene in detail
+
+`UIScene_HUD` is the most important component. It renders the entire in-game heads-up display through an SWF movie. Here is what it manages:
+
+| HUD element | ActionScript function | Notes |
+|---|---|---|
+| Hotbar | `SetActiveSlot(slot)` | Highlights the selected hotbar slot. Custom draw renders the 3D items. |
+| Health | `SetHealth(health, lastHealth, blink, poison)` | Hearts display with blink and poison tint support |
+| Food | `SetFood(food, lastFood, poison)` | Food bar with poison tint |
+| Air | `SetAir(air)` | Bubble icons when underwater |
+| Armor | `SetArmour(armour)` | Armor icons above health |
+| Experience | `SetExpBarProgress(progress)`, `SetPlayerLevel(level)` | XP bar and level number |
+| Boss health | `SetDragonHealth(health)`, `ShowDragonHealthBar(show)` | Ender Dragon health bar (auto-hides after no boss ticks) |
+| Chat | 10 `UIControl_Label` elements (`Label1` through `Label10`) | Per-line chat with background controls for readability |
+| Jukebox | `Jukebox` label | "Now Playing" notification text |
+| Player name | `SetGamertag(name)` | Player display name in splitscreen |
+| Regen effect | `SetRegenerationEffect(enabled)` | Visual indicator for regeneration |
+| Saturation | `SetFoodSaturationLevel(level)` | Food saturation visual |
+
+The HUD repositions itself based on UI scale using `RepositionHud()` and `LoadHud()` ActionScript calls. Tooltip visibility is controlled through `SetTooltipsEnabled()`.
 
 ### IUIScene interfaces
 

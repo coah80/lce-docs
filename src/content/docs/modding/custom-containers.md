@@ -45,15 +45,10 @@ public:
     static const int CLICK_QUICK_MOVE = 1;
     static const int CLICK_SWAP = 2;
     static const int CLICK_CLONE = 3;
-    static const int CLICK_THROW = 4;
-    static const int CLICK_QUICK_CRAFT = 5;
-    static const int CLICK_PICKUP_ALL = 6;
 
-    static const int QUICKCRAFT_TYPE_CHARITABLE = 0;
-    static const int QUICKCRAFT_TYPE_GREEDY = 1;
-    static const int QUICKCRAFT_HEADER_START = 0;
-    static const int QUICKCRAFT_HEADER_CONTINUE = 1;
-    static const int QUICKCRAFT_HEADER_END = 2;
+    // Note: CLICK_THROW (4), CLICK_QUICK_CRAFT (5), CLICK_PICKUP_ALL (6),
+    // and the QUICKCRAFT_TYPE_* / QUICKCRAFT_HEADER_* constants only exist
+    // in MinecraftConsoles. LCEMP only has the four click types above.
 
     // 4J added these to fix creative mode slot replacement bugs
     static const int CONTAINER_ID_CARRIED = -1;
@@ -73,7 +68,7 @@ protected:
 public:
     virtual ~AbstractContainerMenu();
     virtual void addSlotListener(ContainerListener *listener);
-    virtual void removeSlotListener(ContainerListener *listener);
+    // Note: removeSlotListener() only exists in MinecraftConsoles, not LCEMP.
     virtual vector<shared_ptr<ItemInstance>> *getItems();
     virtual void sendData(int id, int value);
     virtual void broadcastChanges();
@@ -83,14 +78,14 @@ public:
     virtual Slot *getSlot(int index);
     virtual shared_ptr<ItemInstance> quickMoveStack(shared_ptr<Player> player, int slotIndex);
     virtual shared_ptr<ItemInstance> clicked(int slotIndex, int buttonNum, int clickType,
-                                             shared_ptr<Player> player, bool looped = false);
+                                             shared_ptr<Player> player);
     virtual bool mayCombine(Slot *slot, shared_ptr<ItemInstance> item);
-    virtual bool canTakeItemForPickAll(shared_ptr<ItemInstance> carried, Slot *target);
+    // Note: canTakeItemForPickAll() only exists in MinecraftConsoles, not LCEMP.
     virtual void removed(shared_ptr<Player> player);
     virtual void slotsChanged();
     virtual void setData(int id, int value);
     virtual bool stillValid(shared_ptr<Player> player) = 0;
-    virtual bool isValidIngredient(shared_ptr<ItemInstance> item, int slotId);
+    // Note: isValidIngredient() only exists in MinecraftConsoles, not LCEMP.
 
 protected:
     bool moveItemStackTo(shared_ptr<ItemInstance> itemStack, int startSlot, int endSlot,
@@ -108,7 +103,7 @@ Here's what happens from when a player opens a container to when it closes:
 
 3. **Ticking.** Every game tick, `broadcastChanges()` runs. It compares each slot's current contents against `lastSlots`. If anything is different, it notifies all `ContainerListener`s via `slotChanged()`. Subclasses like `FurnaceMenu` also send extra integer data (burn time, progress) via `setContainerData()`.
 
-4. **Player interaction.** When the player clicks, the `clicked()` method runs. It handles pickup, place, swap, clone, throw, quick-craft (drag), and pickup-all. For shift-click, it calls your `quickMoveStack()` override. For button clicks (like selecting an enchantment), it calls `clickMenuButton()`.
+4. **Player interaction.** When the player clicks, the `clicked()` method runs. It handles pickup, place, swap, and clone. For shift-click, it calls your `quickMoveStack()` override. For button clicks (like selecting an enchantment), it calls `clickMenuButton()`.
 
 5. **Slot changes.** When items in the backing container change (like from crafting or furnace output), `slotsChanged()` fires. This is where menus like `CraftingMenu` check for recipe matches.
 
@@ -128,9 +123,8 @@ Here's what happens from when a player opens a container to when it closes:
 | Quick move | `CLICK_QUICK_MOVE` | Shift-click. Calls your `quickMoveStack()` override. |
 | Swap | `CLICK_SWAP` | Hotbar number keys (1-9). Swaps the hovered slot with a hotbar slot. |
 | Clone | `CLICK_CLONE` | Middle-click in creative mode. Copies a full stack to the cursor. |
-| Throw | `CLICK_THROW` | Q key. Drops 1 item (button 0) or the whole stack (button 1) from the hovered slot. |
-| Quick craft | `CLICK_QUICK_CRAFT` | Click-drag across multiple slots to distribute items evenly. Uses a three-phase protocol: start, continue (add slots), end (distribute). |
-| Pickup all | `CLICK_PICKUP_ALL` | Double-click. Collects all matching items from all slots into the cursor stack. |
+
+The above four are the only click types in LCEMP. MinecraftConsoles adds more (throw, quick craft, pickup all) but those aren't in the LCEMP codebase.
 
 Clicking outside the menu window (`SLOT_CLICKED_OUTSIDE = -999`) drops the carried item into the world. Left-click drops the whole stack, right-click drops one.
 
@@ -142,17 +136,21 @@ Clicking outside the menu window (`SLOT_CLICKED_OUTSIDE = -999`) drops the carri
 
 **`broadcastChanges()`** compares current slot contents against `lastSlots` and notifies all `ContainerListener`s about changes. It also sets a `m_bNeedsRendered` flag that the UI layer reads.
 
+**`needsRendered()`** resets `m_bNeedsRendered` to false and also does its own change-detection pass against `lastSlots`. Because of that second check, it can return `true` even if the flag was false. The UI layer calls this to decide whether it needs to redraw.
+
 **`removed()`** is called when the player closes the menu. The base implementation drops any item the player is carrying on the cursor.
 
 **`clickMenuButton()`** handles non-slot button clicks. Used by the enchanting table (to select which enchantment) and the merchant (to select a trade). Base version returns `false`.
 
+**`setData()`** base implementation is a no-op. Subclasses (like FurnaceMenu, EnchantmentMenu) override this to track furnace burn progress, enchantment costs, etc.
+
 **`mayCombine()`** is a 4J addition. It lets the inventory menu detect when a right-click should combine items (like dyeing leather armor or repairing damaged tools) instead of doing a normal placement. Base returns `false`; `InventoryMenu` delegates to `Slot::mayCombine()`.
 
-**`isValidIngredient()`** is another 4J addition. It lets the fireworks menu dim items in the inventory that can't be used as ingredients. Base returns `true` for everything.
+**`isValidIngredient()`** (MinecraftConsoles only, not in LCEMP) lets the fireworks menu dim items in the inventory that can't be used as ingredients.
 
-**`canTakeItemForPickAll()`** controls which slots participate in double-click pickup-all. The crafting and fireworks menus override this to exclude the result slot.
+**`canTakeItemForPickAll()`** (MinecraftConsoles only, not in LCEMP) controls which slots participate in double-click pickup-all.
 
-**`loopClick()`** is a 4J fix for an infinite recursion bug in creative mode. When shift-clicking moves items and more remain, it calls `clicked()` again with a `looped = true` flag to avoid copying item references during recursion.
+**`loopClick()`** is a 4J fix for an infinite recursion bug in creative mode. When shift-clicking moves items and more remain, it calls `clicked()` with `CLICK_QUICK_MOVE` as the click type to keep moving items until the recipe runs out or the inventory is full.
 
 ## How Slot works
 
@@ -177,12 +175,12 @@ public:
     virtual bool hasItem();
     virtual void set(shared_ptr<ItemInstance> item);
     virtual shared_ptr<ItemInstance> remove(int count);
-    virtual int getMaxStackSize() const;                     // usually 64
+    virtual int getMaxStackSize();                     // usually 64
     virtual void setChanged();
     virtual void onTake(shared_ptr<Player> player, shared_ptr<ItemInstance> carried);
     virtual Icon *getNoItemIcon();
     virtual bool isAt(shared_ptr<Container> c, int s);
-    virtual bool isActive();
+    // Note: isActive() only exists in MinecraftConsoles, not the LCEMP Slot base class.
 
     void onQuickCraft(shared_ptr<ItemInstance> picked, shared_ptr<ItemInstance> original);
     void swap(Slot *other);
@@ -224,9 +222,9 @@ Slot-to-slot swaps respect `getMaxStackSize()`. If the item being swapped is big
 
 Returns an icon to show when the slot is empty. Only `ArmorSlot` uses this, showing the ghost armor piece outline for each body slot. Other slots return `nullptr`.
 
-### The `isActive()` method
+### The `isActive()` method (MinecraftConsoles only)
 
-Controls whether the slot should even be rendered. `HorseArmorSlot` uses this to hide the armor slot when the horse can't wear armor (like donkeys).
+This method only exists in MinecraftConsoles, not in LCEMP's Slot base class. In MinecraftConsoles, it controls whether the slot should even be rendered. `HorseArmorSlot` uses this to hide the armor slot when the horse can't wear armor (like donkeys).
 
 ## Slot subclasses in detail
 
@@ -876,10 +874,10 @@ When you shift-click a result slot in a crafting table, the game tries to craft 
 1. `clicked()` calls `quickMoveStack()` for the result slot
 2. `quickMoveStack()` moves the result to the inventory
 3. `clicked()` checks: does the slot still have an item with the same ID? (It will if the recipe can be crafted again)
-4. If yes, it calls `loopClick()` which recursively calls `clicked()` with `looped = true`
+4. If yes, it calls `loopClick()` which calls `clicked()` again with `CLICK_QUICK_MOVE` as the click type
 5. This loop continues until the recipe can't be crafted anymore or the inventory is full
 
-The `looped = true` parameter tells `clicked()` not to make item copies (to avoid memory waste) and to return a non-null dummy value to keep the loop going. This was a 4J fix for an infinite recursion bug in creative mode.
+This was a 4J fix for an infinite recursion bug in creative mode. There is no special `looped` parameter.
 
 ## Syncing container state over the network
 
@@ -1672,7 +1670,7 @@ public:
             || item->id == Item::diamond_Id;
     }
 
-    virtual int getMaxStackSize() const
+    virtual int getMaxStackSize()
     {
         return 1;  // one gem at a time
     }
@@ -1727,7 +1725,7 @@ class SingleItemSlot : public Slot
 {
 public:
     SingleItemSlot(shared_ptr<Container> c, int s, int x, int y) : Slot(c, s, x, y) {}
-    virtual int getMaxStackSize() const { return 1; }
+    virtual int getMaxStackSize() { return 1; }
 };
 ```
 

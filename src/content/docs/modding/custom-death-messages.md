@@ -537,7 +537,7 @@ DamageSource *DamageSource::lightning(shared_ptr<Entity> source)
 }
 ```
 
-Don't forget to add your new `.h` and `.cpp` files to `cmake/Sources.cmake` in the `MINECRAFT_WORLD_SOURCES` list.
+Don't forget to add your new `.h` and `.cpp` files to `cmake/Sources.cmake` (in the `MINECRAFT_WORLD_SOURCES` list) and `Minecraft.World/Minecraft.World.vcxproj` so they get compiled.
 
 ## Creating a Custom IndirectEntityDamageSource
 

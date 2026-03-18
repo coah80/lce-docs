@@ -15,23 +15,96 @@ If you have not set up your build environment yet, start with [Getting Started](
 - A custom **4x4 recipe** for the mega workbench
 - A **block texture** on the terrain atlas
 
-## Files you will create or modify
+## Files you will create
 
-| File | Action | Purpose |
-|---|---|---|
-| `Minecraft.World/MegaWorkbenchTile.h` | Create | Block subclass |
-| `Minecraft.World/MegaWorkbenchTile.cpp` | Create | Block behavior |
-| `Minecraft.World/MegaCraftingMenu.h` | Create | Container menu with 4x4 grid |
-| `Minecraft.World/MegaCraftingMenu.cpp` | Create | Slot layout, crafting logic |
-| `Minecraft.World/MegaCraftingContainer.h` | Create | Transient container for the grid |
-| `Minecraft.World/MegaRecipes.h` | Create | 4x4 recipe manager |
-| `Minecraft.World/MegaRecipes.cpp` | Create | Recipe matching logic |
-| `Common/UI/UIScene_MegaCrafting.h` | Create | SWF screen class |
-| `Common/UI/UIScene_MegaCrafting.cpp` | Create | Screen behavior |
-| `Minecraft.World/Tile.h` | Modify | Add static pointer |
-| `Minecraft.World/Tile.cpp` | Modify | Register the block |
-| `Common/UI/UIEnums.h` | Modify | Add scene enum |
-| `Minecraft.Client/CConsoleMinecraftApp.cpp` | Modify | Navigation case |
+| File | Purpose |
+|------|---------|
+| `Minecraft.World/MegaWorkbenchTile.h` | Block subclass header |
+| `Minecraft.World/MegaWorkbenchTile.cpp` | Block behavior (opens menu on right-click) |
+| `Minecraft.World/MegaCraftingMenu.h` | Container menu header |
+| `Minecraft.World/MegaCraftingMenu.cpp` | 4x4 slot layout, crafting logic, shift-click |
+| `Minecraft.World/MegaCraftingContainer.h` | Transient container for the 16 crafting slots |
+| `Minecraft.World/MegaRecipes.h` | 4x4 recipe manager header |
+| `Minecraft.World/MegaRecipes.cpp` | Recipe matching logic |
+| `Minecraft.Client/Common/UI/UIScene_MegaCrafting.h` | SWF screen class header |
+| `Minecraft.Client/Common/UI/UIScene_MegaCrafting.cpp` | Screen behavior, pointer navigation |
+
+## Files you will modify
+
+| File | What you change |
+|------|----------------|
+| `Minecraft.World/Tile.h` | Add `megaWorkbench` static pointer and ID constant |
+| `Minecraft.World/Tile.cpp` | Static def, register the block in `staticCtor()` |
+| `Minecraft.Client/Common/UI/UIEnums.h` | Add `eUIScene_MegaCrafting` to the `EUIScene` enum |
+| `Minecraft.Client/CConsoleMinecraftApp.cpp` | Add navigation case for the new scene |
+| `Minecraft.Client/PreStitchedTextureMap.cpp` | Register UV entries in `loadUVs()` for block texture |
+| `cmake/Sources.cmake` | Add new source files |
+
+## Includes you will add
+
+**In `MegaWorkbenchTile.cpp`**:
+
+```cpp
+#include "stdafx.h"
+#include "MegaWorkbenchTile.h"
+#include "net.minecraft.world.entity.player.h"
+#include "net.minecraft.world.level.h"
+#include "MegaCraftingMenu.h"
+```
+
+**In `MegaCraftingMenu.cpp`**:
+
+```cpp
+#include "stdafx.h"
+#include "MegaCraftingMenu.h"
+#include "MegaCraftingContainer.h"
+#include "ResultContainer.h"
+#include "ResultSlot.h"
+#include "Slot.h"
+#include "MegaRecipes.h"
+#include "net.minecraft.world.entity.player.h"
+#include "net.minecraft.world.level.h"
+```
+
+**In `MegaRecipes.cpp`**:
+
+```cpp
+#include "stdafx.h"
+#include "MegaRecipes.h"
+#include "net.minecraft.world.item.h"
+#include "net.minecraft.world.level.tile.h"
+```
+
+**In `UIScene_MegaCrafting.cpp`**:
+
+```cpp
+#include "stdafx.h"
+#include "UI.h"
+#include "UIScene_MegaCrafting.h"
+#include "MegaCraftingMenu.h"
+```
+
+**In `Tile.cpp`**, add with the other tile includes:
+
+```cpp
+#include "MegaWorkbenchTile.h"
+```
+
+## Sources.cmake entries
+
+Add your new files to `cmake/Sources.cmake`. World-side files go under `MINECRAFT_WORLD_SOURCES`, client-side files go under `MINECRAFT_CLIENT_SOURCES`:
+
+```cmake
+# In MINECRAFT_WORLD_SOURCES:
+"MegaWorkbenchTile.cpp"
+"MegaCraftingMenu.cpp"
+"MegaRecipes.cpp"
+
+# In MINECRAFT_CLIENT_SOURCES:
+"Common/UI/UIScene_MegaCrafting.cpp"
+```
+
+`MegaCraftingContainer.h` is header-only, so it does not need a Sources.cmake entry.
 
 ---
 
@@ -85,7 +158,7 @@ bool MegaWorkbenchTile::use(Level *level, int x, int y, int z,
     {
         // Open the container menu for this player
         auto menu = make_shared<MegaCraftingMenu>(
-            player->inventory, level, x, y, z);
+            player, player->inventory, level, x, y, z);
 
         player->openMenu(menu);
     }
@@ -135,27 +208,26 @@ This is the core of the whole thing. The menu defines the slot layout, wires up 
 
 ### The backing container
 
-First we need a transient container to hold the 16 crafting input slots. This container only lives while the menu is open.
+First we need a transient container to hold the 16 crafting input slots. This container only lives while the menu is open. We extend `SimpleContainer` which provides working implementations for all of `Container`'s pure virtual methods (item storage, getters, setters, etc.) backed by a simple item array.
 
 ```cpp
 // MegaCraftingContainer.h
 #pragma once
-#include "Container.h"
+#include "SimpleContainer.h"
 
-class MegaCraftingContainer : public Container
+class MegaCraftingContainer : public SimpleContainer
 {
 public:
     static const int GRID_SIZE = 16;  // 4x4
 
     MegaCraftingContainer()
-        : Container(GRID_SIZE)
+        : SimpleContainer(IDS_CONTAINER_MEGA_CRAFTING, GRID_SIZE)
     {
     }
-
-    virtual wstring getName() const { return L"Mega Crafting"; }
-    virtual int getContainerSize() const { return GRID_SIZE; }
 };
 ```
+
+> **Note:** `SimpleContainer`'s constructor takes `(name, size)` where name is a string table ID (int). Define `IDS_CONTAINER_MEGA_CRAFTING` in your string table with the display text "Mega Crafting". If you extend `Container` directly instead, you have to implement all of its pure virtual methods yourself: `getItem`, `removeItem`, `removeItemNoUpdate`, `setItem`, `getName`, `getMaxStackSize`, `setChanged`, `stillValid`, `startOpen`, and `stopOpen`.
 
 ### MegaCraftingMenu.h
 
@@ -183,7 +255,8 @@ public:
     static const int GRID_SLOTS = 16;
     static const int RESULT_SLOT = 0;
 
-    MegaCraftingMenu(shared_ptr<Container> playerInventory,
+    MegaCraftingMenu(shared_ptr<Player> player,
+                     shared_ptr<Container> playerInventory,
                      Level *level, int x, int y, int z);
 
     virtual bool stillValid(shared_ptr<Player> player);
@@ -207,7 +280,8 @@ public:
 #include "net.minecraft.world.entity.player.h"
 #include "net.minecraft.world.level.h"
 
-MegaCraftingMenu::MegaCraftingMenu(shared_ptr<Container> playerInventory,
+MegaCraftingMenu::MegaCraftingMenu(shared_ptr<Player> player,
+                                   shared_ptr<Container> playerInventory,
                                    Level *level, int x, int y, int z)
     : level(level), posX(x), posY(y), posZ(z)
 {
@@ -216,7 +290,8 @@ MegaCraftingMenu::MegaCraftingMenu(shared_ptr<Container> playerInventory,
 
     // --- Result slot (index 0 in the menu) ---
     // Position it to the right of the 4x4 grid
-    addSlot(new ResultSlot(resultContainer, RESULT_SLOT, 144, 35));
+    // ResultSlot takes: player, craftSlots, resultContainer, slotIndex, pixelX, pixelY
+    addSlot(new ResultSlot(player, craftGrid, resultContainer, RESULT_SLOT, 144, 35));
 
     // --- 4x4 crafting grid (menu indices 1 through 16) ---
     for (int row = 0; row < GRID_HEIGHT; row++)
@@ -853,16 +928,23 @@ For the full guide on the terrain atlas system and UV mapping, see [Block Textur
 
 ---
 
-## Putting it all together
+## Build and test
 
-After creating all the files above:
+Build the project:
 
-1. Add your new `.h` and `.cpp` files to `cmake/Sources.cmake`
-2. Rebuild the project
-3. Place the mega workbench block (creative mode or give command)
-4. Right-click it to open the 4x4 crafting grid
-5. Put 12 diamond blocks in a ring pattern to test the recipe
-6. The result should appear in the output slot
+```bash
+cmake --build build --config Release
+```
+
+Launch the game and test:
+
+1. Place the mega workbench block (creative mode or `/give`)
+2. Right-click it to open the 4x4 crafting grid
+3. Put 12 diamond blocks in a ring pattern (the example recipe) to test
+4. The result should appear in the output slot
+5. Shift-click the result to move it to your inventory
+6. Close the menu and check that leftover items drop back to you
+7. In multiplayer, have another player watch while you craft. Items should sync correctly.
 
 If the block does not open the UI, double-check that `eUIScene_MegaCrafting` is in the enum and the `NavigateToScene` switch has your case. If items do not sync in multiplayer, make sure all item changes go through `Slot::set()` and not direct container writes.
 

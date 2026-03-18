@@ -230,16 +230,14 @@ addFurnaceRecipy(Tile::treeTrunk_Id,  new ItemInstance(Item::coal, 1, CoalItem::
 
 ### Adding a custom furnace recipe
 
-To smelt a custom ore into a custom ingot:
+To smelt a custom ore into a custom ingot, add a line inside the `FurnaceRecipes` constructor in `FurnaceRecipes.cpp`:
 
 ```cpp
-// In FurnaceRecipes constructor or your mod init
-FurnaceRecipes::getInstance()->addFurnaceRecipy(
-    myCustomOre_Id,                        // input tile ID
-    new ItemInstance(Item::myCustomIngot),  // output
-    0.8f                                   // XP value
-);
+// Inside the FurnaceRecipes::FurnaceRecipes() constructor, with the other recipes:
+addFurnaceRecipy(myCustomOre_Id, new ItemInstance(Item::myCustomIngot), 0.8f);
 ```
+
+This is the same pattern as the existing recipes. You do not need to use `FurnaceRecipes::getInstance()` since you are already inside the constructor.
 
 ## Recipe category modules
 

@@ -41,10 +41,10 @@ There are four concrete texture pack types. They all inherit from `AbstractTextu
 ```
 TexturePack (interface)
   └─ AbstractTexturePack (fallback logic, colour tables, UI)
-       ├─ DefaultTexturePack  — built-in vanilla textures
-       ├─ FolderTexturePack   — loose files in a folder (debug/dev)
-       ├─ FileTexturePack     — zip-based packs (stubbed on console)
-       └─ DLCTexturePack      — DLC .pck based packs (the real deal)
+       ├─ DefaultTexturePack  - built-in vanilla textures
+       ├─ FolderTexturePack   - loose files in a folder (debug/dev)
+       ├─ FileTexturePack     - zip-based packs (stubbed on console)
+       └─ DLCTexturePack      - DLC .pck based packs (the real deal)
 ```
 
 ### DefaultTexturePack
@@ -77,8 +77,8 @@ This is the easiest way to test texture replacements during development. Just dr
 
 This is how real texture packs ship. DLC packs use the `.pck` format and the `DLCManager` system. A DLC texture pack has two separate `DLCPack` objects:
 
-- **`m_dlcInfoPack`** — metadata: pack name, icon, description, localisation strings
-- **`m_dlcDataPack`** — the actual texture data, loaded on demand when the pack gets selected
+- **`m_dlcInfoPack`** - metadata: pack name, icon, description, localisation strings
+- **`m_dlcDataPack`** - the actual texture data, loaded on demand when the pack gets selected
 
 The data pack is mounted from the console's DLC storage, read via `readDLCDataFile()`, and then textures are accessed through the `DLCManager` file type system:
 
@@ -436,8 +436,8 @@ The `packMounted` callback reads the `.pck` data file, loads any UI data and aud
 
 In multiplayer, the host sends texture pack info to joining clients. There are two packet types:
 
-- **`TexturePacket`** (ID 154) — sends the full texture pack name and data bytes to a client
-- **`TextureChangePacket`** (ID 157) — tells clients about skin or cape changes during gameplay
+- **`TexturePacket`** (ID 154) - sends the full texture pack name and data bytes to a client
+- **`TextureChangePacket`** (ID 157) - tells clients about skin or cape changes during gameplay
 
 When a client joins a game with a texture pack, the server sends the pack ID and the client selects it locally. If the client doesn't have the DLC pack installed, it falls back to the default.
 

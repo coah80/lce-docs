@@ -908,10 +908,10 @@ Here's which bit 0-3 combinations are already used:
 | `1000` | Weakness |
 | `1001` | Strength |
 | `1010` | Slowness |
-| `1011` | Invisibility |
+| `1110` | Invisibility |
 | `1100` | Instant Damage |
 
-Unused combinations include `0111`, `1101`, `1110`, and `1111`. Pick one of those for your new effect.
+Unused combinations include `0111`, `1011`, `1101`, and `1111`. Pick one of those for your new effect.
 
 ### Step 2: Define the formula constant
 

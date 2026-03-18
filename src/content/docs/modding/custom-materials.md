@@ -37,7 +37,7 @@ public:
     virtual int  getPushReaction();    // default: PUSH_NORMAL
     bool isDestroyedByHand();          // default: false
 
-protected:
+private:
     Material *flammable();
     Material *replaceable();
     Material *neverBuildable();
@@ -48,7 +48,7 @@ protected:
 };
 ```
 
-The constructor sets all the defaults: not flammable, not replaceable, always destroyable, push reaction `PUSH_NORMAL`, and not destroyed by hand. The protected methods use a builder pattern so you can chain them when creating material instances.
+The constructor sets all the defaults: not flammable, not replaceable, always destroyable, push reaction `PUSH_NORMAL`, and not destroyed by hand. The private methods use a builder pattern so you can chain them when creating material instances.
 
 ### What each property does
 

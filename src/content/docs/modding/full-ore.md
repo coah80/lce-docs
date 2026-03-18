@@ -801,13 +801,31 @@ Every `setDescriptionId()` and `setUseDescriptionId()` call references a string 
 
 These go in the string table header. The exact location depends on your platform, but look at how existing string IDs are defined and follow the same pattern.
 
-## Step 14: Update cmake
+## Step 14: Update umbrella headers and cmake
 
-Add your new source files to `cmake/Sources.cmake` in the `MINECRAFT_WORLD_SOURCES` list:
+### Add to the umbrella header
+
+Open `Minecraft.World/net.minecraft.world.level.tile.h` and add your ore tile header:
+
+```cpp
+#include "RubyOreTile.h"
+```
+
+This lets any `.cpp` file that includes the tile umbrella header see your new class. Without this, you will get "no such file or directory" errors when `Tile.cpp` tries to use `RubyOreTile`.
+
+### Add to Sources.cmake
+
+Add your new `.cpp` file to `cmake/Sources.cmake` in the `MINECRAFT_WORLD_SOURCES` list:
 
 ```cmake
-Minecraft.World/RubyOreTile.h
-Minecraft.World/RubyOreTile.cpp
+"RubyOreTile.cpp"
+```
+
+Only `.cpp` files go in `Sources.cmake`, not headers. CMake prepends the `Minecraft.World/` directory automatically, so you just write the filename. After changing `Sources.cmake`, re-run CMake to regenerate the build:
+
+```bash
+cd build
+cmake ..
 ```
 
 ## Build and test
@@ -829,6 +847,7 @@ If ore is not showing up, make sure you created a **new world** after adding the
 |---|---|
 | `Minecraft.World/RubyOreTile.h` | New file (ore block class) |
 | `Minecraft.World/RubyOreTile.cpp` | New file (ore block implementation) |
+| `Minecraft.World/net.minecraft.world.level.tile.h` | Added `#include "RubyOreTile.h"` |
 | `Minecraft.World/Tile.h` | Added `rubyOre`, `rubyBlock` pointers and IDs |
 | `Minecraft.World/Tile.cpp` | Registered both blocks in `staticCtor()` |
 | `Minecraft.World/Item.h` | Added ruby gem + all tool/armor pointers and IDs, plus `Tier::RUBY` |

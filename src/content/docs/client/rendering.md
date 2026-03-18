@@ -12,25 +12,28 @@ The LCE rendering pipeline turns the game world into pixels through several syst
 Within a single frame, the pipeline roughly goes through these steps:
 
 1. **Camera setup** with `setupCamera()`, which configures the projection matrix, applies FOV, and positions the camera via `moveCameraToPlayer()`
-2. **Frustum culling** with `Frustum::getFrustum()`, which pulls clip planes from the current model-view-projection matrices
-3. **World rendering** with `renderLevel()`, which draws the world in multiple passes
-4. **GUI rendering** with `setupGuiScreen()`, which switches to orthographic projection for HUD and menu overlays
+2. **World rendering** with `renderLevel()`, which draws the world in multiple passes (including frustum culling)
+3. **GUI rendering** with `setupGuiScreen()`, which switches to orthographic projection for HUD and menu overlays
 
 ### Detailed frame breakdown
 
 Inside `renderLevel()`, the world gets drawn in this order:
 
-1. **Sky.** `LevelRenderer::renderSky()` draws the sky dome, sun, moon, and stars using pre-built display lists (`skyList`, `starList`, `darkList`). Moon phases come from `TN_TERRAIN_MOON_PHASES`.
-2. **Halo ring.** `LevelRenderer::renderHaloRing()` draws the horizon halo effect using `haloRingList`.
-3. **Opaque pass (layer 0).** `LevelRenderer::render()` with `layer=0` renders all opaque block geometry. This is the big one with most of the vertex data.
-4. **Entities.** `LevelRenderer::renderEntities()` iterates every visible entity and dispatches to the right `EntityRenderer`.
-5. **Particles.** `ParticleEngine::render()` draws standard particles, then `ParticleEngine::renderLit()` draws lit particles.
-6. **Weather.** `GameRenderer::renderSnowAndRain()` draws rain and snow particle sheets.
-7. **Translucent pass (layer 1).** `LevelRenderer::render()` with `layer=1` renders translucent geometry (water, glass, ice).
-8. **Clouds.** `LevelRenderer::renderClouds()` or `renderAdvancedClouds()` draws the cloud layer.
-9. **Block selection.** `LevelRenderer::renderHitOutline()` draws the wireframe around the targeted block, and `renderHit()` draws the crack overlay.
-10. **Held item.** `GameRenderer::renderItemInHand()` draws the first-person hand and item.
-11. **Screen effects.** `ItemInHandRenderer::renderScreenEffect()` draws overlays like the pumpkin blur, underwater tint, and fire overlay when the camera is inside those blocks.
+1. **Sky** (only if `viewDistance < 2`). `LevelRenderer::renderSky()` draws the sky dome, sun, moon, and stars using pre-built display lists (`skyList`, `starList`, `darkList`). Moon phases come from `TN_TERRAIN_MOON_PHASES`.
+2. **Halo ring** (only if `viewDistance < 2` AND texture pack ID 1026). `LevelRenderer::renderHaloRing()` draws the horizon halo effect using `haloRingList`.
+3. **Frustum culling.** `Frustum::getFrustum()` pulls clip planes from the current model-view-projection matrices to determine chunk visibility.
+4. **Opaque pass (layer 0).** `LevelRenderer::render()` with `layer=0` renders all opaque block geometry. This is the big one with most of the vertex data.
+5. **Entities.** `LevelRenderer::renderEntities()` iterates every visible entity and dispatches to the right `EntityRenderer`.
+6. **Lit particles.** `ParticleEngine::renderLit()` draws lit particles using the `ENTITY_PARTICLE_TEXTURE` layer.
+7. **Standard particles.** `ParticleEngine::render()` draws standard particles using the `MISC`, `TERRAIN`, and `ITEM` layers.
+8. **Block selection** (if underwater). `LevelRenderer::renderHitOutline()` draws the wireframe around the targeted block, and `renderHit()` draws the crack overlay. This happens here when the camera is underwater.
+9. **Translucent pass (layer 1).** `LevelRenderer::render()` with `layer=1` renders translucent geometry (water, glass, ice). With fancy graphics enabled, this is a two-pass draw: first a z-write-only pass, then the actual render pass.
+10. **Block selection** (if not underwater). Same outline and crack overlay as step 8, but rendered here when the camera is above water.
+11. **Destroy animation.** `LevelRenderer::renderDestroyAnimation()` draws the block-breaking progress overlay.
+12. **Clouds.** `LevelRenderer::renderClouds()` or `renderAdvancedClouds()` draws the cloud layer.
+13. **Weather.** `GameRenderer::renderSnowAndRain()` draws rain and snow particle sheets. 4J moved this after clouds so the weather blends properly against the cloud layer.
+14. **Held item.** `GameRenderer::renderItemInHand()` draws the first-person hand and item.
+15. **Screen effects.** `ItemInHandRenderer::renderScreenEffect()` draws overlays like the pumpkin blur, underwater tint, and fire overlay when the camera is inside those blocks.
 
 After all that, `setupGuiScreen()` switches to orthographic projection and `Gui::render()` draws the HUD: hotbar, health, chat, vignette, and any overlay messages.
 
@@ -127,6 +130,41 @@ Chunks are 16x16x16 blocks. The render grid is allocated based on `PLAYER_RENDER
 
 Each player gets their own chunk array (`ClipChunkArray chunks[4]`), their own level pointer (`MultiPlayerLevel *level[4]`), their own `TileRenderer` (`tileRenderer[4]`), and their own last camera position (`xOld[4]`, `yOld[4]`, `zOld[4]`).
 
+### MAX_LEVEL_RENDER_SIZE
+
+`MAX_LEVEL_RENDER_SIZE` is a 3-element array that defines the maximum renderable level size per dimension (index 0 = Overworld, 1 = Nether, 2 = The End). The value at each index is the width/depth of the renderable region in chunks for that dimension. It differs between standard and large worlds:
+
+- **Non-large-worlds:** `{80, 44, 44}`. The overworld uses 54+13+13, while the nether and end use 18+13+13.
+- **Large worlds:** computed from platform defines. The overworld is `LEVEL_MAX_WIDTH + 18*2`, the nether is `HELL_LEVEL_MAX_WIDTH + 2`, and the end is `END_LEVEL_MAX_WIDTH`.
+
+### DIMENSION_OFFSETS
+
+`DIMENSION_OFFSETS` is a companion array to `MAX_LEVEL_RENDER_SIZE`. It stores the starting index into the global chunk flag array for each dimension. Each dimension's chunks occupy a contiguous block of indices:
+
+```cpp
+// Non-large-worlds:
+const int LevelRenderer::DIMENSION_OFFSETS[3] = {
+    0,
+    (80 * 80 * CHUNK_Y_COUNT),
+    (80 * 80 * CHUNK_Y_COUNT) + (44 * 44 * CHUNK_Y_COUNT)
+};
+```
+
+The offset for dimension `i` equals the sum of `MAX_LEVEL_RENDER_SIZE[j]^2 * CHUNK_Y_COUNT` for all dimensions `j < i`. The `getGlobalIndexForChunk()` method uses these offsets to map a world-space chunk position to an index in the flat `globalChunkFlags` array.
+
+### getDimensionIndexFromId
+
+`getDimensionIndexFromId(int id)` converts a dimension ID to an array index:
+
+```cpp
+int LevelRenderer::getDimensionIndexFromId(int id)
+{
+    return (3 - id) % 3;
+}
+```
+
+This maps: Overworld (id=0) to index 0, Nether (id=-1) to index 1, The End (id=1) to index 2. The formula only works for IDs -1, 0, and 1. Custom dimensions need this function updated (see [Custom Dimensions](/lce-docs/modding/custom-dimensions/)).
+
 ### Memory budgets (per platform)
 
 | Platform | `MAX_COMMANDBUFFER_ALLOCATIONS` |
@@ -215,6 +253,11 @@ Each `OffsettedRenderList` stores an offset position (`xOff`, `yOff`, `zOff`), a
 | `playSound()` | Bridge game sound events to the audio system |
 | `playStreamingMusic()` | Bridge music events to the audio system |
 | `addParticle()` / `addParticleInternal()` | Spawn particles from game logic |
+| `getDimensionIndexFromId()` | Convert dimension ID to array index |
+| `getGlobalIndexForChunk()` | Map a world chunk position to a global flag array index |
+| `getGlobalChunkCount()` | Total chunk count across all dimensions |
+| `getGlobalChunkCountForOverworld()` | Chunk count for the overworld only |
+| `isGlobalIndexInSameDimension()` | Check if a global index belongs to a given dimension |
 
 ### Block destruction overlay
 
@@ -247,9 +290,12 @@ When `_LARGE_WORLDS` is defined, `LevelRenderer` uses multi-threaded chunk rebui
 
 ```cpp
 static const int MAX_CONCURRENT_CHUNK_REBUILDS = 4;
+static const int MAX_CHUNK_REBUILD_THREADS = 3;
 static Chunk permaChunk[MAX_CONCURRENT_CHUNK_REBUILDS];
 static C4JThread *rebuildThreads[MAX_CHUNK_REBUILD_THREADS];
 ```
+
+There are 4 concurrent rebuild slots but only 3 worker threads. The 4th slot is used by the main thread. So the total concurrent rebuilds is 3 worker threads + 1 main thread = 4.
 
 The `PLAYER_VIEW_DISTANCE` is 18 chunks, giving a render area of `18 * 18 * 4 = 1296` chunks. Chunk flags get a critical section (`m_csChunkFlags`) for thread safety. The `rebuildChunkThreadProc()` static method runs on worker threads and calls `Chunk::rebuild()` on the thread's `permaChunk` instance.
 
@@ -307,6 +353,14 @@ The `ClipChunk` companion struct stores:
 On PS3, `rebuild_SPU()` offloads chunk building to SPU cores.
 
 The static `updates` counter tracks the total number of chunk rebuilds.
+
+### Tile visibility optimization
+
+During `Chunk::rebuild()`, there is a major optimization that skips blocks that would never be visible anyway. Before tesselation starts, the renderer makes a local copy of the chunk's tile IDs and checks each interior block to see if it is completely surrounded on all 6 sides by rock, dirt, unbreakable (bedrock), or blocks already marked invisible. If all 6 neighbors meet that check, the block's tile ID gets set to `0xFF` in the local copy, which means "invisible" and gets skipped during tesselation.
+
+This handles over 60% of tiles that would otherwise need processing. It also cascades: once a block is marked `0xFF`, it counts as solid for its neighbors' checks, so big solid regions get hollowed out quickly.
+
+Only interior blocks are checked this way since edge blocks would need neighbor data from adjacent chunks. At `y=0`, the below-neighbor check is skipped since there's nothing below.
 
 ## Tesselator
 
@@ -728,11 +782,11 @@ The `Frustum` subclass adds `calculateFrustum()` which reads the GL projection a
 
 ### ViewportCuller
 
-Viewport-based culling that builds six frustum-like faces from the player's position and rotation. Each face is represented by a `Face` inner class with center, direction, and cull offset. The `inFront()` method tests whether a point or box is on the visible side of a face.
+Viewport-based culling that builds six frustum-like faces from the player's position and rotation. Each face is represented by a `Face` inner class with center, direction, and cull offset. The `inFront()` method tests whether a point or box is on the visible side of a face. Note that `ViewportCuller::isVisible` takes an `AABB` by value (not by pointer like the `Culler` base), which is a slight interface mismatch in the source.
 
 ### AllowAllCuller
 
-No culling (renders everything). All visibility tests return true. Used during loading or when culling is disabled.
+No culling (renders everything). All visibility tests return true. Used during loading or when culling is disabled. Note that `AllowAllCuller` does not explicitly inherit from `Culler` in the source, but it declares the same virtual interface (`isVisible`, `cubeInFrustum`, `cubeFullyInFrustum`, `prepare`).
 
 ## Lighting
 

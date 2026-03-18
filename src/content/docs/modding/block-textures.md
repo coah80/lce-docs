@@ -418,11 +418,11 @@ Open `Minecraft.Client/PreStitchedTextureMap.cpp` and add your texture to the te
 // In the terrain (iconType == Icon::TYPE_TERRAIN) block of loadUVs():
 texturesByName.insert(stringIconMap::value_type(
     L"myBlockTexture",
-    new SimpleIcon(L"myBlockTexture", slotW*5, slotH*16, slotW*(5+1), slotH*(16+1))
+    new SimpleIcon(L"myBlockTexture", slotSize*5, slotSize*16, slotSize*(5+1), slotSize*(16+1))
 ));
 ```
 
-Replace `5` and `16` with your column and row. The slot size variables (`slotW`, `slotH`) are already defined in the function.
+Replace `5` and `16` with your column and row. The `slotSize` variable is already defined in the function as `1.0f / 16.0f`. If you extend the atlas vertically beyond 16 rows, you will need to define separate `slotW` and `slotH` variables instead (like the Aether client does), since the atlas is no longer square.
 
 ### 5. Set the Texture Name on Your Tile
 
@@ -446,15 +446,15 @@ If your block needs different textures per face, register multiple UV entries an
 // In loadUVs():
 texturesByName.insert(stringIconMap::value_type(
     L"myBlockTop",
-    new SimpleIcon(L"myBlockTop", slotW*5, slotH*16, slotW*6, slotH*17)
+    new SimpleIcon(L"myBlockTop", slotSize*5, slotSize*16, slotSize*6, slotSize*17)
 ));
 texturesByName.insert(stringIconMap::value_type(
     L"myBlockSide",
-    new SimpleIcon(L"myBlockSide", slotW*6, slotH*16, slotW*7, slotH*17)
+    new SimpleIcon(L"myBlockSide", slotSize*6, slotSize*16, slotSize*7, slotSize*17)
 ));
 texturesByName.insert(stringIconMap::value_type(
     L"myBlockBottom",
-    new SimpleIcon(L"myBlockBottom", slotW*7, slotH*16, slotW*8, slotH*17)
+    new SimpleIcon(L"myBlockBottom", slotSize*7, slotSize*16, slotSize*8, slotSize*17)
 ));
 ```
 
@@ -487,7 +487,7 @@ If your texture should animate:
 // In loadUVs():
 texturesByName.insert(stringIconMap::value_type(
     L"myAnimatedBlock",
-    new SimpleIcon(L"myAnimatedBlock", slotW*8, slotH*16, slotW*9, slotH*17)
+    new SimpleIcon(L"myAnimatedBlock", slotSize*8, slotSize*16, slotSize*9, slotSize*17)
 ));
 texturesToAnimate.push_back(pair<wstring, wstring>(L"myAnimatedBlock", L"myAnimatedBlock"));
 ```
@@ -498,7 +498,7 @@ For custom frame timing, add a `.txt` file next to the animation strip with comm
 
 ### 8. Rebuild and Test
 
-Add any new source files to `cmake/Sources.cmake` (for `.h` and `.cpp`), rebuild the project, and your block should render with the new texture.
+If you created new `.cpp` files for tile subclasses, add them to `cmake/Sources.cmake` (only `.cpp` files, not headers). Re-run CMake, rebuild the project, and your block should render with the new texture.
 
 ## Common Pitfalls
 

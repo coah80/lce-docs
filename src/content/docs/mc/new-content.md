@@ -1,9 +1,9 @@
 ---
 title: "New Blocks & Items"
-description: "Blocks and items added in MinecraftConsoles but not in LCEMP."
+description: "Blocks and items in MinecraftConsoles, including some shared with LCEMP."
 ---
 
-MinecraftConsoles adds several blocks and items that aren't in the LCEMP base. This page documents each addition based on the actual source code.
+MinecraftConsoles adds several blocks and items beyond the LCEMP base. Some of these also exist in LCEMP and are marked accordingly. This page documents each one based on the actual source code.
 
 ## New blocks
 
@@ -88,11 +88,11 @@ Extends `BaseEntityTile`. A tile entity that plays musical notes and responds to
 
 `TestUse()` returns whether the note block can be right-clicked (used for tooltip display). `newTileEntity()` creates the `MusicTileEntity`.
 
-### JukeboxTile
+### JukeboxTile (also in LCEMP)
 
 **File**: `Minecraft.World/JukeboxTile.h`, `.cpp`
 
-Extends `BaseEntityTile`. Plays and ejects music discs.
+Extends `BaseEntityTile`. Plays and ejects music discs. LCEMP also has `RecordPlayerTile.cpp/.h`.
 
 | Property | Value |
 |----------|-------|
@@ -159,11 +159,11 @@ The beacon `tick()` method periodically:
 
 Container methods implement the payment slot (1 slot, accepts specific items via `canPlaceItem()`). Full NBT save/load for all beacon properties.
 
-### AnvilTile
+### AnvilTile (also in LCEMP)
 
 **File**: `Minecraft.World/AnvilTile.h`, `.cpp`
 
-Extends `HeavyTile`. A gravity-affected block for item repair and renaming.
+Extends `HeavyTile`. A gravity-affected block for item repair and renaming. LCEMP also has `AnvilTile.cpp/.h` and `AnvilTileItem.cpp/.h`.
 
 | Property | Value |
 |----------|-------|
@@ -214,11 +214,11 @@ Extends both `TileEntity` and `CommandSender`. Entity type: `eTYPE_COMMANDBLOCKT
 
 Stores `command` (wstring), `name` (wstring), and `successCount` (int). `performCommand()` executes the stored command. Implements `CommandSender` for permission checking and message sending. Full NBT save/load. Has `getUpdatePacket()` for network sync and `getCommandSenderWorldPosition()` / `getCommandSenderWorld()` for context.
 
-### FlowerPotTile
+### FlowerPotTile (also in LCEMP)
 
 **File**: `Minecraft.World/FlowerPotTile.h`, `.cpp`
 
-Extends `Tile`. A decorative block that holds plants.
+Extends `Tile`. A decorative block that holds plants. LCEMP also has `FlowerPotTile.cpp/.h`.
 
 | Type constant | Value | Contents |
 |---|---|---|
@@ -236,11 +236,11 @@ Extends `Tile`. A decorative block that holds plants.
 
 `use()` handles placing plants. Static helpers `getItemFromType()` and `getTypeFromItem()` convert between block data and item stacks. `spawnResources()` drops both the pot and its contents.
 
-### SkullTile
+### SkullTile (also in LCEMP)
 
 **File**: `Minecraft.World/SkullTile.h`, `.cpp`
 
-Extends `BaseEntityTile`. Player and mob heads.
+Extends `BaseEntityTile`. Player and mob heads. LCEMP also has `SkullTile.cpp/.h`, `SkullTileEntity.cpp/.h`, and `SkullItem.cpp/.h`.
 
 | Property | Value |
 |----------|-------|
@@ -400,11 +400,11 @@ The firework rocket item. See the [Fireworks](/lce-docs/mc/fireworks/) page for 
 
 The firework star item. See the [Fireworks](/lce-docs/mc/fireworks/) page for full details.
 
-### ArmorDyeRecipe
+### ArmorDyeRecipe (also in LCEMP)
 
 **File**: `Minecraft.World/ArmorDyeRecipe.h`, `.cpp`
 
-A special crafting recipe that lets you dye leather armor. Takes leather armor plus one or more dyes and produces a dyed copy.
+A special crafting recipe that lets you dye leather armor. Takes leather armor plus one or more dyes and produces a dyed copy. LCEMP also has `ArmorDyeRecipe.cpp/.h`.
 
 ## Other new recipes
 

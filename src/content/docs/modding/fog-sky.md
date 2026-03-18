@@ -105,6 +105,8 @@ Vec3 *HellDimension::getFogColor(float td, float a) const
 
 No brightness modulation, no time-of-day math. Just a flat color from the table. The default is a dark reddish-brown (`0x330808` or similar, depending on the texture pack).
 
+The Nether's `getTimeOfDay()` returns `0.5f` (perpetual sunset/sunrise time), which is different from the End's `0.0f`. This doesn't affect the fog color since the Nether ignores the brightness curve, but it does matter for any code that reads the time of day value directly.
+
 The Nether also reports `isFoggyAt()` as true everywhere, and has brighter ambient light:
 
 ```cpp
@@ -155,7 +157,11 @@ Vec3 *TheEndDimension::getFogColor(float td, float a) const
 }
 ```
 
-See that `br * 0.0f + 0.15f`? The brightness multiplier is literally zero, so `br` has no effect. The End always uses 15% of the base color. The time of day is also fixed at 0.0:
+See that `br * 0.0f + 0.15f`? The brightness multiplier is literally zero, so `br` has no effect. The End always uses 15% of the base color.
+
+Like the Nether, `TheEndDimension::isFoggyAt()` also returns `true`, so the End is always foggy with the same shortened fog distance formula.
+
+The time of day is also fixed at 0.0:
 
 ```cpp
 float TheEndDimension::getTimeOfDay(int64_t time, float a) const
@@ -499,6 +505,8 @@ if (yy < 1) {
 
 At y=0 (bedrock level), multiplied by 1/32, `yy` is 0, so the fog is completely black. At y=32, `yy` is 1 and there's no darkening. The squaring (`yy * yy`) makes the transition gradual.
 
+Flat worlds are an exception: `getClearColorScale()` returns `1.0` instead of `1.0/32.0` for flat worlds. This means the height-based darkness effect doesn't apply in flat worlds, since any positive Y position will produce `yy >= 1`.
+
 ### Step 7: Blindness effect
 
 If the player has the blindness status effect, the fog dims to black over 20 ticks:
@@ -590,20 +598,20 @@ Notice there are separate entries for "fog" and "clear" for both water and lava.
 
 ## The Full ColourTable
 
-The `ColourTable` has 307 named color entries. Here are all the ones relevant to fog and sky:
+The `ColourTable` has 277 named color entries (276 colors + 1 `NOTSET` sentinel). The `eMinecraftColour_COUNT` is 277. Here are all the ones relevant to fog and sky:
 
 ### Per-biome colors
 
-Each biome gets four dedicated color entries:
+Each biome gets dedicated color entries, but the counts aren't the same across all four categories:
 
-| Pattern | Example | Purpose |
-|---|---|---|
-| `Grass_{BiomeName}` | `Grass_Plains` | Grass block tint |
-| `Foliage_{BiomeName}` | `Foliage_Plains` | Leaf block tint |
-| `Water_{BiomeName}` | `Water_Plains` | Water tint |
-| `Sky_{BiomeName}` | `Sky_Plains` | Sky color |
+| Pattern | Example | Purpose | Entries |
+|---|---|---|---|
+| `Foliage_{BiomeName}` | `Foliage_Plains` | Leaf block tint | 27 (23 biome-specific + Evergreen, Birch, Default, Common) |
+| `Grass_{BiomeName}` | `Grass_Plains` | Grass block tint | 24 (23 biome-specific + Common) |
+| `Water_{BiomeName}` | `Water_Plains` | Water tint | 23 |
+| `Sky_{BiomeName}` | `Sky_Plains` | Sky color | 23 |
 
-This covers all 23 biomes, giving you 92 color slots just for biome-specific tints.
+This gives 97 total biome-related color entries.
 
 ### Environment colors
 
@@ -678,7 +686,7 @@ The Nether doesn't use the brightness curve at all. It just reads the flat color
 | `TheEndDimension.cpp` | End fog color (fixed 15% brightness), fixed time of day |
 | `GameRenderer.cpp` | `setupClearColor()` (full color pipeline), `setupFog()` (distance settings) |
 | `Level.cpp` | `getSkyColor()` (biome-based, brightness-modulated) |
-| `ColourTable.h/.cpp` | Data-driven color system with 307 named entries |
+| `ColourTable.h/.cpp` | Data-driven color system with 277 named entries |
 | `Biome.h/.cpp` | Per-biome sky colors via ColourTable lookups |
 | `NormalDimension.h` | Overworld dimension (inherits everything from Dimension) |
 | `AetherDimension.cpp` | Custom fog example: blue fog (0.62, 0.80, 1.0), permanent day |

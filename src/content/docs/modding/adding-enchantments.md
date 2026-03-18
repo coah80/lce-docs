@@ -514,10 +514,10 @@ Some concrete numbers for the bottom slot (slot 2):
 
 | Bookshelves | Minimum | Maximum | Average |
 |-------------|---------|---------|---------|
-| 0 | 2 | 9 | ~5 |
-| 5 | 4 | 16 | ~10 |
-| 10 | 7 | 24 | ~15 |
-| 15 | 9 | 31 | ~20 |
+| 0 | 1 | 8 | ~5 |
+| 5 | 3 | 18 | ~10 |
+| 10 | 6 | 25 | ~15 |
+| 15 | 8 | 30 | ~20 |
 
 The middle slot (slot 1) has a guaranteed minimum of `bookcases * 2`, so with 15 bookshelves it's always at least 30. The top slot divides by 3 and floors at 1, giving the cheapest option.
 
@@ -654,13 +654,13 @@ Note: Knockback, Fire Aspect, and Looting all use `Enchantment::getMinCost()` (t
 | **Unbreaking** | 3 | `5 + (level-1) * 8` | `minCost + 50` |
 | **Fortune** | 3 | `15 + (level-1) * 9` | `minCost + 50` |
 
-Same quirk as weapon enchantments: Efficiency and Silk Touch use the base class `getMinCost()` for maxCost. Unbreaking uses its own `getMinCost()` for maxCost.
+Same quirk as weapon enchantments: Efficiency and Silk Touch use the base class `getMinCost()` for maxCost. Unbreaking uses the base class `Enchantment::getMinCost(level)` for maxCost, same as Knockback, Fire Aspect, etc.
 
 | Enchantment | Level 1 | Level 2 | Level 3 | Level 4 | Level 5 |
 |-------------|---------|---------|---------|---------|---------|
 | **Efficiency** | 1-61 | 11-71 | 21-81 | 31-91 | 41-101 |
 | **Silk Touch** | 15-65 | -- | -- | -- | -- |
-| **Unbreaking** | 5-55 | 13-63 | 21-71 | -- | -- |
+| **Unbreaking** | 5-61 | 13-71 | 21-81 | -- | -- |
 | **Fortune** | 15-61 | 24-71 | 33-81 | -- | -- |
 
 ### Other armor enchantments
@@ -675,10 +675,10 @@ Same quirk as weapon enchantments: Efficiency and Silk Touch use the base class 
 |-------------|---------|---------|---------|
 | **Respiration** | 10-40 | 20-50 | 30-60 |
 | **Aqua Affinity** | 1-41 | -- | -- |
-| **Thorns** | 10-71 | 30-91 | 50-111 |
+| **Thorns** | 10-61 | 30-71 | 50-81 |
 
 <Aside type="tip">
-To tune when your custom enchantment appears at the enchanting table, think about the bottom slot's value range. With 15 bookshelves, the bottom slot generates values between 9 and 31 (plus the item's enchantment value bonus). Set your `getMinCost()` and `getMaxCost()` ranges to overlap with the values you want to target.
+To tune when your custom enchantment appears at the enchanting table, think about the bottom slot's value range. With 15 bookshelves, the bottom slot generates values between 8 and 30 (plus the item's enchantment value bonus). Set your `getMinCost()` and `getMaxCost()` ranges to overlap with the values you want to target.
 </Aside>
 
 ## The anvil combining system

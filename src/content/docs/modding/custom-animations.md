@@ -462,11 +462,11 @@ When `HumanoidModel::sneaking` is true, the model shifts down and tilts forward:
 ```cpp
 if (sneaking)
 {
-    body->yRot = 0.5f;  // tilt forward
+    body->xRot = 0.5f;  // tilt forward
     arm0->xRot += 0.4f; // arms angle forward slightly
     arm1->xRot += 0.4f;
-    leg0->setPos(-2, 12 + 4.25f, 4);  // shift legs back
-    leg1->setPos(2, 12 + 4.25f, 4);
+    leg0->z = 4.0f; leg0->y = 9.0f;  // shift legs back and down
+    leg1->z = 4.0f; leg1->y = 9.0f;
     head->y = 1;  // head moves down
 }
 ```

@@ -536,7 +536,7 @@ Here's a detailed look at what each biome subclass actually configures. Use thes
 
 ### PlainsBiome (ID 1)
 
-The simplest biome. No subclass overrides at all. Just uses the base `Biome` defaults: grass surface, 0 trees, 2 flowers, 1 grass. Temperature 0.8, downfall 0.4.
+Disables trees and boosts flowers/grass. Decorator: `treeCount = -999` (disabled), `flowerCount = 4`, `grassCount = 10`. Temperature 0.8, downfall 0.4.
 
 ### DesertBiome (ID 2, 17)
 
@@ -551,7 +551,7 @@ The simplest biome. No subclass overrides at all. Just uses the base `Biome` def
 
 - Adds wolves to `friendlies_wolf` (weight 5, group 4)
 - Decorator: `treeCount = 10`, `grassCount = 2`
-- `getTreeFeature()`: 20% birch, 80% normal oak
+- `getTreeFeature()`: 1/5 chance birch, 1/10 chance fancy oak (`BasicTree`), otherwise normal oak
 
 ### TaigaBiome (ID 5, 19)
 
@@ -577,10 +577,12 @@ The densest biome by far:
 
 - Decorator: `treeCount = 50`, `grassCount = 25`, `flowerCount = 4`
 - Adds ocelots to enemies list (weight 2, group 1-1)
-- Adds chickens to `friendlies_chicken` (weight 10, group 4)
+- Adds chickens to the main `friendlies` list (weight 10, group 4)
 - Custom `getTreeFeature()` with four tree types:
-  - 10% chance: huge jungle tree (MegaTreeFeature, 2x2 trunk)
-  - Of the remaining 90%: 50% shrub, 33.3% normal oak, 16.7% jungle tree
+  - 1/10 chance: fancy oak (`BasicTree`)
+  - 1/2 chance: ground bush (`GroundBushFeature`)
+  - 1/3 chance: mega jungle tree (`MegaTreeFeature`, 2x2 trunk)
+  - Otherwise: normal jungle tree (`TreeFeature` with jungle blocks and vines)
 - Custom `decorate()` adds 50 vine placements after the standard decoration
 - Temperature 1.2, downfall 0.9 (humid)
 
@@ -596,7 +598,7 @@ The densest biome by far:
 - Surface: `mycelium` on dirt
 - Clears all enemy and friendly mob lists
 - Adds mooshroom cows to `friendlies_mushroomcow` (weight 8, group 4-8)
-- Decorator: `hugeMushrooms = 1`, `flowerCount = 0`, `grassCount = 0`
+- Decorator: `hugeMushrooms = 1`, `mushroomCount = 1`, `treeCount = -100`, `flowerCount = -100`, `grassCount = -100`
 
 ### ExtremeHillsBiome (ID 3, 20)
 

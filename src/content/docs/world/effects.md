@@ -352,14 +352,14 @@ From the source code comments:
 | `0100` | Poison |
 | `0101` | Healing |
 | `0110` | Night Vision |
-| `0111` | Invisibility |
+| `0111` | (unused) |
 | `1000` | Weakness |
 | `1001` | Strength |
 | `1010` | Slowness |
 | `1011` | (unused) |
 | `1100` | Harming |
 | `1101` | (unused) |
-| `1110` | (unused) |
+| `1110` | Invisibility |
 | `1111` | (unused) |
 
 ### Brewing formulas

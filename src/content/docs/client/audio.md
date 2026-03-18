@@ -3,7 +3,9 @@ title: "Audio"
 description: "Sound system in LCE."
 ---
 
-LCE's audio system is built on the Miles Sound System (MSS) library, wrapped in a two-class hierarchy. `ConsoleSoundEngine` defines the platform interface, and `SoundEngine` provides the shared implementation. The system handles positional 3D audio, background music streaming, and UI sound effects.
+LCE's audio system is wrapped in a two-class hierarchy. `ConsoleSoundEngine` defines the platform interface, and `SoundEngine` provides the shared implementation. The system handles positional 3D audio, background music streaming, and UI sound effects.
+
+The original console builds used the **Miles Sound System** (MSS) library from RAD Game Tools. LCEMP has replaced Miles with **miniaudio** (`miniaudio.h`), a single-header C audio library. The API surface is the same (the `ConsoleSoundEngine` interface hasn't changed), but the backend is different. Xbox 360 used native XAudio instead of Miles.
 
 ## Architecture
 
@@ -48,31 +50,28 @@ The sound name tables (`wchSoundNames` and `wchUISoundNames`) map sound type enu
 
 ### SoundEngine (implementation)
 
-`SoundEngine` extends `ConsoleSoundEngine` with the Miles Sound System backend:
+`SoundEngine` extends `ConsoleSoundEngine`. In LCEMP, it uses miniaudio as the backend:
 
 ```cpp
 class SoundEngine : public ConsoleSoundEngine {
     static const int MAX_SAME_SOUNDS_PLAYING = 8;
 
-    HMSOUNDBANK m_hBank;      // sound bank handle
-    HDIGDRIVER m_hDriver;      // audio driver handle
-    HSTREAM m_hStream;         // streaming handle
+    ma_engine m_maEngine;                     // miniaudio engine
+    bool m_maEngineInitialized;
+
+    ma_sound m_activeSounds[MA_MAX_SOUNDS];   // active sound pool (64 slots)
+    bool m_activeSoundUsed[MA_MAX_SOUNDS];
+
+    ma_sound m_musicStream;                   // current streaming music
+    bool m_musicStreamActive;
 };
 ```
 
-## Miles Sound System integration
+`MA_MAX_SOUNDS` is 64, the maximum number of sounds that can play at once. The engine manages this pool with `findFreeSoundSlot()` (finds a free slot) and `cleanupFinishedSounds()` (reclaims slots from finished sounds).
 
-The Miles Sound System headers are included per platform:
-
-| Platform | Header path |
-|---|---|
-| PS3 | `PS3/Miles/include/mss.h` |
-| PS Vita | `PSVITA/Miles/include/mss.h` |
-| Xbox One (Durango) | `Durango/Miles/include/mss.h` |
-| PS4 (Orbis) | `Orbis/Miles/include/mss.h` |
-| Windows 64 | `Windows64/Miles/include/mss.h` |
-
-Xbox 360 uses the native XAudio system instead of Miles.
+:::note
+The original console builds used the Miles Sound System (MSS). The MSS headers were included per platform (`PS3/Miles/include/mss.h`, `PSVITA/Miles/include/mss.h`, `Durango/Miles/include/mss.h`, `Orbis/Miles/include/mss.h`, `Windows64/Miles/include/mss.h`). Xbox 360 used native XAudio instead of Miles. LCEMP replaced all of this with miniaudio.
+:::
 
 ## The sound pipeline
 
@@ -93,7 +92,7 @@ SoundEngine::playUI()  -- non-positional UI sound
 SoundEngine::playStreaming() -- music / jukebox
 ```
 
-When `SoundEngine::play()` fires, it builds a Miles event name like `"Minecraft/mob.zombie"` from the dot-separated string and enqueues it to the event system. `ConvertSoundPathToName()` handles the conversion from dots to the slash-separated event paths that Miles expects.
+When `SoundEngine::play()` fires, it converts the dot-separated sound name to a file path using `ConvertSoundPathToName()` and plays it through the audio backend. In the original Miles builds, this produced event names like `"Minecraft/mob.zombie"`. In LCEMP's miniaudio backend, it resolves to audio files on disk.
 
 ## 3D audio
 
@@ -158,7 +157,7 @@ The `fSoundClipDist` parameter (default 16 blocks) controls how far away a sound
 
 ## Sound attenuation
 
-All 3D sounds use a custom linear falloff function instead of the default Miles rolloff:
+All 3D sounds use a custom linear falloff function instead of the default engine rolloff. In the original Miles builds, this was registered as a callback. LCEMP implements the same logic in miniaudio:
 
 ```cpp
 F32 AILCALLBACK custom_falloff_function(
@@ -207,44 +206,67 @@ Ambient, hurt, death, and step sounds for every mob:
 | `eSoundType_MOB_WOLF_PANTING` | `mob.wolf.panting` | Tamed wolf panting |
 | `eSoundType_MOB_WOLF_WHINE` | `mob.wolf.whine` | Wolf whine |
 | `eSoundType_MOB_WOLF_SHAKE` | `mob.wolf.shake` | Wolf shaking off water |
-| `eSoundType_MOB_CAT_HISS` | `mob.cat.hiss` | Cat hiss |
+| `eSoundType_MOB_CAT_HITT` | `mob.cat.hit` | Cat hit |
 | `eSoundType_MOB_CAT_PURR` | `mob.cat.purr` | Cat purr |
-| `eSoundType_MOB_CAT_PURREOW` | `mob.cat.purreow` | Cat meow |
+| `eSoundType_MOB_CAT_PURREOW` | `mob.cat.purreow` | Cat purr-meow |
+| `eSoundType_MOB_CAT_MEOW` | `mob.cat.meow` | Cat meow |
 | `eSoundType_MOB_CHICKEN_AMBIENT` | `mob.chicken` | Chicken clucking |
 | `eSoundType_MOB_CHICKEN_HURT` | `mob.chickenhurt` | Chicken hurt |
-| `eSoundType_MOB_CHICKEN_PLOP` | `mob.chicken.plop` | Egg laying |
+| `eSoundType_MOB_CHICKENPLOP` | `mob.chickenplop` | Egg laying |
 | `eSoundType_MOB_COW_AMBIENT` | `mob.cow` | Cow mooing |
 | `eSoundType_MOB_COW_HURT` | `mob.cowhurt` | Cow hurt |
 | `eSoundType_MOB_PIG_AMBIENT` | `mob.pig` | Pig oinking |
 | `eSoundType_MOB_PIG_DEATH` | `mob.pig.death` | Pig death |
 | `eSoundType_MOB_SHEEP_AMBIENT` | `mob.sheep` | Sheep bleating |
-| `eSoundType_MOB_GHAST_AMBIENT` | `mob.ghast.moan` | Ghast moaning |
+| `eSoundType_MOB_GHAST_MOAN` | `mob.ghast.moan` | Ghast moaning |
 | `eSoundType_MOB_GHAST_DEATH` | `mob.ghast.death` | Ghast death |
 | `eSoundType_MOB_GHAST_FIREBALL` | `mob.ghast.fireball` | Ghast shooting |
 | `eSoundType_MOB_GHAST_SCREAM` | `mob.ghast.scream` | Ghast screaming |
-| `eSoundType_MOB_BLAZE_HIT` | `mob.blaze.hit` | Blaze hurt |
+| `eSoundType_MOB_GHAST_CHARGE` | `mob.ghast.charge` | Ghast charging |
+| `eSoundType_MOB_BLAZE_HURT` | `mob.blaze.hit` | Blaze hurt |
 | `eSoundType_MOB_BLAZE_DEATH` | `mob.blaze.death` | Blaze death |
 | `eSoundType_MOB_BLAZE_BREATHE` | `mob.blaze.breathe` | Blaze ambient |
-| `eSoundType_MOB_ENDERMAN_IDLE` | `mob.endermen.idle` | Enderman ambient |
-| `eSoundType_MOB_ENDERMAN_HIT` | `mob.endermen.hit` | Enderman hurt |
-| `eSoundType_MOB_ENDERMAN_DEATH` | `mob.endermen.death` | Enderman death |
-| `eSoundType_MOB_ENDERMAN_PORTAL` | `mob.endermen.portal` | Enderman teleport |
+| `eSoundType_MOB_ENDERMEN_IDLE` | `mob.endermen.idle` | Enderman ambient |
+| `eSoundType_MOB_ENDERMEN_HIT` | `mob.endermen.hit` | Enderman hurt |
+| `eSoundType_MOB_ENDERMEN_DEATH` | `mob.endermen.death` | Enderman death |
+| `eSoundType_MOB_ENDERMEN_PORTAL` | `mob.endermen.portal` | Enderman teleport |
+| `eSoundType_MOB_ZOMBIEPIG_AMBIENT` | `mob.zombiepig.zpig` | Zombie pigman idle |
+| `eSoundType_MOB_ZOMBIEPIG_HURT` | `mob.zombiepig.zpighurt` | Zombie pigman hurt |
+| `eSoundType_MOB_ZOMBIEPIG_DEATH` | `mob.zombiepig.zpigdeath` | Zombie pigman death |
+| `eSoundType_MOB_ZOMBIEPIG_ZPIGANGRY` | `mob.zombiepig.zpigangry` | Zombie pigman angry |
 | `eSoundType_MOB_ENDERDRAGON_GROWL` | `mob.enderdragon.growl` | Dragon growl |
 | `eSoundType_MOB_ENDERDRAGON_HIT` | `mob.enderdragon.hit` | Dragon hurt |
-| `eSoundType_MOB_ENDERDRAGON_WINGS` | `mob.enderdragon.wings` | Dragon wingflap |
+| `eSoundType_MOB_ENDERDRAGON_MOVE` | `mob.enderdragon.move` | Dragon wingflap |
 | `eSoundType_MOB_ENDERDRAGON_END` | `mob.enderdragon.end` | Dragon death |
 | `eSoundType_MOB_SILVERFISH_AMBIENT` | `mob.silverfish.say` | Silverfish ambient |
-| `eSoundType_MOB_SILVERFISH_HIT` | `mob.silverfish.hit` | Silverfish hurt |
+| `eSoundType_MOB_SILVERFISH_HURT` | `mob.silverfish.hit` | Silverfish hurt |
 | `eSoundType_MOB_SILVERFISH_DEATH` | `mob.silverfish.kill` | Silverfish death |
 | `eSoundType_MOB_SILVERFISH_STEP` | `mob.silverfish.step` | Silverfish walk |
-| `eSoundType_MOB_GOLEM_HIT` | `mob.irongolem.hit` | Iron golem hurt |
-| `eSoundType_MOB_GOLEM_DEATH` | `mob.irongolem.death` | Iron golem death |
-| `eSoundType_MOB_GOLEM_WALK` | `mob.irongolem.walk` | Iron golem walk |
-| `eSoundType_MOB_GOLEM_THROW` | `mob.irongolem.throw` | Iron golem throw |
-| `eSoundType_MOB_SLIME_BIG` | `mob.slime.big` | Large slime |
-| `eSoundType_MOB_SLIME_SMALL` | `mob.slime.small` | Small slime |
+| `eSoundType_MOB_SKELETON_AMBIENT` | `mob.skeleton` | Skeleton ambient |
+| `eSoundType_MOB_SKELETON_HURT` | `mob.skeleton.hurt` | Skeleton hurt |
+| `eSoundType_MOB_SPIDER_AMBIENT` | `mob.spider` | Spider ambient |
+| `eSoundType_MOB_SPIDER_DEATH` | `mob.spiderdeath` | Spider death |
+| `eSoundType_MOB_SLIME` | `mob.slime` | Slime |
+| `eSoundType_MOB_SLIME_ATTACK` | `mob.slimeattack` | Slime attack |
+| `eSoundType_MOB_CREEPER_DEATH` | `mob.creeperdeath` | Creeper death |
+| `eSoundType_MOB_ZOMBIE_WOOD` | `mob.zombie.wood` | Zombie hitting wood door |
+| `eSoundType_MOB_ZOMBIE_WOOD_BREAK` | `mob.zombie.woodbreak` | Zombie breaking wood door |
+| `eSoundType_MOB_ZOMBIE_METAL` | `mob.zombie.metal` | Zombie hitting metal door |
 | `eSoundType_MOB_MAGMACUBE_BIG` | `mob.magmacube.big` | Large magma cube |
-| `eSoundType_MOB_MAGMACUBE_JUMP` | `mob.magmacube.small` | Magma cube jump |
+| `eSoundType_MOB_MAGMACUBE_SMALL` | `mob.magmacube.small` | Small magma cube |
+| `eSoundType_MOB_IRONGOLEM_THROW` | `mob.irongolem.throw` | Iron golem throw |
+| `eSoundType_MOB_IRONGOLEM_HIT` | `mob.irongolem.hit` | Iron golem hurt |
+| `eSoundType_MOB_IRONGOLEM_DEATH` | `mob.irongolem.death` | Iron golem death |
+| `eSoundType_MOB_IRONGOLEM_WALK` | `mob.irongolem.walk` | Iron golem walk |
+| `eSoundType_MOB_VILLAGER_HAGGLE` | `mob.villager.haggle` | Villager trading |
+| `eSoundType_MOB_VILLAGER_IDLE` | `mob.villager.idle` | Villager ambient |
+| `eSoundType_MOB_VILLAGER_HIT` | `mob.villager.hit` | Villager hurt |
+| `eSoundType_MOB_VILLAGER_DEATH` | `mob.villager.death` | Villager death |
+| `eSoundType_MOB_VILLAGER_YES` | `mob.villager.yes` | Villager accepting trade |
+| `eSoundType_MOB_VILLAGER_NO` | `mob.villager.no` | Villager declining trade |
+| `eSoundType_MOB_ZOMBIE_INFECT` | `mob.zombie.infect` | Zombie infecting villager |
+| `eSoundType_MOB_ZOMBIE_UNFECT` | `mob.zombie.unfect` | Zombie villager curing |
+| `eSoundType_MOB_ZOMBIE_REMEDY` | `mob.zombie.remedy` | Zombie cure remedy |
 
 ### Block/tile sounds (`step.*`, `dig.*`, `tile.*`)
 
@@ -254,6 +276,7 @@ Ambient, hurt, death, and step sounds for every mob:
 | `eSoundType_STEP_WOOD` | `step.wood` | Walking on wood |
 | `eSoundType_STEP_GRAVEL` | `step.gravel` | Walking on gravel |
 | `eSoundType_STEP_GRASS` | `step.grass` | Walking on grass |
+| `eSoundType_STEP_METAL` | `step.metal` | Walking on metal |
 | `eSoundType_STEP_CLOTH` | `step.cloth` | Walking on wool |
 | `eSoundType_STEP_SAND` | `step.sand` | Walking on sand |
 | `eSoundType_STEP_SNOW` | `step.snow` | Walking on snow |
@@ -281,7 +304,6 @@ Ambient, hurt, death, and step sounds for every mob:
 | `eSoundType_RANDOM_CLICK` | `random.click` | Buttons, levers |
 | `eSoundType_RANDOM_GLASS` | `random.glass` | Breaking glass |
 | `eSoundType_RANDOM_FIZZ` | `random.fizz` | Fire extinguish, lava pop |
-| `eSoundType_RANDOM_LEVELUP` | `random.levelup` | Experience level up |
 | `eSoundType_RANDOM_POP` | `random.pop` | Item pickup |
 | `eSoundType_RANDOM_ORB` | `random.orb` | Experience orb pickup |
 | `eSoundType_RANDOM_SPLASH` | `random.splash` | Water splash |
@@ -291,7 +313,9 @@ Ambient, hurt, death, and step sounds for every mob:
 | `eSoundType_RANDOM_ANVIL_LAND` | `random.anvil_land` | Falling anvil landing |
 | `eSoundType_RANDOM_ANVIL_BREAK` | `random.anvil_break` | Anvil breaking |
 | `eSoundType_RANDOM_FUSE` | `random.fuse` | TNT fuse |
-| `eSoundType_RANDOM_BOWHIT` | `random.bowhit` | Arrow hitting target |
+| `eSoundType_RANDOM_BOW_HIT` | `random.bowhit` | Arrow hitting target |
+| `eSoundType_RANDOM_BURP` | `random.burp` | Burping after eating |
+| `eSoundType_RANDOM_BREAK` | `random.break` | Item breaking |
 
 ### Ambient sounds (`ambient.*`)
 
@@ -307,7 +331,7 @@ Ambient, hurt, death, and step sounds for every mob:
 |---|---|---|
 | `portal.*` | `portal.portal`, `portal.trigger`, `portal.travel` | Portal effects |
 | `fire.*` | `fire.ignite`, `fire.fire` | Fire sounds |
-| `damage.*` | `damage.hurtflesh`, `damage.fallsmall`, `damage.fallbig` | Player damage |
+| `damage.*` | `damage.hurtflesh`, `damage.fallsmall`, `damage.fallbig`, `damage.thorns` | Player damage |
 | `note.*` | `note.harp`, `note.bd`, `note.snare`, `note.hat`, `note.bassattack` | Note blocks |
 | `liquid.*` | `liquid.water`, `liquid.lava`, `liquid.lavapop` | Liquid sounds |
 | `minecart.*` | `minecart.base`, `minecart.inside` | Minecart movement |
@@ -450,10 +474,9 @@ The master volumes (`m_MasterMusicVolume`, `m_MasterEffectsVolume`) are set from
 
 ## Sound bank and driver
 
-The Miles Sound System uses:
-- **`HMSOUNDBANK m_hBank`** is the loaded sound bank containing all SFX (`Minecraft.msscmp`)
-- **`HDIGDRIVER m_hDriver`** is the digital audio driver
-- **`HSTREAM m_hStream`** is the current streaming music handle
+In the original console builds, the Miles Sound System used a compiled sound bank (`Minecraft.msscmp`) containing all SFX, loaded into `HMSOUNDBANK m_hBank`. `HDIGDRIVER m_hDriver` was the audio driver handle, and `HSTREAM m_hStream` was the streaming music handle.
+
+LCEMP replaces this with miniaudio. The `ma_engine` handles mixing and output, `ma_sound` instances manage individual sounds (up to 64 active in `m_activeSounds[]`), and `m_musicStream` handles the current streaming track.
 
 Sound files and music files get registered through `add()`, `addMusic()`, and `addStreaming()` during initialization.
 
@@ -467,10 +490,14 @@ Audio resources are stored in:
 
 ## Platform-specific notes
 
-- **PS3**: `initAudioHardware()` has a platform-specific implementation for Cell audio initialization
+These notes apply to the original console builds, not LCEMP:
+
+- **PS3**: `initAudioHardware()` has a platform-specific implementation for Cell audio initialization. There is also a `PS3_SoundEngine.cpp` with PS3-specific Miles integration.
 - **PS4 (Orbis)**: Uses `int32_t m_hBGMAudio` for the background music audio handle
 - **PS Vita**: Miles integration through a Vita-specific MSS build with `updateMiles()` called during the mixer callback
-- **Xbox 360**: Uses native XAudio instead of Miles (no `mss.h` include)
+- **Xbox 360**: Uses native XAudio instead of Miles (no `mss.h` include). Has its own `Xbox/Audio/SoundEngine.cpp` and `SoundEngine.h`
+
+LCEMP uses miniaudio on all platforms. The `initAudioHardware()` method is a no-op stub that just returns its input parameter.
 
 ## MinecraftConsoles differences
 
@@ -518,4 +545,4 @@ A bunch of mob step sounds are added that LCEMP was missing:
 
 ### Bug fix
 
-`eSoundType_MOB_CAT_HITT` (typo with double T) is fixed to `eSoundType_MOB_CAT_HIT`.
+`eSoundType_MOB_CAT_HITT` (typo with double T in LCEMP) is renamed to `eSoundType_MOB_CAT_HIT` in MinecraftConsoles.

@@ -115,7 +115,7 @@ The `SQRNetworkManager` base class defines the shared constants used by all Sony
 - `NP_POOL_SIZE` = 128 KB
 - `MAX_FRIENDS` = 100
 - `MAX_SIMULTANEOUS_INVITES` = 10
-- `RUDP_THREAD_STACK_SIZE` = 32,878 bytes
+- `RUDP_THREAD_STACK_SIZE` = 32,768 bytes (0x8000, 32 KB)
 
 RUDP thread priority differs per platform: PS3 uses 999, PS4/Vita use 500.
 
@@ -140,6 +140,21 @@ PS3 also bundles: Boost 1.53.0 subset (`PS3Extras/boost_1_53_0/`), DirectX math 
 
 PS Vita also bundles: libdivide integer division optimization (`PSVitaExtras/libdivide.h`)
 
+## Dedicated Server Module
+
+In addition to the platform-specific client code, LCEMP includes a `Minecraft.Server/` module for running a standalone dedicated server. This module has its own text-based command system (27 commands), a `server.properties` configuration file, and a console input thread for accepting commands. It also has a `Linux/` subdirectory with a Linux entry point, suggesting cross-platform server support was planned.
+
+See the [Dedicated Server](/lce-docs/platforms/dedicated-server/) page for full details.
+
+## Shared Common/ Systems
+
+The `Common/` directory inside `Minecraft.Client` holds cross-platform systems shared by all platforms. Several of these systems have their own documentation pages:
+
+- [DLC Pipeline](/lce-docs/platforms/dlc-pipeline/) -- DLC pack management, file types, and content loading
+- [Telemetry](/lce-docs/platforms/telemetry/) -- Gameplay event tracking via CTelemetryManager
+- [Leaderboards](/lce-docs/platforms/leaderboards/) -- Platform-specific leaderboard integration
+- [Tutorial System](/lce-docs/platforms/tutorial-system/) -- In-game tutorial with states, tasks, hints, and constraints
+
 ## File Naming Conventions
 
 Platform files follow consistent naming patterns:
@@ -158,7 +173,7 @@ Platform files follow consistent naming patterns:
 The two codebases have the same overall platform architecture, but MinecraftConsoles has some notable changes:
 
 - **Sony shared network layer** was refactored from per-platform copies into `Common/Network/Sony/`
-- **Windows 64** gained `KeyboardMouseInput` (full keyboard/mouse class) and `Windows64_Xuid.h` (persistent player UID with `uid.dat` file storage)
+- **Windows 64** gained `Windows64_Xuid.h` (persistent player UID with `uid.dat` file storage). Note: `KeyboardMouseInput` already existed in LCEMP (added by notpies), it is not a MinecraftConsoles addition.
 - **All platforms** gained Iggy, Miles, Sentient, and 4JLibs include directories (these were likely external references in LCEMP)
 - **PS3** gained full SPU task source code (the SPU jobs were likely pre-compiled in LCEMP)
 - **Platform media directories** (`DurangoMedia/`, `OrbisMedia/`, `PS3Media/`, `PSVitaMedia/`, `Windows64Media/`) were added for DLC content, localization, and asset files

@@ -9,6 +9,67 @@ This template walks you through adding two new gameplay features from scratch: a
 
 If you haven't set up your build environment yet, start with [Getting Started](/lce-docs/modding/getting-started/) first. This tutorial assumes you can already compile and run the game.
 
+## Files you will create
+
+| File | Purpose |
+|------|---------|
+| `Minecraft.World/VampiricEnchantment.h` | Enchantment subclass header |
+| `Minecraft.World/VampiricEnchantment.cpp` | Cost curves, max level, compatibility logic |
+
+The Levitation potion effect does not need new files. You add it directly to the existing `MobEffect.h` and `MobEffect.cpp`.
+
+## Files you will modify
+
+| File | What you change |
+|------|----------------|
+| `Minecraft.World/Enchantment.h` | Add `static Enchantment *vampiric` pointer |
+| `Minecraft.World/Enchantment.cpp` | Initialize pointer, create instance in `staticCtor()` |
+| `Minecraft.World/net.minecraft.world.item.enchantment.h` | Add `#include "VampiricEnchantment.h"` |
+| `Minecraft.World/EnchantmentHelper.h` | Add `getVampiricLevel()` static method |
+| `Minecraft.World/EnchantmentHelper.cpp` | Implement `getVampiricLevel()` |
+| `Minecraft.World/Mob.cpp` | Add heal logic to `doHurtTarget()` |
+| `Minecraft.World/MobEffect.h` | Rename `reserved_25` to `levitation` |
+| `Minecraft.World/MobEffect.cpp` | Create the effect, add tick logic in `isDurationEffectTick()` and `applyEffectTick()` |
+| `Minecraft.World/PotionBrewing.h` | Add `MOD_PHANTOMMEMBRANE` formula constant |
+| `Minecraft.World/PotionBrewing.cpp` | Define formula, map brew value to Levitation in `staticCtor()` |
+| `Minecraft.World/Item.cpp` | Chain `setPotionBrewingFormula()` onto the ingredient item |
+| `cmake/Sources.cmake` | Add `VampiricEnchantment.cpp` |
+
+## Includes you will add
+
+**In `Minecraft.World/net.minecraft.world.item.enchantment.h`**, add at the bottom:
+
+```cpp
+#include "VampiricEnchantment.h"
+```
+
+This is the umbrella header that all files needing enchantment classes include. The existing file has:
+
+```cpp
+#include "DamageEnchantment.h"
+#include "DigDurabilityEnchantment.h"
+// ... other enchantments ...
+#include "ThornsEnchantment.h"
+```
+
+**In `VampiricEnchantment.cpp`**:
+
+```cpp
+#include "stdafx.h"
+#include "VampiricEnchantment.h"
+#include "KnockbackEnchantment.h"
+```
+
+**In `Mob.cpp`**, it already includes `net.minecraft.world.item.enchantment.h`, so `EnchantmentHelper` and your new enchantment are already visible. No new includes needed.
+
+## Sources.cmake entry
+
+Add the new enchantment file to `MINECRAFT_WORLD_SOURCES` in `cmake/Sources.cmake`:
+
+```cmake
+"VampiricEnchantment.cpp"
+```
+
 ## What we're building
 
 | Feature | What it does |
@@ -186,16 +247,22 @@ bool Mob::doHurtTarget(shared_ptr<Entity> target)
     // ... existing damage calculation and application ...
 
     // After the target is hurt and damage was dealt:
-    int vampiricLevel = EnchantmentHelper::getVampiricLevel(
-        this->inventory);
-
-    if (vampiricLevel > 0)
+    // Mob does not have an inventory member, only Player does.
+    // We need to check if this Mob is actually a Player first.
+    if (shared_ptr<Player> player = dynamic_pointer_cast<Player>(
+            shared_from_this()))
     {
-        // Heal 1 HP per enchantment level
-        int healAmount = vampiricLevel;
-        if (this->getHealth() < this->getMaxHealth())
+        int vampiricLevel = EnchantmentHelper::getVampiricLevel(
+            player->inventory);
+
+        if (vampiricLevel > 0)
         {
-            this->heal(healAmount);
+            // Heal 1 HP per enchantment level
+            int healAmount = vampiricLevel;
+            if (this->getHealth() < this->getMaxHealth())
+            {
+                this->heal(healAmount);
+            }
         }
     }
 
@@ -257,7 +324,7 @@ MobEffect *MobEffect::levitation =
     (new MobEffect(25, true, eMinecraftColour_Effect_WaterBreathing))
         ->setDescriptionId(IDS_POTION_LEVITATION)
         ->setPostfixDescriptionId(IDS_POTION_LEVITATION_POSTFIX)
-        ->setIcon(MobEffect::e_MobEffectIcon_Jump);
+        ->setIcon(MobEffect::e_MobEffectIcon_JumpBoost);
 ```
 
 We're borrowing Water Breathing's light blue color for the particles. If you want a unique color, add a new `eMinecraftColour` constant. The icon uses the Jump Boost icon as a placeholder. You can add a custom icon if you have sprite sheet space.
@@ -472,18 +539,21 @@ Because we registered Vampiric with `FREQ_RARE` and the `weapon` category, it au
 
 ### 5.1 Update the build system
 
-**In `cmake/Sources.cmake`**, add the new source file:
+**In `cmake/Sources.cmake`**, add the new source file to `MINECRAFT_WORLD_SOURCES`:
 
 ```cmake
-set(MINECRAFT_WORLD_SOURCES
-    # ... existing sources ...
-    Minecraft.World/VampiricEnchantment.cpp
-)
+"VampiricEnchantment.cpp"
 ```
 
-### 5.2 Compile and test
+### 5.2 Build and test
 
-Build the project and launch the game. Here's a quick test checklist:
+Build the project:
+
+```bash
+cmake --build build --config Release
+```
+
+Launch the game and run through this test checklist:
 
 **Vampiric Enchantment:**
 - [ ] `/enchant @p 22 1` applies Vampiric I to a held sword

@@ -207,7 +207,7 @@ Comments tagged `4J-JEV` throughout the code mark console-edition-specific chang
 
 ## Differences from LCEMP
 
-LCEMP does not have the behavior registry, `DispenseItemBehavior`, `BehaviorRegistry`, `DispenserBootstrap`, or any of the concrete dispense behaviors. The dispenser tile itself is not implemented in LCEMP either. This entire system is exclusive to MinecraftConsoles.
+LCEMP does not have the behavior registry, `DispenseItemBehavior`, `BehaviorRegistry`, `DispenserBootstrap`, or any of the concrete dispense behaviors. However, LCEMP does have `DispenserTile` and `DispenserTileEntity` with a simpler hardcoded dispense method. The registry-based behavior system is MC-only, but the basic dispenser tile exists in both codebases.
 
 ## Related pages
 

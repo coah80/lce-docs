@@ -152,7 +152,7 @@ Each mapping stores a name (`wstring`) and virtual key code (`int`):
 | `setKey(int, int)` | Change a key binding |
 | `load()` | Load settings from file |
 | `save()` | Save settings to file |
-| `isCloudsOn()` | Returns `renderClouds` |
+| `isCloudsOn()` | Returns `viewDistance < 2 && renderClouds` -- clouds are only visible when render distance is Far (0) or Normal (1) AND the renderClouds option is enabled |
 
 ### Persistence
 

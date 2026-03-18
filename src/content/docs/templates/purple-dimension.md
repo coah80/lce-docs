@@ -28,6 +28,47 @@ If any of these systems are new to you, the reference pages go deeper:
 - [Custom Materials](/lce-docs/modding/custom-materials/) covers `Material` behavior flags
 - [Custom World Generation](/lce-docs/modding/custom-worldgen/) covers noise and feature placement
 
+## Files you will create
+
+All new files go in the `Minecraft.World/` directory unless noted otherwise. You will create these from scratch:
+
+| File | What it is |
+|------|-----------|
+| `Minecraft.World/PurpleStoneTile.h` | Header for the purple stone block |
+| `Minecraft.World/PurpleStoneTile.cpp` | Implementation for purple stone (just a constructor) |
+| `Minecraft.World/PurpleGrassTile.h` | Header for the purple grass block |
+| `Minecraft.World/PurpleGrassTile.cpp` | Implementation for purple grass (just a constructor) |
+| `Minecraft.World/PurplePortalTile.h` | Header for the portal block |
+| `Minecraft.World/PurplePortalTile.cpp` | Implementation for the portal (frame check, teleport trigger) |
+| `Minecraft.World/PurpleBiome.h` | Header for the purple biome |
+| `Minecraft.World/PurpleBiome.cpp` | Implementation (grass color, foliage color, sky color) |
+| `Minecraft.World/PurpleChunkSource.h` | Header for the terrain generator |
+| `Minecraft.World/PurpleChunkSource.cpp` | Implementation (noise pipeline, floating islands) |
+| `Minecraft.World/PurpleDimension.h` | Header for the dimension class |
+| `Minecraft.World/PurpleDimension.cpp` | Implementation (fog, sky, spawn rules) |
+
+That is 6 header files and 6 source files, 12 total.
+
+## Files you will modify
+
+These files already exist. You will add small pieces to each one:
+
+| File | What you change |
+|------|----------------|
+| `Minecraft.World/Tile.h` | Add tile IDs and static pointers for purple stone, purple grass, and the portal |
+| `Minecraft.World/Tile.cpp` | Add static definitions and register all 3 tiles in `Tile::staticCtor()` |
+| `Minecraft.World/Biome.h` | Add `static Biome *purple` pointer |
+| `Minecraft.World/Biome.cpp` | Add biome registration in the init block |
+| `Minecraft.World/Dimension.cpp` | Add `if (id == 3) return new PurpleDimension();` to the `getNew()` factory |
+| `Minecraft.World/Entity.h` | Add `virtual void handleInsidePurplePortal() {}` |
+| `Minecraft.World/Player.h` | Add `bool isInsidePurplePortal` flag and override declaration |
+| `Minecraft.World/Player.cpp` | Implement `handleInsidePurplePortal()` |
+| `Minecraft.Client/ServerPlayer.cpp` | Add portal tick handling alongside existing Nether/End portal logic |
+| `Minecraft.Client/LevelRenderer.h` | Expand `MAX_LEVEL_RENDER_SIZE` and `DIMENSION_OFFSETS` arrays from size 3 to 4 |
+| `Minecraft.Client/LevelRenderer.cpp` | Add 4th element to both arrays, update `getDimensionIndexFromId()`, `getGlobalChunkCount()`, and `isGlobalIndexInSameDimension()` |
+| `Minecraft.World/net.minecraft.world.level.dimension.h` | Add `#include "PurpleDimension.h"` to the umbrella header |
+| `cmake/Sources.cmake` | Add all 6 new `.cpp` files to the `MINECRAFT_WORLD_SOURCES` list |
+
 ## Step 1: Create the Purple Stone tile
 
 Start with the blocks, since the chunk source and dimension will reference them. Purple Stone is the base terrain block for the dimension, like how the Aether uses holystone.
@@ -632,12 +673,14 @@ public:
     virtual float getCloudHeight();
     virtual bool isValidSpawn(int x, int z) const;
     virtual Pos *getSpawnPos();
-    virtual int getSpawnYPosition();
+    int getSpawnYPosition();
     virtual bool isFoggyAt(int x, int z);
     virtual bool hasBedrockFog();
-    virtual double getClearColorScale();
+    double getClearColorScale();
 };
 ```
+
+`getSpawnYPosition()` and `getClearColorScale()` are not virtual in the base `Dimension` class, so marking them `virtual` here would not actually override anything. If you want them to dispatch polymorphically (through a `Dimension*` pointer), you need to first add `virtual` to their declarations in `Dimension.h`. For this template they work fine as non-virtual since the `PurpleDimension` object is used directly.
 
 **`PurpleDimension.cpp`**
 ```cpp
@@ -1030,19 +1073,86 @@ Add the flag and override as shown in Step 7.
 
 Add the portal tick handling as shown in Step 7.
 
-### cmake/Sources.cmake
+### net.minecraft.world.level.dimension.h (umbrella header)
 
-Add all your new source files:
-```cmake
-PurpleStoneTile.cpp
-PurpleGrassTile.cpp
-PurpleBiome.cpp
-PurpleChunkSource.cpp
-PurpleDimension.cpp
-PurplePortalTile.cpp
+This file lives at `Minecraft.World/net.minecraft.world.level.dimension.h`. It includes every dimension header so other files can just include the umbrella. Add your new dimension at the end:
+
+```cpp
+#pragma once
+
+#include "Dimension.h"
+#include "HellDimension.h"
+#include "NormalDimension.h"
+#include "TheEndDimension.h"
+#include "PurpleDimension.h"  // add this line
 ```
 
-## Step 10: Add textures
+Any file that includes this umbrella header (like `MultiPlayerChunkCache.cpp` and `Dimension.cpp`) will automatically pick up your new dimension. If you skip this, you will get "undeclared identifier" errors when `Dimension::getNew()` tries to construct a `PurpleDimension`.
+
+### cmake/Sources.cmake
+
+Open `cmake/Sources.cmake` and find the `MINECRAFT_WORLD_SOURCES` list. It is a long alphabetical list of `.cpp` files. Add your 6 new files in roughly alphabetical order. Find the `Player.cpp` line and add yours nearby:
+
+```cmake
+set(MINECRAFT_WORLD_SOURCES
+        ...
+        "PlainsBiome.cpp"
+        "Player.cpp"
+        ...
+        "PurpleBiome.cpp"           # add these 6 lines
+        "PurpleChunkSource.cpp"
+        "PurpleDimension.cpp"
+        "PurpleGrassTile.cpp"
+        "PurplePortalTile.cpp"
+        "PurpleStoneTile.cpp"
+        ...
+)
+```
+
+The exact position does not matter for the build, but keeping it alphabetical makes it easier to find later. All 6 files go in `MINECRAFT_WORLD_SOURCES`, not `MINECRAFT_CLIENT_SOURCES`, because they are in the `Minecraft.World/` directory.
+
+## Step 10: Update the LevelRenderer
+
+The renderer needs to know about the new dimension or blocks will stop rendering past a certain distance. Two static arrays control per-dimension render limits, and a few helper functions use them.
+
+In `LevelRenderer.h`, expand both arrays from 3 to 4:
+
+```cpp
+static const int MAX_LEVEL_RENDER_SIZE[4];
+static const int DIMENSION_OFFSETS[4];
+```
+
+In `LevelRenderer.cpp`, add the 4th element to each array. Use 80 for the Purple Dimension since it should be overworld-sized:
+
+```cpp
+const int LevelRenderer::MAX_LEVEL_RENDER_SIZE[4] = { 80, 44, 44, 80 };
+```
+
+For `DIMENSION_OFFSETS`, each value is the cumulative sum of `renderSize^2 * CHUNK_Y_COUNT` for all previous dimensions. `CHUNK_Y_COUNT` is `maxBuildHeight / 16` (256 / 16 = 16):
+
+```cpp
+const int LevelRenderer::DIMENSION_OFFSETS[4] = {
+    0,
+    (80 * 80 * CHUNK_Y_COUNT),
+    (80 * 80 * CHUNK_Y_COUNT) + (44 * 44 * CHUNK_Y_COUNT),
+    (80 * 80 * CHUNK_Y_COUNT) + (44 * 44 * CHUNK_Y_COUNT) + (44 * 44 * CHUNK_Y_COUNT)
+};
+```
+
+Then update `getDimensionIndexFromId()` to handle id=3:
+
+```cpp
+if (id == 3) return 3;
+return (3 - id) % 3;
+```
+
+Without this, the fallthrough math maps id=3 back to index 0 (Overworld), which causes the wrong offset and corrupts rendering.
+
+Also update `getGlobalChunkCount()` and `isGlobalIndexInSameDimension()` to account for 4 dimensions instead of 3. These functions loop over or index into the arrays above, so anywhere you see a hardcoded `3` as the array bound, change it to `4`.
+
+If you skip this step, the dimension will load and generate correctly but blocks will turn invisible past a certain distance. That is the most common symptom of a missing renderer registration.
+
+## Step 11: Add textures
 
 You need texture files for:
 
@@ -1073,22 +1183,57 @@ Here is every file involved, for quick reference:
 | `Player.h` | Modified: add portal flag and override |
 | `Player.cpp` | Modified: implement `handleInsidePurplePortal()` |
 | `ServerPlayer.cpp` | Modified: add portal tick logic |
+| `Minecraft.Client/LevelRenderer.h` | Modified: expand `MAX_LEVEL_RENDER_SIZE[3]` to `[4]` and `DIMENSION_OFFSETS[3]` to `[4]` |
+| `Minecraft.Client/LevelRenderer.cpp` | Modified: add 4th element to both arrays, update `getDimensionIndexFromId()`, `getGlobalChunkCount()`, and `isGlobalIndexInSameDimension()` to handle id=3 |
 | `cmake/Sources.cmake` | Modified: add new source files |
 
-## Testing it
+## Build and test
 
-1. Build the project
-2. Start a world in creative mode
-3. Place an obsidian frame (4 wide, 5 tall, same shape as a nether portal)
-4. Activate it with your chosen method (right-click with purple stone, or whatever you wired up)
-5. Step into the portal and wait about 4 seconds
-6. You should arrive in the Purple Dimension with floating purple islands and thick purple fog
+### Regenerate and build
 
-If something goes wrong:
-- Check the dimension ID in `Dimension::getNew()` matches what you set in `PurpleDimension::init()`
-- Make sure the biome ID does not conflict with existing biomes
-- Make sure the tile IDs do not conflict with existing tiles
-- Check that `handleInsidePurplePortal()` is being called (add a log statement)
+After making all changes, you need to regenerate the cmake project and build:
+
+1. Run cmake to regenerate your project files. From your build directory:
+   ```
+   cmake ..
+   ```
+   If you forgot to add files to `Sources.cmake`, cmake will succeed but you will get linker errors later.
+
+2. Build the project. Fix any compile errors before moving on.
+
+### Launch and test in-game
+
+1. Start a new world in creative mode
+2. Open your inventory and grab obsidian blocks and purple stone blocks
+3. Build a portal frame: 4 blocks wide, 5 blocks tall (same shape as a nether portal). The corners are optional, just like a nether portal
+4. Activate it by right-clicking the inside of the frame with a purple stone block (or whatever activation method you wired up in Step 8)
+5. The inside of the frame should fill with purple portal blocks
+6. Walk into the portal and wait about 4 seconds. You will see a portal overlay effect
+7. You should teleport to the Purple Dimension
+
+### What to look for
+
+When it is working correctly:
+- Thick purple fog everywhere
+- Floating islands made of purple stone with purple grass on top
+- Permanent twilight (dim lighting, no day/night cycle)
+- Walking back into a portal in the Purple Dimension takes you back to the Overworld
+
+### Common build errors
+
+**"undeclared identifier PurpleDimension"** in `Dimension.cpp`: You forgot to add the include to the umbrella header. Open `Minecraft.World/net.minecraft.world.level.dimension.h` and add `#include "PurpleDimension.h"`.
+
+**"unresolved external symbol"** or linker errors mentioning Purple-something: You forgot to add the `.cpp` files to `cmake/Sources.cmake`. Add all 6 files to the `MINECRAFT_WORLD_SOURCES` list and re-run cmake.
+
+**"undeclared identifier PurpleBiome"** in `Biome.cpp`: You need to include `PurpleBiome.h` at the top of `Biome.cpp`, or add it to whatever umbrella header `Biome.cpp` uses for biome includes.
+
+**Blocks turn invisible past a certain distance**: You forgot to update the `LevelRenderer` arrays. Go back to Step 10 and make sure both `MAX_LEVEL_RENDER_SIZE` and `DIMENSION_OFFSETS` have 4 elements, and that `getDimensionIndexFromId()` handles `id == 3`.
+
+**Portal does nothing when you step in**: Check that `handleInsidePurplePortal()` exists on both `Entity.h` (empty body) and `Player.h`/`Player.cpp` (sets the flag). Then check that `ServerPlayer.cpp` has the tick handler that reads `isInsidePurplePortal`.
+
+**Crash on entering the dimension**: Make sure the dimension ID in `Dimension::getNew()` (where you check `id == 3`) matches the ID you set in `PurpleDimension::init()` (where you write `id = 3`). If these do not match, the game will either crash or load the wrong dimension.
+
+**Purple grass and stone are untextured (pink/black checkerboard)**: You have not added texture files yet. See Step 11 for what textures you need. The blocks will work mechanically without textures, they just look wrong.
 
 ## What to try next
 

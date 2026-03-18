@@ -157,6 +157,10 @@ When `tick()` fires, the comparator cleans up legacy "on" tile IDs by converting
 
 **Source files:** `RepeaterTile.h/cpp`
 
+:::note[Shared with LCEMP]
+LCEMP already has the repeater via `DiodeTile.h/cpp` with the same `DELAY_MASK`, `DELAYS[4]` array, and repeater behavior. The repeater is shared content, not MC-exclusive. Only the `ComparatorTile`, `DaylightDetectorTile`, and the `PoweredRailTile` refactor are MC-only additions on this page.
+:::
+
 The repeater extends `DiodeTile` without needing a tile entity.
 
 ### Delay system

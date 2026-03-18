@@ -105,6 +105,8 @@ On non-evaluation ticks, only `canContinueToUse()` is checked for running goals,
 
 `canCoExist(goalA, goalB)` returns true when `(goalA.flags & goalB.flags) == 0`.
 
+When a new higher-priority goal starts, conflicting lower-priority goals are not stopped right away. They get removed lazily on the next evaluation cycle when `canUseInSystem()` fails for them.
+
 ### Configuration
 
 - `addGoal(priority, goal, canDeletePointer)`: registers a goal at the given priority. The `canDeletePointer` flag (default `true`) controls whether the selector owns the goal memory.
@@ -154,7 +156,7 @@ Flees at increased speed when hurt.
 |---|---|
 | **Constructor** | `PanicGoal(PathfinderMob *mob, float speed)` |
 | **Flags** | `MoveControlFlag` |
-| **canUse** | Returns true when `mob->getLastHurtByMob() != NULL` or `mob->isOnFire()`. Picks a random flee position using `RandomPos::getPos(mob, 5, 4)`. |
+| **canUse** | Returns true when `mob->getLastHurtByMob() != NULL`. Picks a random flee position using `RandomPos::getPos(mob, 5, 4)`. |
 | **start** | Begins pathfinding to the chosen position at `speed` |
 | **canContinueToUse** | Returns true while the navigation path is not done |
 
@@ -273,7 +275,7 @@ Ranged attack for mobs that shoot projectiles.
 | **Parameters** | `speed`: movement speed while approaching. `projectileType`: determines which projectile to fire. `attackInterval`: minimum ticks between shots. |
 | **canUse** | Returns true when the mob has a target |
 | **tick** | Tracks the target and maintains distance. Attack radius is 10 blocks squared. Requires 20 ticks of continuous line of sight before firing the first shot. After that, fires at `attackInterval` intervals. Calls `fireAtTarget()` which creates the appropriate projectile based on `projectileType`. |
-| **stop** | Resets the see time counter |
+| **stop** | Clears the target reference. `seeTime` and `attackTime` are not reset in `stop()`. |
 
 #### LeapAtTargetGoal
 
@@ -311,7 +313,7 @@ Creeper-specific. Starts swelling when near a target, stops when target moves aw
 | **canUse** | Returns true when the creeper has a target within 3 blocks |
 | **start** | Stops the creeper's navigation (it stands still while swelling) |
 | **tick** | If the target moves beyond 7 blocks or is no longer visible, calls `stop()`. Otherwise lets the creeper's swell timer continue. |
-| **stop** | Resets the creeper's swell direction to -1 (deflating) |
+| **stop** | Clears the target reference. The swell direction is reset to -1 inside `tick()` when the target is null or out of range. |
 
 ### Targeting goals
 
@@ -750,7 +752,7 @@ goalSelector.addGoal(9, RandomLookAroundGoal)
 targetSelector.addGoal(1, OwnerHurtByTargetGoal)
 targetSelector.addGoal(2, OwnerHurtTargetGoal)
 targetSelector.addGoal(3, HurtByTargetGoal(true))
-targetSelector.addGoal(4, NonTameRandomTargetGoal(Sheep, 200, false))
+targetSelector.addGoal(4, NonTameRandomTargetGoal(Sheep, 16, 200, false))
 ```
 
 The wolf shows off multiple target goals in priority order: defend owner first, then retaliate, then hunt sheep (only when wild).

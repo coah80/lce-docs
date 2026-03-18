@@ -110,21 +110,41 @@ The third parameter `isSolidRender` controls whether the block counts as opaque 
 
 The `Material` class determines the fundamental behavior of a block. Here are the available materials from `Material.h`:
 
-| Material | Description |
-|----------|-------------|
-| `Material::stone` | Standard solid block |
-| `Material::wood` | Burnable, wooden |
-| `Material::metal` | Metal blocks (anvil, iron block) |
-| `Material::glass` | Fragile, transparent |
-| `Material::cloth` | Soft (wool, carpet) |
-| `Material::sand` | Gravity-affected blocks |
-| `Material::dirt` | Dirt/gravel type |
-| `Material::plant` | Vegetation |
-| `Material::water` | Water blocks |
-| `Material::lava` | Lava blocks |
-| `Material::leaves` | Leaf blocks |
-| `Material::portal` | Portal blocks |
-| `Material::fire` | Fire |
+| Material | Class | Properties | Description |
+|----------|-------|------------|-------------|
+| `Material::air` | `GasMaterial` | gas (non-solid, non-blocking) | Empty space |
+| `Material::grass` | `Material` | (default) | Grass blocks |
+| `Material::dirt` | `Material` | (default) | Dirt, gravel |
+| `Material::wood` | `Material` | flammable | Wooden blocks |
+| `Material::stone` | `Material` | notAlwaysDestroyable | Stone, ores, bricks |
+| `Material::metal` | `Material` | notAlwaysDestroyable | Iron/gold/diamond blocks |
+| `Material::heavyMetal` | `Material` | notAlwaysDestroyable, notPushable | Anvils, enchanting tables |
+| `Material::water` | `LiquidMaterial` | destroyOnPush | Water |
+| `Material::lava` | `LiquidMaterial` | destroyOnPush | Lava |
+| `Material::leaves` | `Material` | flammable, neverBuildable, destroyOnPush | Leaf blocks |
+| `Material::plant` | `DecorationMaterial` | destroyOnPush | Flowers, saplings |
+| `Material::replaceable_plant` | `DecorationMaterial` | flammable, destroyOnPush, replaceable | Tall grass, vines |
+| `Material::sponge` | `Material` | (default) | Sponge |
+| `Material::cloth` | `Material` | flammable | Wool, carpet |
+| `Material::fire` | `GasMaterial` | destroyOnPush | Fire |
+| `Material::sand` | `Material` | (default) | Sand, soul sand |
+| `Material::decoration` | `DecorationMaterial` | destroyOnPush | Redstone dust, rails, levers |
+| `Material::clothDecoration` | `DecorationMaterial` | flammable | Carpet-like decorations |
+| `Material::glass` | `Material` | neverBuildable, destroyedByHand | Glass blocks |
+| `Material::buildable_glass` | `Material` | destroyedByHand | Beacon, daylight sensor |
+| `Material::explosive` | `Material` | flammable, neverBuildable | TNT |
+| `Material::coral` | `Material` | destroyOnPush | Coral blocks |
+| `Material::ice` | `Material` | neverBuildable, destroyedByHand | Ice |
+| `Material::topSnow` | `DecorationMaterial` | replaceable, neverBuildable, notAlwaysDestroyable, destroyOnPush | Snow layer |
+| `Material::snow` | `Material` | notAlwaysDestroyable | Snow block |
+| `Material::cactus` | `Material` | neverBuildable, destroyOnPush | Cactus |
+| `Material::clay` | `Material` | (default) | Clay blocks |
+| `Material::vegetable` | `Material` | destroyOnPush | Pumpkins, melons |
+| `Material::egg` | `Material` | destroyOnPush | Dragon egg |
+| `Material::portal` | `PortalMaterial` | notPushable | Portal blocks |
+| `Material::cake` | `Material` | destroyOnPush | Cake |
+| `Material::web` | `WebMaterial` | notAlwaysDestroyable, destroyOnPush | Cobwebs (4J uses WebMaterial subclass) |
+| `Material::piston` | `Material` | notPushable | Piston heads/extensions |
 
 Pass the material to the `Tile` constructor:
 
@@ -164,7 +184,32 @@ Tile::myCustomTile = (MyCustomTile *)(new MyCustomTile(160))
 
 Pick an unused ID. See [Getting Started](/lce-docs/modding/getting-started/) for help finding available IDs.
 
-## Step 4: Set Properties
+## Step 4: Add to the Umbrella Header
+
+Open `Minecraft.World/net.minecraft.world.level.tile.h` and add your new header:
+
+```cpp
+#include "MyCustomTile.h"
+```
+
+This lets any `.cpp` file that includes the tile umbrella see your class. `Tile.cpp` already includes this umbrella, so it will find your header through it. If you skip this step, you will get "no such file or directory" errors.
+
+## Step 5: Add to Sources.cmake
+
+Open `cmake/Sources.cmake` and add your `.cpp` file to the `MINECRAFT_WORLD_SOURCES` list:
+
+```cmake
+"MyCustomTile.cpp"
+```
+
+Only `.cpp` files go here, not headers. CMake prepends the `Minecraft.World/` directory automatically. After changing this file, re-run CMake:
+
+```bash
+cd build
+cmake ..
+```
+
+## Step 6: Set Properties
 
 All property setters return `Tile*`, so you can chain them together in the builder pattern. Here's what's available:
 
@@ -268,7 +313,7 @@ setShape(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f);  // Half-slab height
 
 The six parameters are: `x0, y0, z0, x1, y1, z1` (in block-space, 0.0 to 1.0).
 
-## Step 5: Add Behavior
+## Step 7: Add Behavior
 
 ### Tick Updates
 
@@ -408,7 +453,7 @@ void MyCustomTile::setPlacedBy(Level *level, int x, int y, int z, shared_ptr<Mob
 }
 ```
 
-## Step 6: Add the TileItem
+## Step 8: Add the TileItem
 
 For tiles with IDs 0 through 255, the end of `Tile::staticCtor()` automatically creates a `TileItem` for any tile that doesn't already have a custom item:
 
@@ -444,7 +489,7 @@ Item::items[Tile::stoneSlabHalf_Id] = ( new StoneSlabTileItem(
     ->setDescriptionId(IDS_TILE_STONESLAB);
 ```
 
-## Step 7: Creative Inventory
+## Step 9: Creative Inventory
 
 To make your tile show up in the creative inventory, set its base item type and material during registration:
 
@@ -929,7 +974,17 @@ Tile::rubyOre = (new RubyOreTile(160))
     ->setUseDescriptionId(IDS_DESC_RUBY_ORE);
 ```
 
-Add your new `.h` and `.cpp` files to `cmake/Sources.cmake`, rebuild, and the block will be available in-game.
+**Add to the umbrella header (`net.minecraft.world.level.tile.h`):**
+```cpp
+#include "RubyOreTile.h"
+```
+
+**Add to `cmake/Sources.cmake`** (only the `.cpp` file, not the header):
+```cmake
+"RubyOreTile.cpp"
+```
+
+Re-run CMake, rebuild, and the block will be available in-game.
 
 ## Related Guides
 

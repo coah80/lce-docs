@@ -87,6 +87,11 @@ Platform-specific code for each console and PC target.
 - [PS3](/lce-docs/platforms/ps3/) - PlayStation 3 platform code
 - [PS4 (Orbis)](/lce-docs/platforms/orbis/) - PlayStation 4 platform code
 - [PS Vita](/lce-docs/platforms/psvita/) - PS Vita platform code
+- [Dedicated Server](/lce-docs/platforms/dedicated-server/) - Standalone dedicated server module
+- [DLC Pipeline](/lce-docs/platforms/dlc-pipeline/) - DLC pack system and content loading
+- [Telemetry](/lce-docs/platforms/telemetry/) - Gameplay event tracking system
+- [Leaderboards](/lce-docs/platforms/leaderboards/) - Persistent player stats and rankings
+- [Tutorial System](/lce-docs/platforms/tutorial-system/) - In-game tutorial with tasks, hints, and constraints
 
 ## Modding Guide
 
@@ -194,3 +199,4 @@ Lookup tables and indexes for quick reference.
 - [Packet ID Registry](/lce-docs/reference/packet-ids/) - Every packet ID
 - [Tile Class Index](/lce-docs/reference/tile-classes/) - Every Tile subclass
 - [Complete File Index](/lce-docs/reference/file-index/) - Every source file in the codebase
+- [Console Enums & Structs](/lce-docs/reference/console-enums/) - Core defines, enums, and data structures from Common/

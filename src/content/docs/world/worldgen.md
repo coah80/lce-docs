@@ -37,6 +37,7 @@ class ChunkSource {
 | `CustomLevelSource` | Overworld (heightmap-based) | `Tile::rock` | `Tile::calmWater` |
 | `FlatLevelSource` | Superflat | Configured layers | None |
 | `HellRandomLevelSource` | Nether | `Tile::hellRock` | `Tile::calmLava` |
+| `HellFlatLevelSource` | Nether (superflat) | `Tile::hellRock` | `Tile::calmLava` |
 | `TheEndLevelRandomLevelSource` | The End | `Tile::whiteStone` | None |
 
 `CustomLevelSource` reads heightmap data from binary files (`heightmap.bin` and `waterheight.bin`) and uses those instead of noise-generated terrain. It's used for console-specific pre-authored worlds (content packages). When the `_OVERRIDE_HEIGHTMAP` define is set (which it is for non-content-package builds), `CustomLevelSource` also has its own cave/canyon/structure features. `RandomLevelSource` does the full noise-driven terrain generation described below.
@@ -513,7 +514,7 @@ Post-processing places:
 - **No sea level**: blocks below the island are just void (air).
 - **End stone** (`Tile::whiteStone`) is the only terrain block.
 - **Noise scale** is doubled (`s *= 2`) compared to the Overworld, giving rougher terrain.
-- **Three noise generators**: `lperlinNoise1`, `lperlinNoise2`, `perlinNoise1`, plus `scaleNoise`, `depthNoise`, and `forestNoise`.
+- **Five noise generators**: `lperlinNoise1`, `lperlinNoise2`, `perlinNoise1`, `scaleNoise`, and `depthNoise`. `forestNoise` is declared in the header but not initialized in the constructor.
 - **No caves or structures** are carved.
 
 The End's biome decorator (`TheEndBiomeDecorator`) places:

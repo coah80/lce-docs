@@ -322,16 +322,16 @@ Slot 1 (middle): max(selected, bookcases * 2)
 Slot 2 (bottom): selected
 ```
 
-With 0 bookshelves, `selected` ranges from 2 to 9. With 15 bookshelves, `selected` ranges from 9 to 24.
+With 0 bookshelves, `selected` ranges from 1 to 8. With 15 bookshelves, `selected` ranges from 8 to 30.
 
 **Cost ranges by bookshelf count:**
 
 | Bookshelves | Slot 0 (top) | Slot 1 (middle) | Slot 2 (bottom) |
 |---|---|---|---|
-| 0 | 1-3 | 2-9 | 2-9 |
-| 5 | 1-5 | 10-14 | 4-14 |
-| 10 | 2-8 | 20-21 | 7-21 |
-| 15 | 3-8 | 30 | 9-24 |
+| 0 | 1-2 | 1-8 | 1-8 |
+| 5 | 1-6 | 10-18 | 3-18 |
+| 10 | 2-8 | 20-25 | 6-25 |
+| 15 | 2-10 | 30 | 8-30 |
 
 The item must have a positive `getEnchantmentValue()` to be enchantable at all. Items with enchantment value 0 return a cost of 0 (not enchantable).
 

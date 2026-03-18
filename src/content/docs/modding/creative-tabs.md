@@ -121,15 +121,11 @@ enum ECreative_Inventory_Groups
     eCreativeInventory_Potions_Extended,
     eCreativeInventory_Potions_Level2_Extended,
     eCreativeInventory_Misc,
-    eCreativeInventory_ArtToolsDecorations,
-    eCreativeInventory_ArtToolsMisc,
     eCreativeInventoryGroupsCount
 };
 ```
 
-Groups are just arrays of `ItemInstance` pointers. A tab references one or more groups and the `TabSpec` system handles stitching them together for display.
-
-The last two groups (`ArtToolsDecorations` and `ArtToolsMisc`) are debug-only groups. They only show up when `app.DebugArtToolsOn()` returns true. In retail builds compiled with `_CONTENT_PACKAGE` defined, these groups do not exist at all.
+There are 13 groups total. Groups are just arrays of `ItemInstance` pointers. A tab references one or more groups and the `TabSpec` system handles stitching them together for display.
 
 ## The Grid Layout
 
@@ -1017,8 +1013,6 @@ enum ECreative_Inventory_Groups
     // ... existing groups ...
     eCreativeInventory_Misc,
     eCreativeInventory_MyNewGroup,    // <-- add before the count
-    eCreativeInventory_ArtToolsDecorations,
-    eCreativeInventory_ArtToolsMisc,
     eCreativeInventoryGroupsCount
 };
 ```

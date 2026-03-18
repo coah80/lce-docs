@@ -55,7 +55,7 @@ The first dimension (3) supports rendering across multiple dimensions at the sam
 | `crack(int x, int y, int z, int face)` | Spawn block-cracking particles on a face |
 | `countParticles()` | Returns a string with particle counts for debug |
 
-`render()` and `renderLit()` are called at different points in the frame. `render()` handles standard particles with additive or alpha blending. `renderLit()` handles particles that need proper world lighting (block break debris, item break debris).
+`render()` and `renderLit()` are called at different points in the frame. `render()` handles standard particles with additive or alpha blending, including block break debris (`TERRAIN_TEXTURE`, layer 1) and item break debris (`ITEM_TEXTURE`, layer 2). `renderLit()` renders the `ENTITY_PARTICLE_TEXTURE` layer (layer 3), which includes footstep particles and huge explosion particles. These are rendered individually instead of batched, so they can set up their own GL state.
 
 ### Spawning from LevelRenderer
 

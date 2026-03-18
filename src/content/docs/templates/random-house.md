@@ -30,18 +30,82 @@ A 7x5x7 wooden house (outer dimensions) with:
 
 Nothing fancy. The point is to learn the systems, not build a mansion.
 
-## Files we will create or modify
+## Files you will create
 
-| File | Action |
-|------|--------|
-| `Minecraft.World/WoodenHouseFeature.h` | Create (StructureFeature subclass) |
-| `Minecraft.World/WoodenHouseFeature.cpp` | Create |
-| `Minecraft.World/WoodenHousePiece.h` | Create (StructurePiece subclass) |
-| `Minecraft.World/WoodenHousePiece.cpp` | Create |
-| `Minecraft.World/WoodenHouseStart.h` | Create (StructureStart subclass) |
-| `Minecraft.World/WoodenHouseStart.cpp` | Create |
-| `Minecraft.World/RandomLevelSource.h` | Modify (add member) |
-| `Minecraft.World/RandomLevelSource.cpp` | Modify (register and call) |
+| File | Purpose |
+|------|---------|
+| `Minecraft.World/WoodenHouseFeature.h` | StructureFeature subclass, decides which chunks get a house |
+| `Minecraft.World/WoodenHouseFeature.cpp` | Grid-based placement logic and biome checks |
+| `Minecraft.World/WoodenHousePiece.h` | StructurePiece subclass, places blocks |
+| `Minecraft.World/WoodenHousePiece.cpp` | Block placement, loot generation |
+| `Minecraft.World/WoodenHouseStart.h` | StructureStart subclass, glue between feature and piece |
+| `Minecraft.World/WoodenHouseStart.cpp` | Finds ground level, creates the piece |
+
+## Files you will modify
+
+| File | What you change |
+|------|----------------|
+| `Minecraft.World/RandomLevelSource.h` | Add `WoodenHouseFeature *woodenHouseFeature` member |
+| `Minecraft.World/RandomLevelSource.cpp` | Create the feature, call `apply()` and `postProcess()` |
+| `cmake/Sources.cmake` | Add new source files |
+
+## Includes you will add
+
+**In `WoodenHouseFeature.cpp`**:
+
+```cpp
+#include "stdafx.h"
+#include "WoodenHouseFeature.h"
+#include "WoodenHouseStart.h"
+#include "BiomeSource.h"
+#include "Biome.h"
+#include "Level.h"
+```
+
+**In `WoodenHouseStart.cpp`**:
+
+```cpp
+#include "stdafx.h"
+#include "WoodenHouseStart.h"
+#include "WoodenHousePiece.h"
+#include "Level.h"
+```
+
+**In `WoodenHousePiece.cpp`**:
+
+```cpp
+#include "stdafx.h"
+#include "WoodenHousePiece.h"
+#include "Tile.h"
+#include "Item.h"
+#include "Level.h"
+```
+
+**In `RandomLevelSource.h`**, add at the top with the other includes:
+
+```cpp
+#include "WoodenHouseFeature.h"
+```
+
+`RandomLevelSource.cpp` already includes all the umbrella headers it needs (`net.minecraft.world.level.levelgen.structure.h`, etc.), so no changes there. The key includes it uses:
+
+```cpp
+#include "net.minecraft.world.level.h"
+#include "net.minecraft.world.level.biome.h"
+#include "net.minecraft.world.level.levelgen.h"
+#include "net.minecraft.world.level.levelgen.feature.h"
+#include "net.minecraft.world.level.levelgen.structure.h"
+```
+
+## Sources.cmake entries
+
+Add all three new `.cpp` files to `MINECRAFT_WORLD_SOURCES` in `cmake/Sources.cmake`:
+
+```cmake
+"WoodenHouseFeature.cpp"
+"WoodenHousePiece.cpp"
+"WoodenHouseStart.cpp"
+```
 
 ## Step 1: The StructureFeature (where houses spawn)
 
@@ -275,11 +339,11 @@ WoodenHousePiece::WoodenHousePiece(
     {
     case 0: // North
     case 2: // South
-        boundingBox = BoundingBox(x, y, z, x + WIDTH - 1, y + HEIGHT - 1, z + DEPTH - 1);
+        boundingBox = new BoundingBox(x, y, z, x + WIDTH - 1, y + HEIGHT - 1, z + DEPTH - 1);
         break;
     case 1: // East
     case 3: // West
-        boundingBox = BoundingBox(x, y, z, x + DEPTH - 1, y + HEIGHT - 1, z + WIDTH - 1);
+        boundingBox = new BoundingBox(x, y, z, x + DEPTH - 1, y + HEIGHT - 1, z + WIDTH - 1);
         break;
     }
 }
@@ -293,8 +357,10 @@ The bounding box swap for east/west orientations is important. When the house fa
 bool WoodenHousePiece::postProcess(
     Level *level, Random *random, BoundingBox *chunkBB)
 {
-    // Bail if this piece is not inside the chunk being processed
-    if (isInChunk(chunkBB) == false)
+    // Bail if this piece does not overlap the chunk being processed.
+    // Use boundingBox->intersects() since isInChunk() takes a ChunkPos*,
+    // not a BoundingBox*.
+    if (boundingBox->intersects(*chunkBB) == false)
         return false;
 
     int oakPlanks    = Tile::wood_Id;          // 5
@@ -608,9 +674,15 @@ RandomLevelSource::postProcess()
             -> chest with weighted random loot
 ```
 
-## Testing it
+## Build and test
 
-Build the project (see [Getting Started](/lce-docs/modding/getting-started/) if you need a refresher on the build process). Create a new world and explore plains or forest biomes. With a spacing of 24 chunks, you should find roughly one house every 384 blocks on average.
+Build the project:
+
+```bash
+cmake --build build --config Release
+```
+
+Create a new world and explore plains or forest biomes. With a spacing of 24 chunks, you should find roughly one house every 384 blocks on average.
 
 If houses are not showing up:
 

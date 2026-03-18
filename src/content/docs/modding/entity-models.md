@@ -122,7 +122,7 @@ Cubes use a box-unwrap UV layout. If you've ever seen a Minecraft skin template,
                 d       w       d       w
            +--------+--------+--------+--------+
            |        |  Top   |        |        |
-     d     |        | (d x w)|        |        |
+     d     |        | (w x d)|        |        |
            +--------+--------+--------+--------+
            | Left   | Front  | Right  |  Back  |
      h     |(d x h) |(w x h) |(d x h) | (w x h)|
@@ -522,13 +522,13 @@ renderers[eTYPE_BIRD] = new MobRenderer(new BirdModel(), new BirdModel(0.5f), 0.
 
 ### Step 4: Add to the Project
 
-Don't forget to add your `.h` and `.cpp` files to `Minecraft.Client.vcxproj` so they actually get compiled. And you'll need an `eTYPE_BIRD` entry in the `eINSTANCEOF` enum (see the [Adding Entities](/modding/adding-entities/) guide for that).
+Don't forget to add your `.h` and `.cpp` files to `cmake/Sources.cmake` (in the `MINECRAFT_CLIENT_SOURCES` list) and `Minecraft.Client/Minecraft.Client.vcxproj` so they actually get compiled. And you'll need an `eTYPE_BIRD` entry in the `eINSTANCEOF` enum (see the [Adding Entities](/modding/adding-entities/) guide for that).
 
 ## The Mirroring System
 
 When `bMirror` is set to `true` on a `ModelPart`, the cube constructor swaps the X coordinates and flips all polygon normals. This gives you a mirrored version of the same texture.
 
-The `HumanoidModel` uses this for the right arm and right leg:
+The `HumanoidModel` uses this for the left arm and left leg:
 
 ```cpp
 arm1 = new ModelPart(this, 24 + 16, 16);
@@ -581,7 +581,7 @@ When two boxes share a face (like the inner and outer layers of a slime), you ge
 
 ```cpp
 // Slime outer shell: skip the inner faces
-outer->addBoxWithMask(-4, 16, -4, 8, 8, 8, 0, 0b110111);  // skip bottom face
+outer->addBoxWithMask(-4, 16, -4, 8, 8, 8, 0b110111);  // skip bottom face
 ```
 
 The mask is a 6-bit bitmask:
@@ -619,7 +619,7 @@ The string-based approach uses `Model::mappedTexOffs` to look up texture coordin
 
 When `Model::young` is true, the renderer applies a different scale to the head and body. The head gets scaled up relative to the body and shifted down. This is how baby animals get their big-head look without needing a separate model class.
 
-The scaling logic lives in `Model::render()`:
+The scaling logic lives in `Model::render()`. In `HumanoidModel`, the head translate uses a hardcoded `16 * scale` rather than `yHeadOffs`/`zHeadOffs`:
 
 ```cpp
 if (young)
@@ -627,7 +627,7 @@ if (young)
     // Scale head up, translate it
     glPushMatrix();
     glScalef(0.75f, 0.75f, 0.75f);
-    glTranslatef(0, yHeadOffs * scale, zHeadOffs * scale);
+    glTranslatef(0, 16 * scale, 0);
     head->render(scale, usecompiled);
     glPopMatrix();
 
@@ -641,7 +641,7 @@ if (young)
 }
 ```
 
-`yHeadOffs` and `zHeadOffs` control where the oversized head sits. Quadrupeds set these in their constructor to position the head forward and up from the body.
+Other models like `QuadrupedModel` use `yHeadOffs` and `zHeadOffs` instead, which control where the oversized head sits. Quadrupeds set these in their constructor to position the head forward and up from the body.
 
 ## All Vanilla Model Sizes
 

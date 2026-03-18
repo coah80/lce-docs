@@ -353,7 +353,7 @@ This split lets the game control spawn rates for these animals independently. Fo
 | `hugeMushroomFeature` | `HugeMushroomFeature` | Giant mushroom placement |
 | `reedsFeature` | `ReedsFeature` | Sugar cane placement |
 | `cactusFeature` | `CactusFeature` | Cactus placement |
-| `waterlilyFeature` | `FlowerFeature` | Lily pad placement |
+| `waterlilyFeature` | `WaterlilyFeature` | Lily pad placement |
 
 ### Friend classes
 

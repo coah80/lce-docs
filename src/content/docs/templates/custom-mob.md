@@ -33,6 +33,80 @@ That is a lot of systems, but each piece is small. Let's go.
 
 Make sure you can build the project. See [Getting Started](/lce-docs/modding/getting-started/) if you have not done that yet. You should also read [Adding Entities](/lce-docs/modding/adding-entities/) first, since this guide builds on that foundation.
 
+## Files you will create
+
+| File | Purpose |
+|------|---------|
+| `Minecraft.World/ShadowWalker.h` | Entity class header |
+| `Minecraft.World/ShadowWalker.cpp` | Entity class with AI, sounds, drops |
+| `Minecraft.Client/ShadowWalkerModel.h` | Model class header |
+| `Minecraft.Client/ShadowWalkerModel.cpp` | Model geometry and animation |
+| `Minecraft.Client/ShadowWalkerRenderer.h` | Renderer class header |
+| `Minecraft.Client/ShadowWalkerRenderer.cpp` | Renderer that draws the model |
+
+## Files you will modify
+
+| File | What you change |
+|------|----------------|
+| `Minecraft.World/Definitions.h` | Add `eTYPE_SHADOW_WALKER` to the `eINSTANCEOF` enum |
+| `Minecraft.World/SoundTypes.h` | Add three sound enum entries |
+| `Minecraft.World/EntityIO.cpp` | Register the mob with `setId()` |
+| `Minecraft.World/net.minecraft.world.entity.monster.h` | Add `#include "ShadowWalker.h"` so EntityIO can see the class |
+| `Minecraft.Client/EntityRenderDispatcher.cpp` | Register the renderer in the `renderers` map |
+| `Minecraft.Client/Textures.h` | Add `TN_MOB_SHADOW_WALKER` texture enum entry |
+| `Minecraft.Client/Textures.cpp` | Map the enum to a file path in `preLoaded[]` |
+| `Minecraft.Client/Common/Audio/SoundNames.cpp` | Add three sound name strings |
+| `Minecraft.World/PlainsBiome.cpp` | Add to the `enemies` spawn list (optional) |
+| `Minecraft.World/ForestBiome.cpp` | Add to the `enemies` spawn list (optional) |
+| `Minecraft.World/Biome.cpp` | Add to the default spawn list (optional) |
+| `Minecraft.World/App_enums.h` | Add two `eMinecraftColour` entries for the spawn egg |
+| `cmake/Sources.cmake` | Add new source files to the build |
+
+## Includes you will add
+
+**In `Minecraft.World/net.minecraft.world.entity.monster.h`**, add at the bottom:
+
+```cpp
+#include "ShadowWalker.h"
+```
+
+This is the umbrella header that EntityIO.cpp uses to pull in all monster classes. Without this, EntityIO will not find your class. The existing file looks like this:
+
+```cpp
+#include "Enemy.h"
+#include "Monster.h"
+#include "Creeper.h"
+// ... other monsters ...
+#include "Blaze.h"
+#include "LavaSlime.h"
+```
+
+**In `Minecraft.Client/EntityRenderDispatcher.cpp`**, add with the other renderer includes (around line 16-50):
+
+```cpp
+#include "ShadowWalkerRenderer.h"
+#include "ShadowWalkerModel.h"
+```
+
+EntityRenderDispatcher already includes the monster umbrella header `net.minecraft.world.entity.monster.h`, so it can see `eTYPE_SHADOW_WALKER` without any extra includes.
+
+**In `Minecraft.World/EntityIO.cpp`**, no extra includes needed. It already includes `net.minecraft.world.entity.monster.h`, which will pull in your `ShadowWalker.h` once you add it there.
+
+## Sources.cmake entries
+
+Add your new files to `cmake/Sources.cmake`. The entity class goes under `MINECRAFT_WORLD_SOURCES`, the model and renderer go under `MINECRAFT_CLIENT_SOURCES`:
+
+```cmake
+# In MINECRAFT_WORLD_SOURCES:
+"ShadowWalker.cpp"
+
+# In MINECRAFT_CLIENT_SOURCES:
+"ShadowWalkerModel.cpp"
+"ShadowWalkerRenderer.cpp"
+```
+
+Header files are not listed in Sources.cmake for this project. Only `.cpp` files.
+
 ## Step 1: Pick your IDs
 
 Every entity needs a few unique identifiers. Check your codebase to make sure these are not already taken.
@@ -103,6 +177,7 @@ Two important things here:
 Create `Minecraft.World/ShadowWalker.cpp`:
 
 ```cpp
+#include "stdafx.h"
 #include "ShadowWalker.h"
 #include "net.minecraft.world.entity.ai.goal.h"
 #include "net.minecraft.world.entity.ai.goal.target.h"
@@ -324,11 +399,13 @@ public:
 
     ShadowWalkerModel();
 
-    virtual void render(float f, float f1, float f2,
-                        float f3, float f4, float scale);
+    virtual void render(shared_ptr<Entity> entity, float time, float r,
+                        float bob, float yRot, float xRot,
+                        float scale, bool usecompiled);
     virtual void setupAnim(float limbSwing, float limbSwingAmount,
                            float ageInTicks, float headYaw,
-                           float headPitch, float scale);
+                           float headPitch, float scale,
+                           unsigned int uiBitmaskOverrideAnim = 0);
 };
 ```
 
@@ -337,6 +414,7 @@ public:
 Create `Minecraft.Client/ShadowWalkerModel.cpp`:
 
 ```cpp
+#include "stdafx.h"
 #include "ShadowWalkerModel.h"
 #include "ModelPart.h"
 #include "Mth.h"
@@ -403,7 +481,8 @@ Add the animation and render methods:
 ```cpp
 void ShadowWalkerModel::setupAnim(float limbSwing, float limbSwingAmount,
                                    float ageInTicks, float headYaw,
-                                   float headPitch, float scale)
+                                   float headPitch, float scale,
+                                   unsigned int uiBitmaskOverrideAnim)
 {
     // Head follows where the mob is looking
     head->yRot = headYaw / (180.0f / Mth::PI);
@@ -433,17 +512,18 @@ void ShadowWalkerModel::setupAnim(float limbSwing, float limbSwingAmount,
     }
 }
 
-void ShadowWalkerModel::render(float f, float f1, float f2,
-                                float f3, float f4, float scale)
+void ShadowWalkerModel::render(shared_ptr<Entity> entity, float time, float r,
+                                float bob, float yRot, float xRot,
+                                float scale, bool usecompiled)
 {
-    setupAnim(f, f1, f2, f3, f4, scale);
+    setupAnim(time, r, bob, yRot, xRot, scale);
 
-    head->render(scale, true);
-    body->render(scale, true);
-    rightArm->render(scale, true);
-    leftArm->render(scale, true);
-    rightLeg->render(scale, true);
-    leftLeg->render(scale, true);
+    head->render(scale, usecompiled);
+    body->render(scale, usecompiled);
+    rightArm->render(scale, usecompiled);
+    leftArm->render(scale, usecompiled);
+    rightLeg->render(scale, usecompiled);
+    leftLeg->render(scale, usecompiled);
 }
 ```
 
@@ -477,6 +557,7 @@ public:
 Create `Minecraft.Client/ShadowWalkerRenderer.cpp`:
 
 ```cpp
+#include "stdafx.h"
 #include "ShadowWalkerRenderer.h"
 #include "ShadowWalkerModel.h"
 
@@ -532,14 +613,16 @@ This is what makes the game actually know your mob exists. Open `Minecraft.World
 
 // In EntityIO::staticCtor(), after existing registrations:
 setId(ShadowWalker::create, eTYPE_SHADOW_WALKER, L"ShadowWalker", 64,
-      0x1A1A2E,   // Spawn egg primary color (dark blue-black)
-      0x6C3483,   // Spawn egg secondary color (purple)
+      eMinecraftColour_Mob_ShadowWalker_Colour1,   // Spawn egg primary color
+      eMinecraftColour_Mob_ShadowWalker_Colour2,   // Spawn egg secondary color
       IDS_SHADOW_WALKER);
 ```
 
+> **Important:** The color arguments to `setId` must be `eMinecraftColour` enum values, not raw hex integers. The engine uses these enums internally for spawn egg rendering. You can find the full list of existing values in `App_enums.h` under the `eMinecraftColour` section. To add your own, define two new entries (e.g. `eMinecraftColour_Mob_ShadowWalker_Colour1` and `_Colour2`) in that enum before using them here. Look at existing mob color pairs like `eMinecraftColour_Mob_Creeper_Colour1` / `_Colour2` for reference.
+
 The seven-argument `setId` call registers the mob in all five internal maps (string ID, numeric ID, factory function, type enum) and adds it to the spawn egg list for creative mode. If you do not want a spawn egg, use the four-argument version instead.
 
-The numeric ID `64` is the next open slot after `EnderDragon` at 63. The two hex colors control the spawn egg appearance. `IDS_SHADOW_WALKER` is a string table entry for the localized mob name.
+The numeric ID `64` is the next open slot after `EnderDragon` at 63. `IDS_SHADOW_WALKER` is a string table entry for the localized mob name.
 
 You also need to add the `IDS_SHADOW_WALKER` string to the localization table. The exact location depends on your platform, but it is usually in a string resource file or a language `.lang` file.
 
@@ -601,6 +684,12 @@ bool ShadowWalker::canSpawn()
 This restricts the Shadow Walker to underground areas. Remove the Y check if you want it to spawn on the surface at night too.
 
 ## Step 11: Build and test
+
+Run your CMake build. If you are using Visual Studio, just hit Build Solution. If you are using the command line:
+
+```bash
+cmake --build build --config Release
+```
 
 At this point you have touched these files:
 

@@ -20,7 +20,7 @@ The Windows 64-bit port is the main development target for LCE. It lives in `Min
 | `4JLibs/inc/4J_Input.h` | `C_4JInput` class, gamepad/keyboard input |
 | `4JLibs/inc/4J_Storage.h` | `C4JStorage` class, filesystem save/load |
 | `4JLibs/inc/4J_Profile.h` | Profile management |
-| `KeyboardMouseInput.h/.cpp` | Full keyboard and mouse input class (MinecraftConsoles) |
+| `KeyboardMouseInput.h/.cpp` | Full keyboard and mouse input class (LCEMP, added by notpies) |
 | `Windows64_Xuid.h` | Persistent player UID system with uid.dat (MinecraftConsoles) |
 | `PostProcesser.cpp` | Post-process implementation (MinecraftConsoles) |
 
@@ -136,11 +136,11 @@ Uses filesystem-based storage through `C4JStorage`. Save data is stored as local
 - **No DRM/commerce**: Simplified app class without storefront integration
 - **Command-line multiplayer**: Can specify host/join via command-line globals
 
-## MinecraftConsoles Additions
+## KeyboardMouseInput Class
 
-The MinecraftConsoles codebase adds several files to the Windows 64 platform that were not in LCEMP.
-
-### KeyboardMouseInput Class
+:::note
+`KeyboardMouseInput` exists in LCEMP (added by notpies), not MinecraftConsoles. It is not a MinecraftConsoles addition.
+:::
 
 `KeyboardMouseInput.h/.cpp` provides a full keyboard and mouse input system for PC-native controls. This runs alongside the gamepad input and supports:
 
@@ -148,11 +148,14 @@ The MinecraftConsoles codebase adds several files to the Windows 64 platform tha
 - **3 mouse buttons** (left, right, middle) with press/release detection
 - **Raw mouse delta** for low-latency mouse look via `ConsumeMouseDelta()`
 - **Mouse grab mode** for locking the cursor to the game window
-- **Text input buffering** with `OnChar()` / `ConsumeChar()` for keyboard scenes
 - **Mouse wheel accumulator** with consumption tracking
 - **KBM active flag** to switch between gamepad and keyboard/mouse mode
 - **WASD movement** with dedicated key constants (`KEY_FORWARD = 'W'`, `KEY_BACKWARD = 'S'`, `KEY_LEFT = 'A'`, `KEY_RIGHT = 'D'`)
-- **Standard PC bindings**: Space = jump, LShift = sneak, Ctrl = sprint, E = inventory, Q = drop, C/R = crafting, F5 = third person, F3 = debug info, F4 = debug menu
+- **Standard PC bindings**: Space = jump, LShift = sneak, Ctrl = sprint, E = inventory, Q = drop, Tab/R = crafting, F5 = third person, F3 = debug info
+
+## MinecraftConsoles Additions
+
+The MinecraftConsoles codebase adds several files to the Windows 64 platform that were not in LCEMP.
 
 ### Persistent Player UID (Windows64_Xuid.h)
 

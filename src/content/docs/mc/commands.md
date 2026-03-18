@@ -293,14 +293,18 @@ This is not the `@a`/`@p`/`@r`/`@e` target selector system from Java Edition. Th
 
 ## Comparison with LCEMP
 
-LCEMP has a smaller set of commands. The commands in MinecraftConsoles but not in the LCEMP base include:
+LCEMP has 9 of the 10 implemented commands. The shared commands are: `/gamemode`, `/give`, `/kill`, `/time`, `/toggledownfall`, `/tp`, `/enchant`, `/xp`, and `/defaultgamemode`. LCEMP has matching implementations for all of these (e.g. `EnchantItemCommand.h/cpp` with `eGameCommand_EnchantItem`, `ExperienceCommand.h/cpp` with `eGameCommand_Experience`, `DefaultGameModeCommand.h/cpp` with `eGameCommand_DefaultGameMode`).
 
-- `/effect` (stub)
-- `/enchant`
-- `/xp` (experience)
-- `/defaultgamemode`
-- All the Java-reference commands (difficulty, gamerule, seed, weather, playsound, spreadplayers)
+The only implemented command in MinecraftConsoles but not in LCEMP is:
 
-Both codebases share the core commands: `/gamemode`, `/give`, `/kill`, `/time`, `/toggledownfall`, `/tp`.
+- `/effect` (stub, execute body is commented out)
+
+All the Java-reference commands (difficulty, gamerule, seed, weather, playsound, spreadplayers) are also MC-only.
 
 MinecraftConsoles also adds the `GameRules` system, `CommandBlock` / `CommandBlockEntity`, and the `EntitySelector` system, none of which exist in LCEMP.
+
+## Dedicated Server Commands
+
+LCEMP also has a completely separate text-based command system in the `Minecraft.Server/` module for the standalone dedicated server. This system uses `ServerCommand` and `ConsoleCommandDispatcher` instead of the binary packet-based `Command` and `CommandDispatcher` from `Minecraft.World`. The dedicated server has 27 commands typed into the server console (stop, tp, time, give, kick, ban, whitelist, etc.).
+
+These two command systems overlap in functionality but are entirely separate implementations. See the [Dedicated Server](/lce-docs/platforms/dedicated-server/) page for the full command list and architecture.

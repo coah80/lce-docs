@@ -36,8 +36,11 @@ public:
         MapItem *mapitem;
         ItemInstance *iteminstance;
     };
+    Object()                { eType=eType_TILE; tile=NULL; }
     Object(Tile *t)         { eType=eType_TILE; tile=t; }
+    Object(FireTile *t)     { eType=eType_TILE; firetile=t; }
     Object(Item *i)         { eType=eType_ITEM; item=i; }
+    Object(MapItem *i)      { eType=eType_ITEM; mapitem=i; }
     Object(ItemInstance *i) { eType=eType_ITEMINSTANCE; iteminstance=i; }
     eINSTANCEOF GetType()   { return eType; }
 };
@@ -249,7 +252,7 @@ The `Recipes` constructor registers everything in a specific order that controls
 7.  Ladder, fence gate, fence, nether fence, iron bars
 8.  Cobblestone walls (normal + mossy)
 9.  Doors (wood + iron)
-10. Stairs (all 8 variants)
+10. Stairs (all 10 variants: oak, stone, bricks, smooth stone brick, nether bricks, sandstone, birch, dark, jungle, quartz)
 11. ArmorRecipes->addRecipes()      -- all armor pieces (chain armor commented out)
 12. ClothDyeRecipes->addRecipes()   -- 16 wool colors, dye recipes, 16 carpet colors
 13. Snow block, clay block, brick block, wool, TNT

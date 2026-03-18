@@ -72,7 +72,7 @@ Several [new entity types](/lce-docs/mc/new-entities/) are implemented, includin
 
 ### Commands
 
-An expanded [command system](/lce-docs/mc/commands/) with binary packet-based dispatch, ten implemented commands, and several more in Java-reference form waiting to be ported.
+An expanded [command system](/lce-docs/mc/commands/) with binary packet-based dispatch and ten implemented commands (9 shared with LCEMP, only `/effect` is MC-exclusive). Several more commands exist in Java-reference form waiting to be ported.
 
 ### Build system
 

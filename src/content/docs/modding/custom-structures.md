@@ -948,9 +948,9 @@ class MossStoneSelector : public StructurePiece::BlockSelector {
 public:
     void next(Random *random, int worldX, int worldY, int worldZ, bool isEdge) override {
         if (random->nextFloat() < 0.4f) {
-            nextId = Tile::mossStone_Id;  // mossy cobblestone
-        } else {
             nextId = Tile::stoneBrick_Id;  // regular cobblestone
+        } else {
+            nextId = Tile::mossStone_Id;  // mossy cobblestone
         }
         nextData = 0;
     }
@@ -1072,7 +1072,7 @@ The code retries up to `MAX_STRONGHOLD_ATTEMPTS` times (10 on old-gen, 30 on new
 | `PrisonHall` | 5 | 5 | 9x5x11 | Iron bars cells |
 | `LeftTurn` | 20 | unlimited | 5x5x5 | |
 | `RightTurn` | 20 | unlimited | 5x5x5 | |
-| `RoomCrossing` | 10 | 6 | 11x7x11 | Has 3 room variants with fountains/pillars |
+| `RoomCrossing` | 10 | 6 | 11x7x11 | 5 type values (0-4): 3 with decorations (torch pillar, fountain, library-pillars), 2 empty |
 | `StraightStairsDown` | 5 | 5 | 5x11x8 | |
 | `StairsDown` | 5 | 5 | 5x11x5 | |
 | `FiveCrossing` | 5 | 4 | 10x9x11 | 5 exits, configurable per side |
@@ -1202,7 +1202,7 @@ Plus an enchanted book. Each of the 4 chests gets 2-6 rolls.
 
 **Jungle Temple loot:** Same table as desert pyramid (6 items, same weights). Dispenser arrows: weight 30, count 2-7.
 
-**`MossStoneSelector`:** The jungle temple's custom `BlockSelector`. On each call, `random->nextFloat() < 0.4f` picks `stoneBrick_Id` (cobblestone), otherwise `mossStone_Id`. This creates the overgrown look.
+**`MossStoneSelector`:** The jungle temple's custom `BlockSelector`. On each call, `random->nextFloat() < 0.4f` picks `stoneBrick_Id` (regular cobblestone), otherwise `mossStone_Id` (mossy cobblestone). This creates the overgrown look.
 
 ---
 

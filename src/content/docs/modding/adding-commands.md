@@ -46,7 +46,7 @@ protected:
 Every command must implement `getId()` (which enum value it corresponds to) and `execute()` (what it actually does).
 
 :::note
-The existing docs for LCE sometimes mention permission level constants like `LEVEL_ALL`, `LEVEL_GAMEMASTERS`, etc. These do not exist in the actual `Command.h`. The base class has no permission level constants at all. The `canExecute()` method handles permission checks, and individual commands override `getPermissionLevel()` when they need to restrict access. For example, `EnchantItemCommand::getPermissionLevel()` returns `0` (everyone can use it).
+The existing docs for LCE sometimes mention permission level constants like `LEVEL_ALL`, `LEVEL_GAMEMASTERS`, etc. These do not exist in the actual `Command.h`. The base class has no permission level constants at all. The `canExecute()` method delegates to `source->hasPermission(getId())` to check whether the sender is allowed to run the command. Individual commands can override `getPermissionLevel()` when they need custom restriction. For example, `EnchantItemCommand::getPermissionLevel()` returns `0` (everyone can use it).
 :::
 
 ## The Command Enum
@@ -508,7 +508,7 @@ connection->send(packet);
 
 ## The Java Ghost
 
-You might notice `GameRuleCommand.h` in the source tree. It is entirely commented out Java code from the original Mojang codebase, showing what the text-based `/gamerule` command looked like before 4J replaced it with the UI-driven host options system. It is kept around for reference but none of it compiles. The same goes for the commented-out code inside `ExperienceCommand`, `DefaultGameModeCommand`, and `GameModeCommand`. They are snapshots of the Java originals that never got ported to the packet-based system.
+You might notice commented-out Java code inside `ExperienceCommand`, `DefaultGameModeCommand`, and `GameModeCommand`. These are snapshots of the Java originals that never got ported to the packet-based system. They show what the text-based commands looked like before 4J replaced them with the UI-driven host options system.
 
 ## Key Files
 

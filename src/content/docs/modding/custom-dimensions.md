@@ -51,6 +51,8 @@ The base class provides a bunch of virtual methods you can override. Here's what
 | `getClearColorScale()` | Sky clear color multiplier |
 | `getXZSize()` | World size in chunks (4J addition for console worlds) |
 
+> Note: `getSpawnYPosition()` and `getClearColorScale()` are NOT virtual in the base `Dimension` class. To override them polymorphically, you must first add the `virtual` keyword in `Dimension.h`.
+
 ### The Initialization Chain
 
 When the engine creates a dimension, it calls `init(Level *level)` which does three things in order:
@@ -81,6 +83,8 @@ Dimension *Dimension::getNew(int id)
     return NULL;
 }
 ```
+
+> Note: The Aether dimension shown here is from the client/ reference branch, not the base LCEMP source. In LCEMP, `Dimension::getNew()` only handles IDs -1 (Nether), 0 (Overworld), and 1 (The End). The Aether code is shown as an example of how a 4th dimension was added.
 
 You'll need to add your dimension to this factory. More on that in the [registration section](#registering-the-dimension).
 
@@ -259,6 +263,8 @@ Returns fixed spawn coordinates, or `NULL` to let the engine search for a valid 
 
 ### getSpawnYPosition()
 
+> Note: This method is NOT virtual in the base `Dimension` class. To override it polymorphically, you must first add the `virtual` keyword in `Dimension.h`.
+
 Returns the Y level for spawning. The base class returns `Level::genDepth / 2` (64) for normal worlds and `4` for superflat. The Aether returns `64`. The End returns `50`.
 
 ### isFoggyAt(int x, int z)
@@ -289,6 +295,8 @@ bool Dimension::hasBedrockFog()
 The Aether overrides this to return `false` since there's no bedrock.
 
 ### getClearColorScale()
+
+> Note: This method is NOT virtual in the base `Dimension` class. To override it polymorphically, you must first add the `virtual` keyword in `Dimension.h`.
 
 Multiplier for the sky clear color based on player Y position. The base class returns `1.0 / 32.0` for normal worlds and `1.0` for superflat. Lower values mean the sky darkens more when you're deep underground. The Aether returns `1.0` since the sky should always be full brightness.
 
@@ -1035,6 +1043,79 @@ This means you need to:
 2. Add `handleInsideAetherPortal()` to both `Entity` (empty base) and `Player` (sets the flag)
 3. Add the portal handling block to `ServerPlayer`'s tick method
 
+## How Dimensions Work End-to-End
+
+Before jumping into the registration steps, it helps to understand how dimensions actually flow through the engine. Every file you touch during registration maps to a specific step in this pipeline.
+
+### Server side: creating the level array
+
+When a world loads, `MinecraftServer::loadLevel()` creates a fixed array of 3 levels:
+
+- **Index 0**: Overworld (dimension ID `0`). Built as a plain `ServerLevel`.
+- **Index 1**: Nether (dimension ID `-1`). Built as a `DerivedServerLevel` wrapping the Overworld.
+- **Index 2**: The End (dimension ID `1`). Also a `DerivedServerLevel`.
+
+The array size is hardcoded to 3 in `MinecraftServer::loadLevel()`, and the dimension-to-index mapping is also hardcoded. To add a 4th dimension, you need to expand this array and add your dimension's entry. See the [registration section](#5-expand-the-server-level-array) below.
+
+`DerivedServerLevel` is a thin wrapper around `ServerLevel`. It shares the Overworld's `savedDataStorage` and wraps its `LevelData` with a `DerivedLevelData`. This avoids duplicating save data for secondary dimensions.
+
+During construction, each `ServerLevel` calls `Dimension::getNew(dimensionId)`. That factory function is what returns your `HellDimension`, `NormalDimension`, `TheEndDimension`, or your custom subclass. The returned `Dimension` object gets passed into the `Level` constructor, which calls `Dimension::init(level)` to wire everything up (biome source, light ramp, etc).
+
+If your dimension isn't in `Dimension::getNew()`, no `Level` gets created for it. Nothing else works without this.
+
+### Dimension transition: what happens when a player enters a portal
+
+Here's the step-by-step flow when a player walks into a Nether portal:
+
+1. **Portal tile detects the player.** The portal tile's `entityInside()` calls `handleInsidePortal()` on the entity, which sets `isInsidePortal = true` on the player.
+
+2. **Timer counts up.** Each server tick, `ServerPlayer` checks `isInsidePortal`. If true, it increments `portalTime` by `1/80` (so about 4 seconds to fill). Once `portalTime >= 1`, the transition fires.
+
+3. **Server calls `toggleDimension()`.** `ServerPlayer` calls `PlayerList::toggleDimension(player, targetDimension)`. This method does a lot:
+   - Removes the player from the old level's `EntityTracker` and `PlayerChunkMap`
+   - Sets `player->dimension` to the target
+   - Scales the player's coordinates (multiply or divide by the hell scale factor)
+   - Runs `PortalForcer::force()` to find or create a portal at the destination
+   - Moves the player into the new `ServerLevel` and calls `changeDimension()` to update the `PlayerChunkMap`
+
+4. **RespawnPacket tells the client.** Right before moving the player, the server sends a `RespawnPacket` containing the target dimension ID, world seed, map height, game mode, and difficulty. This is the signal that tells the client "switch dimensions now."
+
+5. **Client creates a new MultiPlayerLevel.** In `ClientConnection::handleRespawn()`, the client checks if a `MultiPlayerLevel` already exists for that dimension ID. If not, it creates one with `new MultiPlayerLevel(...)`. The `MultiPlayerLevel` constructor calls `Dimension::getNew(dimensionId)` on the client side too. If your dimension ID isn't handled there, the client gets `NULL` and things break.
+
+6. **MultiPlayerChunkCache sizes itself.** The `MultiPlayerLevel` constructor creates a `MultiPlayerChunkCache`, which reads `dimension->getXZSize()` to allocate its chunk grid. The Nether uses a smaller grid than the Overworld. If your dimension has a different world size, override `getXZSize()`.
+
+7. **LevelRenderer looks up the render buffer.** The renderer calls `getDimensionIndexFromId()` to figure out which slot in its fixed-size arrays belongs to this dimension. The default formula `(3 - id) % 3` only works for IDs -1, 0, and 1. A custom dimension ID will map to the wrong buffer unless you update this function.
+
+### Chunk flow: server to client
+
+Once the player is in the new dimension, chunks need to get there:
+
+1. **ServerChunkCache generates chunks.** The server-side `ServerChunkCache` either loads saved chunks from disk or generates new ones using your dimension's `ChunkSource` (the thing returned by `createRandomLevelSource()`).
+
+2. **PlayerChunkMap tracks visibility.** Each `ServerLevel` has a `PlayerChunkMap` that knows which chunks each player can see. When a player moves or changes dimension, `PlayerChunkMap::add()` and `move()` figure out which chunks to send.
+
+3. **Chunk data goes over the wire.** The server sends chunk data to the client through packets. The client receives these and passes them into `MultiPlayerChunkCache`.
+
+4. **MultiPlayerChunkCache stores chunks.** The cache is a flat grid sized by `getXZSize()`. Incoming chunks get stored at their position in this grid.
+
+5. **LevelRenderer builds display lists.** The renderer reads chunks from the cache and builds the GPU display lists for rendering. It uses the dimension index (from `getDimensionIndexFromId()`) to pick the right offset into its global chunk array.
+
+### Why you need to update all those files
+
+Each registration step maps directly to a step in the pipeline above:
+
+| Registration step | What breaks without it |
+|---|---|
+| `Dimension::getNew()` | No `Dimension` object created. The `Level` constructor gets `NULL` and crashes. |
+| `MinecraftServer::loadLevel()` expansion | The server only creates 3 levels (Overworld, Nether, End). Your dimension's `Level` never gets created. No chunks generate, no entities spawn, nothing works server-side. |
+| Portal tile registration | No way for players to enter the dimension. The `entityInside()` hook never fires. |
+| Biome registration | Terrain generator has no biome data. Chunks generate with wrong blocks and colors. |
+| Entity/Player portal handling | `isInsidePortal` never gets set. The `portalTime` counter never starts. |
+| LevelRenderer arrays + `getDimensionIndexFromId()` | Render buffer maps to the wrong dimension. Blocks go invisible or overlap with another dimension's terrain. |
+| `MultiPlayerChunkCache` sizing via `getXZSize()` | Chunk grid is wrong size. Chunks outside the grid get dropped or corrupt memory. |
+
+If something in your custom dimension "works on the server but looks broken on the client," the problem is almost always in the last two rows. The server-side terrain generation is totally separate from client-side rendering, and both need your dimension registered independently.
+
 ## Registering the Dimension
 
 There are several places you need to hook your dimension into the game.
@@ -1053,6 +1134,10 @@ Dimension *Dimension::getNew(int id)
     return NULL;
 }
 ```
+
+> Note: The Aether dimension shown here is from the client/ reference branch, not the base LCEMP source. In LCEMP, `Dimension::getNew()` only handles IDs -1 (Nether), 0 (Overworld), and 1 (The End). The Aether code is shown as an example of how a 4th dimension was added.
+
+`MultiPlayerChunkCache` allocates its grid based on `Dimension::getXZSize()`. If your dimension needs a different world size than the default, override `getXZSize()` in your dimension subclass.
 
 ### 2. Register the Portal Tile
 
@@ -1080,6 +1165,216 @@ As covered in the [biome section](#registering-the-biome), add it as a static `B
 ### 4. Add Portal Support to Entity/Player
 
 Add `handleInsideAetherPortal()` as a virtual on `Entity` (empty body) and override it on `Player` to set the portal flag. Add the dimension-switching logic to `ServerPlayer`.
+
+### 5. Expand the Server Level Array
+
+This is easy to miss. `MinecraftServer::loadLevel()` in `MinecraftServer.cpp` creates a fixed array of 3 levels. The loop maps index 0 to dimension 0 (Overworld), index 1 to dimension -1 (Nether), and index 2 to dimension 1 (End). Your dimension does not exist unless you add it here.
+
+```cpp
+// In MinecraftServer::loadLevel():
+
+// Change from 3 to 4:
+levels = ServerLevelArray(4);
+
+// In the dimension assignment block, add:
+if (i == 3) dimension = 2;  // Your dimension's ID
+```
+
+Your dimension's level should be created as a `DerivedServerLevel` (just like the Nether and End), so it shares the Overworld's save data:
+
+```cpp
+// The existing loop already does this for i > 0:
+else levels[i] = new DerivedServerLevel(this, storage, name, dimension, levelSettings, levels[0]);
+```
+
+No extra code needed for the construction itself. Just make sure the array is big enough and the dimension ID mapping is correct.
+
+### 6. Update the Renderer (CRITICAL)
+
+Adding a dimension to `Dimension::getNew()` is not enough. You must also update the client-side rendering system, or blocks in your dimension will be invisible past a certain distance.
+
+The renderer uses fixed-size arrays indexed by dimension. Without updating them, your dimension silently falls back to another dimension's render buffer, causing visual corruption or invisible blocks.
+
+#### How `LevelRenderer` Render Arrays Work
+
+`LevelRenderer` (in `Minecraft.Client/LevelRenderer.h` and `LevelRenderer.cpp`) pre-allocates a single flat array of render slots for every chunk across all dimensions. Two static arrays control the layout:
+
+- **`MAX_LEVEL_RENDER_SIZE[N]`**: the side length (in chunks) of the square render grid for each dimension index. This must be big enough to cover the actual world size plus the view distance on each side, so the renderer can draw the ocean at the world edges.
+- **`DIMENSION_OFFSETS[N]`**: the starting offset into the global flat array for each dimension. Each dimension occupies `MAX_LEVEL_RENDER_SIZE[i]^2 * CHUNK_Y_COUNT` slots. The offsets are cumulative sums.
+
+`CHUNK_Y_COUNT` is `Level::maxBuildHeight / 16`, which is `256 / 16 = 16` vertical chunk slices.
+
+When the renderer needs to look up a chunk, it calls `getGlobalIndexForChunk()`, which converts world coordinates to a flat index:
+
+```cpp
+int LevelRenderer::getGlobalIndexForChunk(int x, int y, int z, int dimensionId)
+{
+    int dimIdx = getDimensionIndexFromId(dimensionId);
+    int xx = (x / CHUNK_XZSIZE) + (MAX_LEVEL_RENDER_SIZE[dimIdx] / 2);
+    int yy = y / CHUNK_SIZE;
+    int zz = (z / CHUNK_XZSIZE) + (MAX_LEVEL_RENDER_SIZE[dimIdx] / 2);
+
+    if ((xx < 0) || (xx >= MAX_LEVEL_RENDER_SIZE[dimIdx])) return -1;
+    if ((zz < 0) || (zz >= MAX_LEVEL_RENDER_SIZE[dimIdx])) return -1;
+    if ((yy < 0) || (yy >= CHUNK_Y_COUNT)) return -1;
+
+    int offset = DIMENSION_OFFSETS[dimIdx];
+    offset += (zz * MAX_LEVEL_RENDER_SIZE[dimIdx] + xx) * CHUNK_Y_COUNT;
+    offset += yy;
+    return offset;
+}
+```
+
+The `+ (MAX_LEVEL_RENDER_SIZE[dimIdx] / 2)` centers the world at the middle of the grid. Chunks outside the grid return -1 (not rendered).
+
+`getDimensionIndexFromId()` maps dimension IDs to array indices using `(3 - id) % 3`:
+
+| Dimension ID | Array Index |
+|---|---|
+| -1 (Nether) | 1 |
+| 0 (Overworld) | 0 |
+| 1 (End) | 2 |
+
+This formula only works for IDs -1, 0, and 1. Any other ID maps to the wrong slot.
+
+#### Source Values by Platform
+
+The exact array values depend on the `_LARGE_WORLDS` compile flag, which is set for next-gen consoles (Xbox One, PS4, etc.).
+
+**Old-gen platforms** (Xbox 360, PS3, Vita, no `_LARGE_WORLDS`):
+
+World sizes come from `ChunkSource.h`: `LEVEL_MAX_WIDTH = 54`, `HELL_LEVEL_MAX_WIDTH = 18` (54 / 3), `END_LEVEL_MAX_WIDTH = 18`.
+
+The render sizes add `PLAYER_VIEW_DISTANCE` (13 chunks on old-gen, from the `PLAYER_RENDER_AREA = 400` path) on each side:
+
+```cpp
+// Overworld: 54 + 13 + 13 = 80
+// Nether:    18 + 13 + 13 = 44
+// End:       18 + 13 + 13 = 44
+const int LevelRenderer::MAX_LEVEL_RENDER_SIZE[3] = { 80, 44, 44 };
+
+const int LevelRenderer::DIMENSION_OFFSETS[3] = {
+    0,
+    (80 * 80 * CHUNK_Y_COUNT),                              // = 102,400
+    (80 * 80 * CHUNK_Y_COUNT) + (44 * 44 * CHUNK_Y_COUNT)   // = 133,376
+};
+```
+
+Total chunks: `(80*80 + 44*44 + 44*44) * 16 = 164,352` render slots.
+
+**Next-gen platforms** (Xbox One, PS4, etc., with `_LARGE_WORLDS`):
+
+World sizes scale up: `LEVEL_MAX_WIDTH = 5*64 = 320`, `HELL_LEVEL_MAX_WIDTH = 320/8 = 40`, `END_LEVEL_MAX_WIDTH = 18`. View distance is `PLAYER_VIEW_DISTANCE = 18`.
+
+```cpp
+const int overworldSize = LEVEL_MAX_WIDTH + PLAYER_VIEW_DISTANCE + PLAYER_VIEW_DISTANCE;  // 320 + 18 + 18 = 356
+const int netherSize = HELL_LEVEL_MAX_WIDTH + 2;   // 40 + 2 = 42 (padded to align total chunk count to 8)
+const int endSize = END_LEVEL_MAX_WIDTH;            // 18
+
+const int LevelRenderer::MAX_LEVEL_RENDER_SIZE[3] = { 356, 42, 18 };
+
+const int LevelRenderer::DIMENSION_OFFSETS[3] = {
+    0,
+    (356 * 356 * CHUNK_Y_COUNT),                                // = 2,027,776
+    (356 * 356 * CHUNK_Y_COUNT) + (42 * 42 * CHUNK_Y_COUNT)     // = 2,056,000
+};
+```
+
+The Nether's `+ 2` padding is a 4J trick to make the total global chunk count a multiple of 8 for the flag bitfields. Those extra 2 chunks of render space never actually get used.
+
+> The server stubs (`Minecraft.Server/Stubs/ServerStubs2.cpp`) use the large world values `{356, 42, 18}` since the dedicated server targets next-gen platforms.
+
+#### Files to Modify
+
+**LevelRenderer.h**: expand array sizes from 3 to 4:
+
+```cpp
+static const int MAX_LEVEL_RENDER_SIZE[4];
+static const int DIMENSION_OFFSETS[4];
+```
+
+**LevelRenderer.cpp**: add your dimension's render size. For an overworld-sized dimension on old-gen:
+
+```cpp
+const int LevelRenderer::MAX_LEVEL_RENDER_SIZE[4] = { 80, 44, 44, 80 };
+const int LevelRenderer::DIMENSION_OFFSETS[4] = {
+    0,
+    (80 * 80 * CHUNK_Y_COUNT),
+    (80 * 80 * CHUNK_Y_COUNT) + (44 * 44 * CHUNK_Y_COUNT),
+    (80 * 80 * CHUNK_Y_COUNT) + (44 * 44 * CHUNK_Y_COUNT) + (44 * 44 * CHUNK_Y_COUNT)
+};
+```
+
+Pick a render size that fits your dimension's world size plus view distance padding. Use 80 for overworld-sized dimensions, 44 for smaller ones like the Nether/End. If you are targeting `_LARGE_WORLDS`, update that `#ifdef` branch too.
+
+**LevelRenderer.cpp**: update `getDimensionIndexFromId()`:
+
+```cpp
+int LevelRenderer::getDimensionIndexFromId(int id)
+{
+    if (id == 2) return 3;  // Your dimension gets index 3
+    return (3 - id) % 3;    // Vanilla dimensions unchanged
+}
+```
+
+**LevelRenderer.cpp**: update `getGlobalChunkCount()` and `getGlobalChunkCountForOverworld()`:
+
+Add your dimension's contribution to the total:
+
+```cpp
+int LevelRenderer::getGlobalChunkCount()
+{
+    return (MAX_LEVEL_RENDER_SIZE[0] * MAX_LEVEL_RENDER_SIZE[0] * CHUNK_Y_COUNT) +
+           (MAX_LEVEL_RENDER_SIZE[1] * MAX_LEVEL_RENDER_SIZE[1] * CHUNK_Y_COUNT) +
+           (MAX_LEVEL_RENDER_SIZE[2] * MAX_LEVEL_RENDER_SIZE[2] * CHUNK_Y_COUNT) +
+           (MAX_LEVEL_RENDER_SIZE[3] * MAX_LEVEL_RENDER_SIZE[3] * CHUNK_Y_COUNT);
+}
+```
+
+**LevelRenderer.cpp**: update `isGlobalIndexInSameDimension()`:
+
+The vanilla code only checks offsets for indices 0, 1, and 2. Add a check for index 3:
+
+```cpp
+bool LevelRenderer::isGlobalIndexInSameDimension(int idx, Level *level)
+{
+    int dim = getDimensionIndexFromId(level->dimension->id);
+    int idxDim = 0;
+    if (idx >= DIMENSION_OFFSETS[3]) idxDim = 3;
+    else if (idx >= DIMENSION_OFFSETS[2]) idxDim = 2;
+    else if (idx >= DIMENSION_OFFSETS[1]) idxDim = 1;
+    return (dim == idxDim);
+}
+```
+
+#### Memory Impact
+
+Each render slot maps to a `Chunk` object and two render lists (opaque + transparent). The constructor allocates:
+
+```cpp
+chunkLists = MemoryTracker::genLists(getGlobalChunkCount() * 2);
+globalChunkFlags = new unsigned char[getGlobalChunkCount()];
+```
+
+Adding a 4th dimension with render size 80 adds `80 * 80 * 16 = 102,400` slots. On memory-constrained platforms (PS3, Vita), check `MAX_COMMANDBUFFER_ALLOCATIONS` to make sure you are not exceeding the GPU memory budget:
+
+| Platform | `MAX_COMMANDBUFFER_ALLOCATIONS` |
+|---|---|
+| Xbox One | 512 MB |
+| PS4 | 448 MB |
+| PS3 | 110 MB |
+| Vita / other old-gen | 55 MB |
+| Windows (x64) | 2047 MB |
+
+On old-gen, you might need a smaller render size (like 44 instead of 80) to stay within budget.
+
+#### What Happens Without These Changes
+
+Your dimension will use another dimension's render buffer based on the modular arithmetic fallback in `getDimensionIndexFromId()`. Terrain generates fine on the server side, but on the client:
+- Blocks past a certain point become invisible
+- Chunks may visually overlap with another dimension's terrain
+- The global chunk index collides, corrupting render state
+- `isGlobalIndexInSameDimension()` returns wrong results, so the culling pass skips or includes the wrong chunks
 
 ## Spawn Logic
 
@@ -1128,11 +1423,11 @@ Here's a comparison of how each dimension configures itself, which is handy for 
 | `mayRespawn()` | true | false | false | false |
 | `hasGround()` | true | true | false | true |
 | `isFoggyAt()` | false | true | true | false |
-| `hasBedrockFog()` | conditional | false (ceiling) | false (ceiling) | false (override) |
+| `hasBedrockFog()` | conditional | false (inherits base: !hasCeiling) | false (inherits base: !hasCeiling) | false (override) |
 | `getClearColorScale()` | 1/32 | 1/32 | 1/32 | 1.0 |
 | `getCloudHeight()` | 128 | 128 | 8 | 160 |
 | `getSpawnPos()` | NULL (search) | N/A | (100,50,0) | (0,64,0) |
-| `getXZSize()` | world size | world / hellScale | world / 3 | world size |
+| `getXZSize()` | world size | world / hellScale | Fixed at END_LEVEL_MAX_WIDTH (18 chunks) | world size |
 | Biome source | `BiomeSource` | Fixed (hell) | Fixed (sky) | Fixed (aether) |
 
 ## Summary
@@ -1143,6 +1438,12 @@ To add a custom dimension, you need to:
 2. **Create a `ChunkSource` subclass** for terrain generation
 3. **Create a `Biome` subclass** with surface blocks, colors, and a decorator
 4. **Create a portal tile** for traveling to/from the dimension
-5. **Register everything**: add to `Dimension::getNew()`, register the tile and biome, wire up the portal logic in `Entity`/`Player`/`ServerPlayer`
+5. **Register in `Dimension::getNew()`** so both server and client can create your dimension
+6. **Register the tile and biome** in `Tile::staticCtor()` and `Biome::staticCtor()`
+7. **Wire up portal logic** in `Entity`/`Player`/`ServerPlayer`
+8. **Expand `MinecraftServer::loadLevel()`** from `ServerLevelArray(3)` to `ServerLevelArray(4)` and map your dimension ID
+9. **Update `LevelRenderer` arrays** (`MAX_LEVEL_RENDER_SIZE`, `DIMENSION_OFFSETS`, `getDimensionIndexFromId()`, `getGlobalChunkCount()`, `isGlobalIndexInSameDimension()`) so the client renders your dimension correctly
+
+Steps 8 and 9 are the ones people miss. Without step 8, the server never creates a `Level` for your dimension. Without step 9, the client renders blocks into the wrong buffer and chunks go invisible.
 
 The Aether implementation in the client source is a good reference for all of this. It covers every piece of the pipeline from terrain generation to portal teleportation.

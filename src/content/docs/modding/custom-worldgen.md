@@ -466,7 +466,7 @@ The default layer chain runs roughly like this:
 4. `ZoomLayer` (clean upscale)
 5. `AddIslandLayer` (more land)
 6. Split into two branches:
-   - **Biome branch**: `AddSnowLayer` -> `ZoomLayer` (x2) -> `AddIslandLayer` -> `AddMushroomIslandLayer` -> `BiomeInitLayer` -> `ZoomLayer` (x2) -> `RegionHillsLayer` -> `ShoreLayer` -> `SmoothZoomLayer` (x2) -> `SmoothLayer`
+   - **Biome branch**: `ZoomLayer` -> `BiomeInitLayer` -> `ZoomLayer` (x2) -> `RegionHillsLayer` -> `ZoomLayer` (x zoomLevel, with `AddIslandLayer`, `AddMushroomIslandLayer`, `GrowMushroomIslandLayer`, `ShoreLayer`, `SwampRiversLayer` inserts) -> `SmoothLayer`
    - **River branch**: `RiverInitLayer` -> `ZoomLayer` (x6) -> `RiverLayer` -> `SmoothLayer`
 7. `RiverMixerLayer` (merge biome + river branches)
 8. `VoronoiZoom` (final upscale to block resolution)
@@ -631,21 +631,21 @@ Each biome can customize decoration by being a `friend` of `BiomeDecorator` and 
 | Biome | Key overrides |
 |-------|--------------|
 | `DesertBiome` | `deadBushCount = 2`, `cactusCount = 10`, `reedsCount = 50` |
-| `ForestBiome` | `treeCount = 10`, `grassCount = 2`, `flowerCount = 4` |
-| `PlainsBiome` | `treeCount = -1` (rare trees), `grassCount = 10`, `flowerCount = 4` |
+| `ForestBiome` | `treeCount = 10`, `grassCount = 2` |
+| `PlainsBiome` | `treeCount = -999` (disabled), `grassCount = 10`, `flowerCount = 4` |
 | `SwampBiome` | `treeCount = 2`, `waterlilyCount = 4`, `mushroomCount = 8`, `reedsCount = 10` |
 | `TaigaBiome` | `treeCount = 10`, `grassCount = 1` |
-| `MushroomIslandBiome` | `hugeMushrooms = 1`, `mushroomCount = 3` |
+| `MushroomIslandBiome` | `hugeMushrooms = 1`, `mushroomCount = 1` |
 | `BeachBiome` | defaults (very sparse) |
 | `JungleBiome` | `treeCount = 50`, `grassCount = 25`, `flowerCount = 4`, `waterlilyCount` varies |
 
 To customize a biome's tree selection, override `getTreeFeature()`. Different biomes return different features:
 
-- **Forest**: 4/5 chance oak, 1/5 chance birch
+- **Forest**: 1/5 chance birch, 1/10 chance fancy oak, otherwise normal oak
 - **Taiga**: Alternates between `SpruceFeature` and `PineFeature`
 - **Jungle**: Mix of `MegaTreeFeature`, `TreeFeature` with jungle flags, `GroundBushFeature`
 - **Swamp**: Always `SwampTreeFeature`
-- **Plains**: 1/3 chance `BasicTree` (big tree), otherwise standard oak
+- **Plains**: Default base `getTreeFeature()` (standard oak), though `treeCount = -999` means trees are effectively disabled
 
 ## Key source files
 

@@ -9,19 +9,19 @@ The armor system uses `ArmorItem` to handle wearable protection. There are five 
 
 ## ArmorItem
 
-Each `ArmorItem` is built with an `ArmorMaterial`, a render index, and a slot index.
+Each `ArmorItem` is built with an `ArmorMaterial`, an icon index, and a slot index.
 
 ### Constructor
 
 ```cpp
-ArmorItem(int id, const ArmorMaterial *armorType, int renderIndex, int slot);
+ArmorItem(int id, const ArmorMaterial *armorType, int icon, int slot);
 ```
 
 | Parameter | Description |
 |-----------|-------------|
 | `id` | Item ID offset (constructor adds 256) |
 | `armorType` | Pointer to an `ArmorMaterial` constant |
-| `renderIndex` | Which armor model texture layer to use (0-4 for vanilla materials) |
+| `icon` | Which armor model texture layer to use (0-4 for vanilla materials) |
 | `slot` | Which body slot (0=head, 1=torso, 2=legs, 3=feet) |
 
 The constructor sets:
@@ -34,7 +34,7 @@ The constructor sets:
 |-------|------|-------------|
 | `slot` | `int` | Equipment slot index |
 | `defense` | `int` | Defense points for this piece (from `armorType->slotProtections[slot]`) |
-| `renderIndex` | `int` | Texture layer index for rendering |
+| `modelIndex` | `int` | Texture layer index for rendering |
 | `armorType` | `const ArmorMaterial *` | The material this armor is made from |
 
 ## ArmorMaterial
@@ -83,7 +83,7 @@ The `getTierItemId()` method uses pointer identity checks (comparing `this` agai
 | Gold | Gold Ingot (`Item::goldIngot`, ID 266) |
 | Diamond | Diamond (`Item::diamond`, ID 264) |
 
-If none match (custom material), returns `-1`.
+If none match (custom material), returns `0`.
 
 ## Armor Slots
 

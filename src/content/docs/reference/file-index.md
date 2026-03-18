@@ -5,24 +5,24 @@ description: Index of all source files in both LCE modules.
 
 LCE has two modules: **Minecraft.World** (game logic, networking, world simulation) and **Minecraft.Client** (rendering, UI, platform integration, server hosting). This page lists every `.cpp` and `.h` source file in both.
 
-**LCEMP totals: 1,564 files in Minecraft.World, 1,392 files in Minecraft.Client, 2,956 files overall.**
+**LCEMP totals: 1,567 files in Minecraft.World, 1,392 files in Minecraft.Client, 2,959 files overall.**
 
 **MinecraftConsoles totals: 1,837 files in Minecraft.World, ~2,150 source files in Minecraft.Client, ~3,987 source files overall.** (MinecraftConsoles also bundles media assets, DLC data, and third-party libraries that push the raw file count much higher.)
 
 ---
 
-## Minecraft.World (LCEMP: 1,564 files)
+## Minecraft.World (LCEMP: 1,567 files)
 
 All files live in a flat directory (`Minecraft.World/`) except for 7 headers in `x64headers/`.
 
-### Tiles / Blocks (200 files)
+### Tiles / Blocks (212 files)
 
 Block type classes, tile entities, and tile items.
 
 <details>
 <summary>Tile classes (.h + .cpp pairs)</summary>
 
-AirTile, AnvilTile, BedTile, BookshelfTile, BrewingStandTile, ButtonTile, CactusTile, CakeTile, CarrotTile, CauldronTile, ChestTile, ClayTile, ClothTile, CocoaTile, CoralTile, CropTile, DeadBushTile, DetectorRailTile, DiodeTile, DirectionalTile, DirtTile, DispenserTile, DoorTile, EggTile, EnchantmentTableTile, EnderChestTile, EntityTile, FarmTile, FenceGateTile, FenceTile, FireTile, FlowerPotTile, FurnaceTile, GlassTile, GrassTile, GravelTile, HalfSlabTile, HalfTransparentTile, HeavyTile, HellSandTile, HellStoneTile, HugeMushroomTile, IceTile, LadderTile, LeafTile, LeverTile, LightGemTile, LiquidTile, LiquidTileDynamic, LiquidTileStatic, LockedChestTile, MelonTile, MetalTile, MobSpawnerTile, MusicTile, MycelTile, NetherStalkTile, NotGateTile, ObsidianTile, OreTile, PistonBaseTile, PistonExtensionTile, PortalTile, PotatoTile, PressurePlateTile, PumpkinTile, QuartzBlockTile, RailTile, RecordPlayerTile, RedlightTile, RedStoneDustTile, RedStoneOreTile, ReedTile, SandStoneTile, SignTile, SkullTile, SmoothStoneBrickTile, SnowTile, SpringTile, StairTile, StemTile, StoneMonsterTile, StoneSlabTile, StoneTile, TheEndPortalFrameTile, ThinFenceTile, Tile, TntTile, TopSnowTile, TorchTile, TransparentTile, TrapDoorTile, TreeTile, TripWireSourceTile, TripWireTile, VineTile, WallTile, WaterLilyTile, WebTile, WoodSlabTile, WoodTile, WoolCarpetTile, WorkbenchTile
+AirTile, AnvilTile, BedTile, BookshelfTile, BrewingStandTile, Bush, ButtonTile, CactusTile, CakeTile, CarrotTile, CauldronTile, ChestTile, ClayTile, ClothTile, CocoaTile, CoralTile, CropTile, DeadBushTile, DetectorRailTile, DiodeTile, DirectionalTile, DirtTile, DispenserTile, DoorTile, EggTile, EnchantmentTableTile, EnderChestTile, EntityTile, FarmTile, FenceGateTile, FenceTile, FireTile, FlowerPotTile, FurnaceTile, GlassTile, GrassTile, GravelTile, HalfSlabTile, HalfTransparentTile, HeavyTile, HellSandTile, HellStoneTile, HugeMushroomTile, IceTile, LadderTile, LeafTile, LeverTile, LightGemTile, LiquidTile, LiquidTileDynamic, LiquidTileStatic, LockedChestTile, MelonTile, MetalTile, MobSpawnerTile, Mushroom, MusicTile, MycelTile, NetherStalkTile, NotGateTile, ObsidianTile, OreTile, PistonBaseTile, PistonExtensionTile, PortalTile, PotatoTile, PressurePlateTile, PumpkinTile, QuartzBlockTile, RailTile, RecordPlayerTile, RedlightTile, RedStoneDustTile, RedStoneOreTile, ReedTile, SandStoneTile, Sapling, SignTile, SkullTile, SmoothStoneBrickTile, SnowTile, Sponge, SpringTile, StairTile, StemTile, StoneMonsterTile, StoneSlabTile, StoneTile, TallGrass, TheEndPortal, TheEndPortalFrameTile, ThinFenceTile, Tile, TntTile, TopSnowTile, TorchTile, TransparentTile, TrapDoorTile, TreeTile, TripWireSourceTile, TripWireTile, VineTile, WallTile, WaterLilyTile, WebTile, WoodSlabTile, WoodTile, WoolCarpetTile, WorkbenchTile
 
 </details>
 
@@ -49,12 +49,12 @@ ArmorItem, BedItem, BoatItem, BookItem, BottleItem, BowItem, BowlFoodItem, Bucke
 
 </details>
 
-### Entities (134 files)
+### Entities (130 files)
 
 <details>
 <summary>Entity classes</summary>
 
-AgableMob, Animal, Arrow, Blaze, Boat, BossMob, BossMobPart, Bush, CaveSpider, Chicken, Cow, Creature, Creeper, EnderCrystal, EnderDragon, EnderMan, Entity, EntityIO, EntityPos, ExperienceOrb, EyeOfEnderSignal, FallingTile, Fireball, FishingHook, FlyingMob, Ghast, Giant, GlobalEntity, Golem, HangingEntity, ItemEntity, ItemFrame, LavaSlime, LightningBolt, Minecart, Mob, Monster, Mushroom, MushroomCow, Npc, Ozelot, Painting, PathfinderMob, Pig, PigZombie, Player, PrimedTnt, Sheep, Silverfish, Skeleton, Slime, SmallFireball, SnowMan, Snowball, Spider, Squid, TamableAnimal, Throwable, ThrownEgg, ThrownEnderpearl, ThrownExpBottle, ThrownPotion, Villager, VillagerGolem, WaterAnimal, Wolf, Zombie, DragonFireball
+AgableMob, Animal, Arrow, Blaze, Boat, BossMob, BossMobPart, CaveSpider, Chicken, Cow, Creature, Creeper, EnderCrystal, EnderDragon, EnderMan, Entity, EntityIO, EntityPos, ExperienceOrb, EyeOfEnderSignal, FallingTile, Fireball, FishingHook, FlyingMob, Ghast, Giant, GlobalEntity, Golem, HangingEntity, ItemEntity, ItemFrame, LavaSlime, LightningBolt, Minecart, Mob, Monster, MushroomCow, Npc, Ozelot, Painting, PathfinderMob, Pig, PigZombie, Player, PrimedTnt, Sheep, Silverfish, Skeleton, Slime, SmallFireball, SnowMan, Snowball, Spider, Squid, TamableAnimal, Throwable, ThrownEgg, ThrownEnderpearl, ThrownExpBottle, ThrownPotion, Villager, VillagerGolem, WaterAnimal, Wolf, Zombie, DragonFireball
 
 </details>
 
@@ -165,7 +165,7 @@ BinaryHeap, Node, Path, PathFinder, PathNavigation, RandomPos, Sensing
 
 </details>
 
-### Data / IO / Utility (90 files)
+### Data / IO / Utility (86 files)
 
 <details>
 <summary>Streams, NBT, math, threading, etc.</summary>
@@ -178,7 +178,7 @@ BinaryHeap, Node, Path, PathFinder, PathNavigation, RandomPos, Sensing
 
 **Threading / System:** C4JThread, Class, PerformanceTimer, SharedConstants, System, ThreadName
 
-**Other utility:** Abilities, Arrays, ArrayWithLength, BasicTypeContainers, BlockReplacements, BlockGenMethods, Color, Definitions, DelayedRelease, DescFormatter, Direction, Explosion, FoliageColor, FoodConstants, FoodData, GrassColor, Hasher, I18n, IntCache, Language, Material, MaterialColor, MenuBackup, MobCategory, NumberFormaters, Rarity, Reference, Sponge, StringHelpers, SynchedEntityData, TallGrass, WeighedTreasure
+**Other utility:** Abilities, Arrays, ArrayWithLength, BasicTypeContainers, BlockReplacements, BlockGenMethods, Color, Definitions, DelayedRelease, DescFormatter, Direction, Explosion, FoliageColor, FoodConstants, FoodData, GrassColor, Hasher, I18n, IntCache, Language, Material, MaterialColor, MenuBackup, MobCategory, NumberFormaters, Rarity, Reference, StringHelpers, SynchedEntityData, WeighedTreasure
 
 </details>
 
@@ -363,9 +363,9 @@ Shared code used across all platforms.
 </details>
 
 <details>
-<summary>Common/DLC/ (11 files)</summary>
+<summary>Common/DLC/ (24 files)</summary>
 
-`DLCAudioFile.h`, `DLCColourTableFile.h`, `DLCGameRules.h`, `DLCGameRulesFile.h`, `DLCGameRulesHeader.h`, `DLCLocalisationFile.h`, `DLCManager.h`, `DLCPack.h`, `DLCSkinFile.h`, `DLCTextureFile.h`, `DLCUIDataFile.h`
+`DLCAudioFile.cpp`, `DLCAudioFile.h`, `DLCCapeFile.cpp`, `DLCCapeFile.h`, `DLCColourTableFile.cpp`, `DLCColourTableFile.h`, `DLCFile.cpp`, `DLCFile.h`, `DLCGameRules.h`, `DLCGameRulesFile.cpp`, `DLCGameRulesFile.h`, `DLCGameRulesHeader.cpp`, `DLCGameRulesHeader.h`, `DLCLocalisationFile.cpp`, `DLCLocalisationFile.h`, `DLCManager.cpp`, `DLCManager.h`, `DLCPack.cpp`, `DLCPack.h`, `DLCSkinFile.cpp`, `DLCSkinFile.h`, `DLCTextureFile.cpp`, `DLCTextureFile.h`, `DLCUIDataFile.h`
 
 </details>
 
@@ -384,7 +384,7 @@ AddEnchantmentRuleDefinition, AddItemRuleDefinition, ApplySchematicRuleDefinitio
 </details>
 
 <details>
-<summary>Common/Network/ (8 files)</summary>
+<summary>Common/Network/ (7 files)</summary>
 
 `GameNetworkManager.cpp`, `GameNetworkManager.h`, `NetworkPlayerInterface.h`, `PlatformNetworkManagerInterface.h`, `PlatformNetworkManagerStub.cpp`, `PlatformNetworkManagerStub.h`, `SessionInfo.h`
 

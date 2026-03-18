@@ -259,7 +259,7 @@ The glowstone dust drop is a 4J addition for console. Java Edition blazes do not
 
 | Drop | Count | Looting | Notes |
 |------|-------|---------|-------|
-| Magma Cream | 0-2 | +1 per level | Only from size > 1. Base `random->nextInt(3 + playerBonusLevel)`. |
+| Magma Cream | 0-1 | +looting | Only from size > 1. Base `random->nextInt(4) - 2` (gives -2 to 1, negative means 0). With looting: adds `random->nextInt(playerBonusLevel + 1)`. |
 | (nothing) | 0 | No | Smallest size drops nothing |
 
 #### Zombie Pigman (PigZombie)
@@ -299,7 +299,7 @@ The glowstone dust drop is a 4J addition for console. Java Edition blazes do not
 | Slime | Slimeball (0-2) | None | Smallest size only |
 | Ghast | Ghast Tear (0-1), Gunpowder (0-2) | None | |
 | Blaze | Blaze Rod (0-1), Glowstone (0-2) | None | Player-kill only. Glowstone is console-exclusive. |
-| Magma Cube | Magma Cream (0-2) | None | Size > 1 only |
+| Magma Cube | Magma Cream (0-1) | None | Size > 1 only |
 | Zombie Pigman | Rotten Flesh (0-1), Gold Nugget (0-1) | Gold Ingot/Sword/Helmet or Enchanted Gold Sword | |
 
 ## How Looting Works

@@ -14,8 +14,11 @@ Tile
  |    |    +-- CarrotTile
  |    |    +-- PotatoTile
  |    +-- DeadBushTile
+ |    +-- Mushroom
  |    +-- NetherStalkTile
+ |    +-- Sapling
  |    +-- StemTile
+ |    +-- TallGrass
  |    +-- WaterlilyTile
  +-- DirectionalTile
  |    +-- BedTile
@@ -32,9 +35,11 @@ Tile
  |    +-- FurnaceTile
  |    +-- MobSpawnerTile
  |    +-- MusicTile
+ |    +-- PistonMovingPiece
  |    +-- RecordPlayerTile
  |    +-- SignTile
  |    +-- SkullTile
+ |    +-- TheEndPortal
  +-- HalfSlabTile
  |    +-- StoneSlabTile
  |    +-- WoodSlabTile
@@ -146,6 +151,7 @@ Tile
 | `MelonTile` | `Tile` | MelonTile.h | Melon Block |
 | `MetalTile` | `Tile` | MetalTile.h | Iron Block, Gold Block, Diamond Block, Emerald Block, Lapis Block |
 | `MobSpawnerTile` | `EntityTile` | MobSpawnerTile.h | Monster Spawner |
+| `Mushroom` | `Bush` | Mushroom.h | Small Mushrooms (IDs 39, 40) |
 | `MusicTile` | `EntityTile` | MusicTile.h | Note Block |
 | `MycelTile` | `Tile` | MycelTile.h | Mycelium |
 | `NetherStalkTile` | `Bush` | NetherStalkTile.h | Nether Wart |
@@ -154,6 +160,7 @@ Tile
 | `OreTile` | `Tile` | OreTile.h | Coal Ore, Iron Ore, Gold Ore, Diamond Ore, Lapis Ore, Emerald Ore |
 | `PistonBaseTile` | `Tile` | PistonBaseTile.h | Piston, Sticky Piston |
 | `PistonExtensionTile` | `Tile` | PistonExtensionTile.h | Piston Extension (arm) |
+| `PistonMovingPiece` | `EntityTile` | PistonMovingPiece.h | Moving Piston Piece (ID 36) |
 | `PortalTile` | `HalfTransparentTile` | PortalTile.h | Nether Portal |
 | `PotatoTile` | `CropTile` | PotatoTile.h | Potatoes |
 | `PressurePlateTile` | `Tile` | PressurePlateTile.h | Stone Pressure Plate, Wooden Pressure Plate |
@@ -166,16 +173,20 @@ Tile
 | `RedStoneOreTile` | `Tile` | RedStoneOreTile.h | Redstone Ore (lit/unlit) |
 | `ReedTile` | `Tile` | ReedTile.h | Sugar Cane |
 | `SandStoneTile` | `Tile` | SandStoneTile.h | Sandstone (variants) |
+| `Sapling` | `Bush` | Sapling.h | Oak/Spruce/Birch/Jungle Saplings (ID 6) |
 | `SignTile` | `EntityTile` | SignTile.h | Sign (standing / wall) |
 | `SkullTile` | `EntityTile` | SkullTile.h | Mob Head / Skull |
 | `SmoothStoneBrickTile` | `Tile` | SmoothStoneBrickTile.h | Stone Bricks (variants) |
 | `SnowTile` | `Tile` | SnowTile.h | Snow Block |
+| `Sponge` | `Tile` | Sponge.h | Sponge (ID 19) |
 | `SpringTile` | `Tile` | SpringTile.h | Spring / water source block |
 | `StairTile` | `Tile` | StairTile.h | All stair variants |
 | `StemTile` | `Bush` | StemTile.h | Pumpkin Stem, Melon Stem |
 | `StoneMonsterTile` | `Tile` | StoneMonsterTile.h | Silverfish Stone (infested blocks) |
 | `StoneSlabTile` | `HalfSlabTile` | StoneSlabTile.h | Stone slabs (all variants) |
-| `StoneTile` | `Tile` | StoneTile.h | Stone, Cobblestone, Mossy Cobblestone |
+| `StoneTile` | `Tile` | StoneTile.h | Stone (ID 1) |
+| `TallGrass` | `Bush` | TallGrass.h | Tall Grass/Fern (ID 31) |
+| `TheEndPortal` | `EntityTile` | TheEndPortal.h | End Portal (ID 119) |
 | `TheEndPortalFrameTile` | `Tile` | TheEndPortalFrameTile.h | End Portal Frame |
 | `ThinFenceTile` | `Tile` | ThinFenceTile.h | Glass Pane, Iron Bars |
 | `TntTile` | `Tile` | TntTile.h | TNT |
@@ -195,7 +206,7 @@ Tile
 | `WoolCarpetTile` | `Tile` | WoolCarpetTile.h | Carpet (all colors) |
 | `WorkbenchTile` | `Tile` | WorkbenchTile.h | Crafting Table |
 
-**Total: 99 Tile classes** (including 8 abstract base classes)
+**Total: 106 Tile classes** (including 8 abstract base classes)
 
 ## New Tile Classes (MinecraftConsoles)
 
@@ -226,12 +237,12 @@ These classes exist in the MinecraftConsoles repo but not in the LCEMP repo:
 | `WeightedPressurePlateTile` | `BasePressurePlateTile` | Weighted Pressure Plate (light/heavy) |
 | `WoodButtonTile` | `ButtonTile` | Wooden Button |
 
-**Total in MinecraftConsoles: ~120 Tile classes** (including ~12 abstract base classes)
+**Total in MinecraftConsoles: ~127 Tile classes** (including ~12 abstract base classes)
 
 ## Notes
 
 - `Bush` is declared in `Bush.h` / `Bush.cpp` and is a Tile subclass for plant-type blocks. It doesn't follow the `*Tile.h` naming convention.
-- `LiquidTile` has two concrete subclasses (`LiquidTileDynamic` and `LiquidTileStatic`) defined in their own files, but they don't have separate `*Tile.h` headers.
+- `LiquidTile` has two concrete subclasses (`LiquidTileDynamic` and `LiquidTileStatic`) defined in their own `.cpp` files, and they do have separate headers (`LiquidTileDynamic.h` and `LiquidTileStatic.h`).
 - `FallingTile` (in `FallingTile.h`) extends `Entity`, not `Tile`. It's the falling-block entity (sand, gravel in motion), not a block type.
 - The `Tile` base class itself is defined in `Tile.h` / `Tile.cpp` and holds the static tile registry (all block IDs are registered there).
 - Related tile items (like `ClothTileItem`, `StoneSlabTileItem`, `TreeTileItem`) handle aux-data variants and live in separate files.

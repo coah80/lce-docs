@@ -22,7 +22,6 @@ Item::Item(int id) : id( 256 + id )
     maxStackSize = 64;  // MAX_STACK_SIZE from Container
     maxDamage = 0;
     craftingRemainingItem = NULL;
-    tabToDisplayOn = NULL;
     rarity = Item::eMinecraftRarity::common;
     // Writes itself into items[this->id]
 }
@@ -135,7 +134,30 @@ Item::myCustomItem = ( new MyCustomItem(151) )  // 256 + 151 = 407
 
 Remember: the constructor parameter is `desired_id - 256`. So for item ID 407, pass 151.
 
-## Step 3: Set properties
+## Step 3: Add to umbrella header and Sources.cmake
+
+If you created a new `.h` file for your item subclass, add it to the item umbrella header `Minecraft.World/net.minecraft.world.item.h`:
+
+```cpp
+#include "MyCustomItem.h"
+```
+
+Then add your `.cpp` file to `cmake/Sources.cmake` in the `MINECRAFT_WORLD_SOURCES` list:
+
+```cmake
+"MyCustomItem.cpp"
+```
+
+Only `.cpp` files go in `Sources.cmake`, not headers. CMake prepends the `Minecraft.World/` directory automatically. After changing this file, re-run CMake:
+
+```bash
+cd build
+cmake ..
+```
+
+If your item is a plain `Item` with no subclass (just `new Item(id)`), you can skip this step since there are no new files to add.
+
+## Step 4: Set properties
 
 All property setters return `Item*` for chaining. Here is every setter available on the `Item` class.
 
@@ -317,6 +339,7 @@ public:
 
     ArmorItem(int id, const ArmorMaterial *armorType, int renderIndex, int slot);
     // Durability = healthPerSlot[slot] * material->getDurabilityMultiplier()
+    // healthPerSlot = {11, 16, 15, 13} (head, torso, legs, feet)
     // Defense from material->slotProtections[slot]
 };
 ```
@@ -449,7 +472,7 @@ Item::bucket_empty = ( new BucketItem(69, 0) )
 | `use(itemInstance, level, player)` | Right-click with item in hand (not on a block) | Returns `itemInstance` unchanged |
 | `useOn(itemInstance, player, level, x, y, z, face, ...)` | Right-click on a block | Returns `false` |
 | `hurtEnemy(itemInstance, mob, attacker)` | Hit a mob with the item | Returns `false` |
-| `mineBlock(itemInstance, level, tile, x, y, z, owner)` | Break a block with the item | Returns `true`, no durability cost |
+| `mineBlock(itemInstance, level, tile, x, y, z, owner)` | Break a block with the item | Returns `false` (no durability cost by default) |
 | `getAttackDamage(entity)` | Query attack damage | Returns `1` |
 | `getDestroySpeed(itemInstance, tile)` | Query mining speed against a tile | Returns `1.0` |
 | `canDestroySpecial(tile)` | Whether this item can harvest the tile | Returns `false` |

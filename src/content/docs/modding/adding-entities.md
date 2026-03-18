@@ -27,14 +27,17 @@ Entity
 │                   ├── Wolf
 │                   └── Ozelot
 ├── Arrow                  # Arrow projectile
-├── Snowball               # Snowball projectile
 ├── Fireball               # Ghast fireball
-├── SmallFireball           # Blaze fireball
-├── ThrownEnderpearl       # Ender pearl projectile
-├── ThrownPotion           # Splash potion projectile
-├── ThrownExpBottle        # Experience bottle projectile
+│   ├── SmallFireball      # Blaze fireball
+│   └── DragonFireball     # Dragon fireball
+├── Throwable              # Hand-thrown projectiles
+│   ├── Snowball
+│   ├── ThrownEgg
+│   ├── ThrownEnderpearl
+│   ├── ThrownPotion       # Splash potion
+│   └── ThrownExpBottle    # Experience bottle
+├── FishingHook            # Fishing rod bobber
 ├── EyeOfEnderSignal       # Eye of ender (flies toward stronghold)
-├── DragonFireball          # Dragon fireball
 ├── Boat                   # Rideable boat
 ├── Minecart               # Minecart (rideable, chest, furnace variants)
 ├── ItemEntity             # Dropped items
@@ -59,12 +62,31 @@ Pick whichever base class matches the behavior you want:
 
 ## Step 1: Add an eINSTANCEOF Type
 
-LCE uses an `eINSTANCEOF` enum instead of C++ `dynamic_cast` to identify entity types at runtime. Add a new entry to the enum in `Minecraft.World/Definitions.h` (or wherever the full enum is defined):
+LCE uses an `eINSTANCEOF` enum instead of C++ `dynamic_cast` to identify entity types at runtime. The enum is in `Minecraft.World/Class.h`.
 
+The enum uses bitfield encoding so the engine can do fast category checks with bitwise AND. Each mob type ORs together category bits with a unique low value. Here are the category bits:
+
+| Bit | Meaning |
+|-----|---------|
+| `0x200` | Animal |
+| `0x400` | Monster |
+| `0x800` | Enemy (hostile) |
+| `0x2000` | Ageable mob |
+| `0x80000` | Counts toward animal spawn limit |
+
+To add a new mob type, OR your category bits with a unique low value that doesn't collide with existing entries. Check `Class.h` for what's already taken.
+
+For a new hostile mob:
 ```cpp
-// In the eINSTANCEOF enum
-eTYPE_MY_MOB,
+eTYPE_MY_HOSTILE_MOB = 0xC00 | uniqueValue,  // 0xC00 = monster + enemy
 ```
+
+For a new passive animal:
+```cpp
+eTYPE_MY_ANIMAL = 0x82200 | uniqueValue,  // animal + ageable + spawn limit check
+```
+
+Note: Entity types after `eTYPE_OTHERS = 0x100000` use sequential values instead of bitfields. These include tile entities, particles, and special entities like EnderCrystal. Sequential types can't be category-checked with bitwise AND.
 
 Every entity class overrides `GetType()` to return its enum value. This is how the engine does type checks without `dynamic_cast`:
 
@@ -120,6 +142,7 @@ A couple important things here:
 Here's the constructor pattern that `Cow` and `Zombie` both follow:
 
 ```cpp
+#include "stdafx.h"
 #include "MyMob.h"
 // Include AI goal headers
 #include "net.minecraft.world.entity.ai.goal.h"
@@ -445,7 +468,7 @@ void EntityIO::staticCtor()
 }
 ```
 
-The `setId` function registers your entity in five maps at once:
+The `setId` function registers your entity in six maps at once:
 
 | Map | Key | Value |
 |-----|-----|-------|
@@ -454,6 +477,7 @@ The `setId` function registers your entity in five maps at once:
 | `numCreateMap` | Numeric ID (`110`) | Factory function |
 | `numClassMap` | Numeric ID | `eINSTANCEOF` |
 | `classNumMap` | `eINSTANCEOF` | Numeric ID |
+| `idNumMap` | String ID (`L"MyMob"`) | Numeric ID |
 
 The seven-argument version also adds the mob to `idsSpawnableInCreative` for the spawn egg UI.
 
@@ -524,8 +548,13 @@ LCE has console-specific spawn limits defined in `MobCategory.h`:
 | `creature_chicken` | 8 | 16 | 26 |
 | `creature_wolf` | 8 | 16 | 26 |
 | `creature_mushroomcow` | 2 | 22 | 30 |
+| `villager` | N/A | 35 | 50 |
+
+Note: `MobCategory` has two cap fields: `m_max` (per-chunk spawning cap, used during natural spawn cycles) and `m_maxPerLevel` (global hard limit for the whole level). The table above shows per-level values.
 
 Console editions have separate categories for wolves, chickens, and mooshrooms because those mobs have special gameplay purposes (taming, egg farms, mushroom stew). This prevents them from filling up the general creature cap.
+
+Not all animals count toward the general `creature` cap. Only animals with the `0x80000` bit (`eTYPE_ANIMALS_SPAWN_LIMIT_CHECK`) in their `eINSTANCEOF` value are counted. Chickens, wolves, and mooshrooms are deliberately excluded since they have their own separate categories. If you're adding a custom animal that should count toward the general creature cap, make sure to include the `0x80000` bit in its type value.
 
 ### canSpawn() Override
 
@@ -586,6 +615,8 @@ EntityRenderDispatcher::EntityRenderDispatcher()
 
 The `EntityRenderDispatcher` maps `eINSTANCEOF` values directly to `EntityRenderer` instances. Every entity type that can show up in the world **must** have a renderer here, since there's no fallback. The second parameter on most renderers is the shadow size.
 
+If you need a custom model (most mobs do), see the [Entity Models](/modding/entity-models/) guide for how to build one from scratch. For animations, see [Custom Animations](/modding/custom-animations/).
+
 ### Existing Renderer/Model Pairings
 
 | Mob | Renderer | Model |
@@ -604,7 +635,21 @@ Non-mob entities also need renderers. Projectiles typically use a simple sprite 
 
 Set `textureIdx` in your entity's constructor to a texture name constant (defined in `Textures.h`). Add your texture constant and load the actual texture in the client's texture system.
 
-## Step 9: Implement Required Overrides
+## Step 9: Add Files to the Build System
+
+Any new `.h` and `.cpp` files you create need to be added to the build system or they won't get compiled.
+
+For `Minecraft.World` files (your entity class, AI goals, damage sources):
+- Add them to `cmake/Sources.cmake` in the `MINECRAFT_WORLD_SOURCES` list
+- If you're using the Visual Studio project, also add them to `Minecraft.World/Minecraft.World.vcxproj`
+
+For `Minecraft.Client` files (your model and renderer):
+- Add them to `cmake/Sources.cmake` in the `MINECRAFT_CLIENT_SOURCES` list
+- If you're using the Visual Studio project, also add them to `Minecraft.Client/Minecraft.Client.vcxproj`
+
+If you skip this step, your code won't be compiled and you'll get linker errors about missing symbols.
+
+## Step 10: Implement Required Overrides
 
 Depending on your base class, you'll need to implement these virtual functions:
 

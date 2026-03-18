@@ -17,6 +17,66 @@ Here is what we will cover:
 
 If you have not set up a build environment yet, start with [Getting Started](/lce-docs/modding/getting-started/) first. This tutorial assumes you can build and run the game.
 
+## Files you will create or modify
+
+What you touch depends on what kind of texture you are adding. Here is the full picture:
+
+### For block textures
+
+| File | Action |
+|------|--------|
+| `Common/res/TitleUpdate/res/terrain.png` | Paint your 16x16 texture into an empty atlas slot |
+| `Minecraft.Client/PreStitchedTextureMap.cpp` | Register UV entry in `loadUVs()` (terrain section) |
+| `Minecraft.World/Tile.cpp` | Call `setTextureName()` with your texture name |
+| Your tile `.h`/`.cpp` (optional) | Override `registerIcons()` and `getTexture()` for multi-face blocks |
+
+### For item textures
+
+| File | Action |
+|------|--------|
+| `Common/res/TitleUpdate/res/gui/items.png` | Paint your 16x16 texture into an empty atlas slot |
+| `Minecraft.Client/PreStitchedTextureMap.cpp` | Register UV entry in `loadUVs()` (items section) |
+| `Minecraft.World/Item.cpp` | Call `setTextureName()` with your texture name |
+
+### For entity textures
+
+| File | Action |
+|------|--------|
+| `Common/res/TitleUpdate/res/mob/your_entity.png` | Create a standalone PNG (usually 64x32 or 64x64) |
+| `Minecraft.Client/Textures.h` | Add a `TEXTURE_NAME` enum entry |
+| `Minecraft.Client/Textures.cpp` | Map the enum to a file path in `preLoaded[]` |
+| Your renderer `.cpp` | Call `textures->bindTexture()` with the enum value |
+
+### For texture replacement (non-destructive)
+
+| File | Action |
+|------|--------|
+| `Common/DummyTexturePack/res/...` | Drop replacement PNGs matching vanilla paths |
+| `Minecraft.Client/TexturePackRepository.cpp` | Enable `FolderTexturePack` in `addDebugPacks()` |
+
+### Resource directory structure
+
+Here is where texture files live on disk:
+
+```
+Common/
+  res/
+    TitleUpdate/
+      res/
+        terrain.png                   <-- block atlas (256x256)
+        gui/
+          items.png                   <-- item atlas
+        mob/
+          creeper.png                 <-- entity textures (standalone)
+          zombie.png
+          your_entity.png
+        environment/
+          clouds.png
+        particles.png
+```
+
+No new `.cpp` or `.h` files are needed for textures alone. You only modify existing source files to register your texture names. If you do add new tile or item classes that need source files, add those `.cpp` files to `cmake/Sources.cmake` under the appropriate section (`MINECRAFT_WORLD_SOURCES` or `MINECRAFT_CLIENT_SOURCES`).
+
 ---
 
 ## Part 1: How the Terrain Atlas Works
@@ -629,7 +689,24 @@ Here is every file involved in textures, at a glance:
 
 ---
 
-## What to Try Next
+## Build and test
+
+After making your texture changes, do a clean build to make sure the atlas gets rebuilt:
+
+```bash
+cmake --build build --config Release --clean-first
+```
+
+The `--clean-first` flag is important for atlas changes. Without it, the old atlas may stay cached and you will not see your new textures.
+
+Once in-game, check for these common problems:
+
+- **Purple-black checkerboard (missingno):** Texture name mismatch between `loadUVs()` and `setTextureName()`. Copy-paste the string to make sure it is identical.
+- **White or invisible entity:** The `preLoaded[]` path does not match the actual file location, or `bindTexture()` is using the wrong enum value.
+- **Texture on the wrong face:** Your `getTexture()` override has the face indices backwards. Check `Facing.h` for the constants: `DOWN=0, UP=1, NORTH=2, SOUTH=3, WEST=4, EAST=5`.
+- **Squished or stretched texture:** Your atlas slot size calculation is wrong. If you extended the atlas vertically, use separate `slotW` and `slotH` variables.
+
+## What to try next
 
 Now that you understand how textures work in LCE, here are some good next steps:
 

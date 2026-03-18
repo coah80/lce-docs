@@ -59,7 +59,7 @@ static DWORD tlsIdxShape;  // TLS slot index
 ```cpp
 static Tile **tiles;                           // Global tile registry
 static bool solid[4096];                       // Is the block solid?
-static int lightBlock[4096];                   // Light blocking (0-15)
+static int lightBlock[4096];                   // Light blocking (0-255)
 static bool transculent[4096];                 // Is transparent?
 static int lightEmission[4096];                // Light output (0-15)
 static unsigned char _sendTileData[4096];      // Data bits to network sync
@@ -967,4 +967,4 @@ The `BasePressurePlateTile` and `BaseRailTile` classes are new in MC, providing 
 
 The `BaseEntityTile` class is another MC addition that provides a shared base for tile entity blocks. LCEMP uses `EntityTile` in its hierarchy instead.
 
-MC also adds `RepeaterTile` and `ComparatorTile` as separate source files. In LCEMP, the repeater logic lives entirely in `DiodeTile`.
+MC also adds `RepeaterTile` and `ComparatorTile` as separate source files. LCEMP's `Tile.h` also forward-declares and uses `RepeaterTile` for the `diode_off`/`diode_on` entries, so the rename is present in both codebases. The repeater logic itself still lives in `DiodeTile`.
